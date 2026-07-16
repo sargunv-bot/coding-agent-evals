@@ -73,6 +73,11 @@
     },
     {
       "artifacts": 6,
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "run_id": "20260716T224849Z-ce-07-mobility-result-461948-1784242129863257340"
+    },
+    {
+      "artifacts": 6,
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
       "run_id": "20260716T172029Z-ce-01-antidote-output-461948-1784222429510249267"
     },
