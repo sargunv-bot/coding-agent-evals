@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import shlex
@@ -51,6 +52,9 @@ class AgentRunResult:
     finished_at: str
     duration_seconds: float
     agent_exit_code: int
+    agent_completion_status: str
+    agent_exit_discrepancy: bool
+    model_config_sha256: str
     patch_path: str
     trajectory_path: str
     usage: AgentUsage
@@ -97,6 +101,15 @@ class AgentRunner:
                 }
             }
         return config
+
+    @classmethod
+    def opencode_config_text(cls, route: ProviderRoute, instruction_mode: str) -> str:
+        return json.dumps(cls.opencode_config(route, instruction_mode), indent=2) + "\n"
+
+    @classmethod
+    def opencode_config_sha256(cls, route: ProviderRoute, instruction_mode: str) -> str:
+        config = cls.opencode_config_text(route, instruction_mode).encode()
+        return hashlib.sha256(config).hexdigest()
 
     def build_tools(self) -> dict[str, str]:
         self.engine.ensure_space()
@@ -183,6 +196,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
         *,
         scenario: str | None = None,
         instruction_mode: str = "ask_user",
+        initial_clarification: str | None = None,
     ) -> AgentRunResult:
         started_monotonic = time.monotonic()
         started_at = datetime.now(UTC).isoformat()
@@ -211,13 +225,18 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
 
         scenario_spec = task.scenario(scenario) if scenario else None
         instruction = task.instruction.read_text().strip()
-        if scenario_spec and instruction_mode == "full_info":
-            instruction += "\n\nUser clarification:\n" + scenario_spec.answer
+        if instruction_mode == "full_info":
+            clarification = initial_clarification or (
+                scenario_spec.full_info_addendum if scenario_spec else None
+            )
+            if not clarification:
+                raise ValueError("full_info mode requires an initial clarification")
+            instruction += "\n\nUser clarification:\n" + clarification
 
-        opencode_config = self.opencode_config(route, instruction_mode)
         config_path = config_dir / "opencode.json"
-        config_path.write_text(json.dumps(opencode_config, indent=2) + "\n")
+        config_path.write_text(self.opencode_config_text(route, instruction_mode))
         config_path.chmod(0o644)
+        model_config_sha256 = self.opencode_config_sha256(route, instruction_mode)
         instruction_path = config_dir / "instruction.txt"
         instruction_path.write_text(instruction + "\n")
         instruction_path.chmod(0o644)
@@ -364,6 +383,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
 
             event_path = logs / "opencode.jsonl"
             usage = self._extract_usage(event_path)
+            completion_status = self._completion_status(event_path, agent_exit)
             trajectory_path = logs / "trajectory.json"
             self._write_atif(event_path, trajectory_path, run_id, route, usage)
             if patch_path.exists():
@@ -383,6 +403,9 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 finished_at=datetime.now(UTC).isoformat(),
                 duration_seconds=round(time.monotonic() - started_monotonic, 6),
                 agent_exit_code=agent_exit,
+                agent_completion_status=completion_status,
+                agent_exit_discrepancy=(completion_status == "completed") != (agent_exit == 0),
+                model_config_sha256=model_config_sha256,
                 patch_path=str(patch_path),
                 trajectory_path=str(trajectory_path),
                 usage=usage,
@@ -404,6 +427,25 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
+
+    @staticmethod
+    def _completion_status(source: Path, exit_code: int) -> str:
+        if exit_code == 124:
+            return "timeout"
+        if not source.exists():
+            return "incomplete"
+        for line in reversed(source.read_text(errors="replace").splitlines()):
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") == "error":
+                return "error"
+            if event.get("type") == "step_finish":
+                part = event.get("part")
+                reason = part.get("reason") if isinstance(part, dict) else None
+                return "completed" if reason == "stop" else "incomplete"
+        return "incomplete"
 
     @staticmethod
     def _extract_usage(source: Path) -> AgentUsage:

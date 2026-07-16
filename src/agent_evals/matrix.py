@@ -48,6 +48,7 @@ class MatrixRunner:
             "infrastructure_retries": self.experiment.infrastructure_retries,
             "proctor_model": self.experiment.proctor_model,
             "routes": [self._redacted_route(route) for route in self.routes.values()],
+            "model_configs": self._model_configs(),
             "cells": [asdict(cell) for cell in self.experiment.expand()],
         }
 
@@ -86,6 +87,7 @@ class MatrixRunner:
             "opencode_version": OPENCODE_VERSION,
             "proctor_model": self.experiment.proctor_model,
             "routes": [self._redacted_route(route) for route in self.routes.values()],
+            "model_configs": self._model_configs(),
             "images": images,
             "cells": [asdict(cell) for cell in self.experiment.expand()],
         }
@@ -139,6 +141,7 @@ class MatrixRunner:
                     self.routes[(cell.provider, cell.model)],
                     scenario=cell.scenario,
                     instruction_mode=cell.mode,
+                    initial_clarification=cell.initial_clarification,
                 )
                 result_data = asdict(result)
                 verification = result_data.get("verification")
@@ -202,6 +205,8 @@ class MatrixRunner:
         expected_routes = [self._redacted_route(route) for route in self.routes.values()]
         if lock.get("routes") != expected_routes:
             raise MatrixError("provider routes changed after lock creation")
+        if lock.get("model_configs") != self._model_configs():
+            raise MatrixError("generated model configuration changed after lock creation")
 
     def _git(self, *args: str) -> str:
         result = subprocess.run(
@@ -220,3 +225,23 @@ class MatrixRunner:
             "endpoint_host": endpoint.hostname or "",
             "api_key_env": route.api_key_env,
         }
+
+    def _model_configs(self) -> list[dict]:
+        configs: list[dict] = []
+        seen: set[tuple[str, str, str]] = set()
+        for cell in self.experiment.expand():
+            key = (cell.provider, cell.model, cell.mode)
+            if key in seen:
+                continue
+            seen.add(key)
+            route = self.routes[(cell.provider, cell.model)]
+            configs.append(
+                {
+                    "provider": cell.provider,
+                    "model": cell.model,
+                    "mode": cell.mode,
+                    "sha256": AgentRunner.opencode_config_sha256(route, cell.mode),
+                    "config": AgentRunner.opencode_config(route, cell.mode),
+                }
+            )
+        return configs

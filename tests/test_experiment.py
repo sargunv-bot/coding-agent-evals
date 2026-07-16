@@ -101,6 +101,57 @@ task = "ce-07-mobility-result"
 """
             )
 
+    def test_full_info_requires_actual_initial_information(self) -> None:
+        with self.assertRaisesRegex(ExperimentValidationError, "requires a scenario or"):
+            self._load(
+                """
+[experiment]
+id = "empty-full-info"
+stage = "diagnostic"
+proctor_model = "proctor"
+
+[[models]]
+provider = "chosen"
+model = "model-a"
+
+[[cells]]
+task = "ce-01-antidote-output"
+mode = "full_info"
+"""
+            )
+
+    def test_loads_frozen_pricing_and_initial_clarification(self) -> None:
+        spec = self._load(
+            """
+[experiment]
+id = "priced-full-info"
+stage = "diagnostic"
+proctor_model = "proctor"
+
+[[models]]
+provider = "chosen"
+model = "model-a"
+
+[models.pricing]
+basis = "published-list"
+currency = "USD"
+input_per_million = 1
+cached_input_per_million = 0.1
+output_per_million = 2
+reasoning_per_million = 2
+
+[[cells]]
+task = "ce-01-antidote-output"
+mode = "full_info"
+initial_clarification = "Apply the behavior to clone and update paths."
+"""
+        )
+        self.assertEqual("published-list", spec.models[0].pricing.basis)
+        self.assertEqual(
+            "Apply the behavior to clone and update paths.",
+            spec.expand()[0].initial_clarification,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

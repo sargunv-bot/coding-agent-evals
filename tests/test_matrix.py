@@ -47,6 +47,8 @@ class MatrixRunnerTest(unittest.TestCase):
         self.assertEqual(1, len(plan["routes"]))
         self.assertEqual("chosen", plan["routes"][0]["provider"])
         self.assertNotIn("base_url", plan["routes"][0])
+        self.assertEqual(1, len(plan["model_configs"]))
+        self.assertEqual(64, len(plan["model_configs"][0]["sha256"]))
         self.assertEqual(1, len(plan["cells"]))
         self.assertIn("chosen__model-a", plan["cells"][0]["cell_id"])
 
@@ -65,6 +67,9 @@ class MatrixRunnerTest(unittest.TestCase):
             finished_at="2026-01-01T00:00:01+00:00",
             duration_seconds=1.0,
             agent_exit_code=1,
+            agent_completion_status="completed",
+            agent_exit_discrepancy=True,
+            model_config_sha256="abc",
             patch_path="patch",
             trajectory_path="trajectory",
             usage=AgentUsage(input_tokens=10, output_tokens=2),

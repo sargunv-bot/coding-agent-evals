@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+from decimal import Decimal
 from pathlib import Path
 
 from .experiment import ExperimentSpec
@@ -36,6 +37,22 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
             proctor = repo_root / ".runs" / run_id / "proctor"
             question_count = len(list((proctor / "questions").glob("*.json")))
             answer_count = len(list((proctor / "answers").glob("*.json")))
+        pricing = experiment.pricing(cell["provider"], cell["model"])
+        estimated_cost = None
+        if pricing is not None:
+            estimated_cost = float(
+                (
+                    Decimal(str(usage.get("input_tokens", 0)))
+                    * Decimal(str(pricing.input_per_million))
+                    + Decimal(str(usage.get("cached_input_tokens", 0)))
+                    * Decimal(str(pricing.cached_input_per_million))
+                    + Decimal(str(usage.get("output_tokens", 0)))
+                    * Decimal(str(pricing.output_per_million))
+                    + Decimal(str(usage.get("reasoning_tokens", 0)))
+                    * Decimal(str(pricing.reasoning_per_million))
+                )
+                / Decimal(1_000_000)
+            )
         rows.append(
             {
                 "cell_id": cell["cell_id"],
@@ -48,6 +65,9 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
                 "state": record.get("state"),
                 "run_id": run_id or "",
                 "agent_exit_code": result.get("agent_exit_code"),
+                "agent_completion_status": result.get("agent_completion_status", "unknown"),
+                "agent_exit_discrepancy": result.get("agent_exit_discrepancy", False),
+                "model_config_sha256": result.get("model_config_sha256", ""),
                 "verification_outcome": verification.get("outcome", ""),
                 "deterministic_pass": verification.get("outcome") == "passed",
                 "duration_seconds": result.get("duration_seconds"),
@@ -56,6 +76,9 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
                 "output_tokens": usage.get("output_tokens", 0),
                 "reasoning_tokens": usage.get("reasoning_tokens", 0),
                 "provider_reported_cost": usage.get("provider_reported_cost"),
+                "estimated_cost": round(estimated_cost, 12) if estimated_cost is not None else None,
+                "pricing_basis": pricing.basis if pricing else "",
+                "pricing_currency": pricing.currency if pricing else "",
                 "questions": question_count,
                 "answers": answer_count,
                 "attempts": len(attempts),
@@ -72,6 +95,11 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
         "reasoning_tokens": sum(int(row["reasoning_tokens"] or 0) for row in rows),
         "provider_reported_cost": round(
             sum(float(row["provider_reported_cost"] or 0) for row in rows), 12
+        ),
+        "estimated_cost": (
+            round(sum(float(row["estimated_cost"] or 0) for row in rows), 12)
+            if rows and all(row["estimated_cost"] is not None for row in rows)
+            else None
         ),
         "questions": sum(int(row["questions"]) for row in rows),
     }

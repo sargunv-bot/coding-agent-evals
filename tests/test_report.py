@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from agent_evals.experiment import CellSpec, ExperimentSpec, ModelSpec
+from agent_evals.experiment import CellSpec, ExperimentSpec, ModelSpec, PricingSpec
 from agent_evals.report import write_experiment_report
 
 
@@ -24,7 +24,20 @@ class ExperimentReportTest(unittest.TestCase):
                 concurrency=1,
                 infrastructure_retries=1,
                 proctor_model="proctor",
-                models=(ModelSpec("chosen", "model"),),
+                models=(
+                    ModelSpec(
+                        "chosen",
+                        "model",
+                        PricingSpec(
+                            basis="operator-test-rates",
+                            currency="USD",
+                            input_per_million=1.0,
+                            cached_input_per_million=0.5,
+                            output_per_million=2.0,
+                            reasoning_per_million=3.0,
+                        ),
+                    ),
+                ),
                 cells=(CellSpec("task", None, "ask_user"),),
             )
             cell = experiment.expand()[0]
@@ -64,6 +77,8 @@ class ExperimentReportTest(unittest.TestCase):
             self.assertEqual(20, payload["totals"]["output_tokens"])
             self.assertEqual(1, payload["totals"]["questions"])
             self.assertEqual(1, payload["totals"]["deterministic_passes"])
+            self.assertEqual(0.000179, payload["totals"]["estimated_cost"])
+            self.assertEqual("operator-test-rates", payload["rows"][0]["pricing_basis"])
             self.assertNotIn(b"\r\n", (output / "results.csv").read_bytes())
             report = (output / "results.json").read_text()
             self.assertNotIn(directory, report)

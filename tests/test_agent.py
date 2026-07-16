@@ -36,6 +36,18 @@ class AgentRunnerGateTests(unittest.TestCase):
         self.assertEqual(provider["npm"], "@ai-sdk/openai-compatible")
         self.assertEqual(provider["options"]["apiKey"], "{env:CAE_PROVIDER_API_KEY}")
 
+    def test_model_config_digest_is_canonical_and_mode_sensitive(self) -> None:
+        baseline = AgentRunner.opencode_config_sha256(self.route, "baseline")
+        self.assertEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "baseline"))
+        self.assertNotEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "ask_user"))
+
+    def test_completion_status_preserves_nonzero_exit_discrepancy_signal(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            path.write_text(json.dumps({"type": "step_finish", "part": {"reason": "stop"}}))
+            self.assertEqual("completed", AgentRunner._completion_status(path, 1))
+            self.assertEqual("timeout", AgentRunner._completion_status(path, 124))
+
     def test_extracts_step_usage_without_double_counting_other_events(self) -> None:
         events = [
             {
