@@ -9,6 +9,7 @@ __pycache__/
 # Build products
 build/
 bin/
+_site/
 
 # Evaluation outputs
 .hermes/
