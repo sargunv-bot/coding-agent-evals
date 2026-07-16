@@ -1,0 +1,1067 @@
+diff --git a/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt b/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt
+index d422e979f266023d5dbee02702dddac8803234c8..a1a9ef6d8d3d39f52e91336ee707eb61512164ae 100644
+--- a/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt
++++ b/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt
+@@ -17,7 +17,6 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GbfsJson) }
+     }
+   )
+@@ -28,7 +27,6 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient(engine) {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GbfsJson) }
+     }
+   )
+@@ -42,110 +40,110 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * The manifest contains URLs for all available feeds in all supported languages.
+    *
+    * @param discoveryUrl The URL of the gbfs.json auto-discovery file
+-   * @return The manifest response containing available feeds
++   * @return The manifest response containing available feeds, or a failure if the request failed
+    */
+-  public suspend fun getSystemManifest(discoveryUrl: Url): GbfsFeedResponse<SystemManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getSystemManifest(discoveryUrl: Url): Result<GbfsFeedResponse<SystemManifest>> =
++    runCatching { getFeedResponse(discoveryUrl) }
+ 
+   /**
+    * Fetches the list of GBFS versions supported by this system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing supported GBFS versions
++   * @return Response containing supported GBFS versions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getVersionManifest(): GbfsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GbfsFeedResponse<VersionManifest>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VersionManifest)) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system information
++   * @return Response containing system information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemInformation(): GbfsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GbfsFeedResponse<SystemInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemInformation)) }
+ 
+   /**
+    * Fetches static information about stations in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing station information
++   * @return Response containing station information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getStationInformation(): GbfsFeedResponse<StationInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationInformation))
++  public suspend fun getStationInformation(): Result<GbfsFeedResponse<StationInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.StationInformation)) }
+ 
+   /**
+    * Fetches real-time status of stations including available bikes and docks.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing current station status
++   * @return Response containing current station status, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getStationStatus(): GbfsFeedResponse<StationStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationStatus))
++  public suspend fun getStationStatus(): Result<GbfsFeedResponse<StationStatus>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.StationStatus)) }
+ 
+   /**
+    * Fetches real-time status of free-floating vehicles not currently docked.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing available vehicle locations and status
++   * @return Response containing available vehicle locations and status, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getFreeBikeStatus(): GbfsFeedResponse<FreeBikeStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.FreeBikeStatus))
++  public suspend fun getFreeBikeStatus(): Result<GbfsFeedResponse<FreeBikeStatus>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.FreeBikeStatus)) }
+ 
+   /**
+    * Fetches hours of operation for the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system operating hours
++   * @return Response containing system operating hours, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemHours(): GbfsFeedResponse<SystemHours> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemHours))
++  public suspend fun getSystemHours(): Result<GbfsFeedResponse<SystemHours>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemHours)) }
+ 
+   /**
+    * Fetches the operating calendar for seasonal systems.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system operating calendar
++   * @return Response containing system operating calendar, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemCalendar(): GbfsFeedResponse<SystemCalendar> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemCalendar))
++  public suspend fun getSystemCalendar(): Result<GbfsFeedResponse<SystemCalendar>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemCalendar)) }
+ 
+   /**
+    * Fetches information about geographic regions in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system regions
++   * @return Response containing system regions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemRegions(): GbfsFeedResponse<SystemRegions> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemRegions))
++  public suspend fun getSystemRegions(): Result<GbfsFeedResponse<SystemRegions>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemRegions)) }
+ 
+   /**
+    * Fetches pricing plans for the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing pricing plan information
++   * @return Response containing pricing plan information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemPricingPlans(): GbfsFeedResponse<SystemPricingPlans> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans))
++  public suspend fun getSystemPricingPlans(): Result<GbfsFeedResponse<SystemPricingPlans>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans)) }
+ 
+   /**
+    * Fetches current system alerts about service disruptions or changes.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing active system alerts
++   * @return Response containing active system alerts, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemAlerts(): GbfsFeedResponse<SystemAlerts> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts))
++  public suspend fun getSystemAlerts(): Result<GbfsFeedResponse<SystemAlerts>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts)) }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt
+index d38761b09e9111b22c119e9dacd7efeca45fe220..94081a8c12d0a0fac32223ab41afb838d56a0549 100644
+--- a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt
++++ b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt
+@@ -13,23 +13,24 @@ class DocsSnippet {
+           .getSystemManifest( // (2)!
+             discoveryUrl = "https://data.lime.bike/api/partners/v1/gbfs/seattle/gbfs.json"
+           )
++          .getOrNull()!!
+           .data
+ 
+       context(manifest.getService("en")) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrNull()!!.data // (4)!
+ 
+         println("System: ${systemInfo.name}")
+         println("Operator: ${systemInfo.operator}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val stations = gbfs.getStationInformation().data // (5)!
++        val stations = gbfs.getStationInformation().getOrNull()!!.data // (5)!
+ 
+         println("\nStations: ${stations.size}")
+         stations.take(3).forEach { station ->
+           println("  - ${station.name} (${station.capacity} bikes)")
+         }
+ 
+-        val freeBikes = gbfs.getFreeBikeStatus().data.bikes // (6)!
++        val freeBikes = gbfs.getFreeBikeStatus().getOrNull()!!.data.bikes // (6)!
+ 
+         println("\nAvailable bikes: ${freeBikes.size}")
+         freeBikes.take(3).forEach { bike ->
+diff --git a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt
+index 5825cfcde7d53302613030c851a9c9c9dbc86082..4fb2a3086f4fd7cb41fb9848588425eed2fe3596 100644
+--- a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt
++++ b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt
+@@ -7,6 +7,7 @@ import io.ktor.http.HttpStatusCode
+ import io.ktor.http.fullPath
+ import io.ktor.http.headersOf
+ import kotlin.test.Test
++import kotlin.test.assertTrue
+ import kotlinx.coroutines.test.runTest
+ import kotlinx.io.buffered
+ import kotlinx.io.files.FileNotFoundException
+@@ -42,7 +43,9 @@ class ProducerTest {
+   fun publicbikesystem() = runTest {
+     val client = GbfsV1Client(createMockEngine("publicbikesystem"))
+ 
+-    val manifest = client.getSystemManifest("gbfs")
++    val result = client.getSystemManifest("gbfs")
++    assertTrue(result.isSuccess)
++    val manifest = result.getOrNull()!!
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+@@ -57,7 +60,9 @@ class ProducerTest {
+   @Test
+   fun bird() = runTest {
+     val client = GbfsV1Client(createMockEngine("bird"))
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val result = client.getSystemManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val manifest = result.getOrNull()!!
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+@@ -72,7 +77,9 @@ class ProducerTest {
+   fun bcycle() = runTest {
+     val client = GbfsV1Client(createMockEngine("bcycle"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val result = client.getSystemManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val manifest = result.getOrNull()!!
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+@@ -93,7 +100,9 @@ class ProducerTest {
+   fun donkey() = runTest {
+     val client = GbfsV1Client(createMockEngine("donkey"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val result = client.getSystemManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val manifest = result.getOrNull()!!
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+@@ -110,7 +119,9 @@ class ProducerTest {
+   fun bolt() = runTest {
+     val client = GbfsV1Client(createMockEngine("bolt"))
+ 
+-    val manifest = client.getSystemManifest("gbfs")
++    val result = client.getSystemManifest("gbfs")
++    assertTrue(result.isSuccess)
++    val manifest = result.getOrNull()!!
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+@@ -124,7 +135,9 @@ class ProducerTest {
+   fun lime() = runTest {
+     val client = GbfsV1Client(createMockEngine("lime"))
+ 
+-    val manifest = client.getSystemManifest("gbfs")
++    val result = client.getSystemManifest("gbfs")
++    assertTrue(result.isSuccess)
++    val manifest = result.getOrNull()!!
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+diff --git a/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt b/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt
+index a2c159ae19888a8d9fb2b83edfe6ad94da0ea37b..4594bfc0abdbe9b950aafa488aa2ed1e07c74d14 100644
+--- a/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt
++++ b/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt
+@@ -17,7 +17,6 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GbfsJson) }
+     }
+   )
+@@ -28,7 +27,6 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient(engine) {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GbfsJson) }
+     }
+   )
+@@ -42,130 +40,130 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * The manifest contains URLs for all available feeds in all supported languages.
+    *
+    * @param discoveryUrl The URL of the gbfs.json auto-discovery file
+-   * @return The manifest response containing available feeds
++   * @return The manifest response containing available feeds, or a failure if the request failed
+    */
+-  public suspend fun getSystemManifest(discoveryUrl: Url): GbfsFeedResponse<SystemManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getSystemManifest(discoveryUrl: Url): Result<GbfsFeedResponse<SystemManifest>> =
++    runCatching { getFeedResponse(discoveryUrl) }
+ 
+   /**
+    * Fetches the list of GBFS versions supported by this system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing supported GBFS versions
++   * @return Response containing supported GBFS versions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getVersionManifest(): GbfsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GbfsFeedResponse<VersionManifest>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VersionManifest)) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system information
++   * @return Response containing system information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemInformation(): GbfsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GbfsFeedResponse<SystemInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemInformation)) }
+ 
+   /**
+    * Fetches information about vehicle types available in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing vehicle type definitions
++   * @return Response containing vehicle type definitions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getVehicleTypes(): GbfsFeedResponse<VehicleTypes> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes))
++  public suspend fun getVehicleTypes(): Result<GbfsFeedResponse<VehicleTypes>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes)) }
+ 
+   /**
+    * Fetches static information about stations in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing station information
++   * @return Response containing station information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getStationInformation(): GbfsFeedResponse<StationInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationInformation))
++  public suspend fun getStationInformation(): Result<GbfsFeedResponse<StationInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.StationInformation)) }
+ 
+   /**
+    * Fetches real-time status of stations including available bikes and docks.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing current station status
++   * @return Response containing current station status, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getStationStatus(): GbfsFeedResponse<StationStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationStatus))
++  public suspend fun getStationStatus(): Result<GbfsFeedResponse<StationStatus>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.StationStatus)) }
+ 
+   /**
+    * Fetches real-time status of free-floating vehicles not currently docked.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing available vehicle locations and status
++   * @return Response containing available vehicle locations and status, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getFreeBikeStatus(): GbfsFeedResponse<FreeBikeStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.FreeBikeStatus))
++  public suspend fun getFreeBikeStatus(): Result<GbfsFeedResponse<FreeBikeStatus>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.FreeBikeStatus)) }
+ 
+   /**
+    * Fetches hours of operation for the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system operating hours
++   * @return Response containing system operating hours, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemHours(): GbfsFeedResponse<SystemHours> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemHours))
++  public suspend fun getSystemHours(): Result<GbfsFeedResponse<SystemHours>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemHours)) }
+ 
+   /**
+    * Fetches the operating calendar for seasonal systems.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system operating calendar
++   * @return Response containing system operating calendar, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemCalendar(): GbfsFeedResponse<SystemCalendar> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemCalendar))
++  public suspend fun getSystemCalendar(): Result<GbfsFeedResponse<SystemCalendar>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemCalendar)) }
+ 
+   /**
+    * Fetches information about geographic regions in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system regions
++   * @return Response containing system regions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemRegions(): GbfsFeedResponse<SystemRegions> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemRegions))
++  public suspend fun getSystemRegions(): Result<GbfsFeedResponse<SystemRegions>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemRegions)) }
+ 
+   /**
+    * Fetches pricing plans for the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing pricing plan information
++   * @return Response containing pricing plan information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemPricingPlans(): GbfsFeedResponse<SystemPricingPlans> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans))
++  public suspend fun getSystemPricingPlans(): Result<GbfsFeedResponse<SystemPricingPlans>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans)) }
+ 
+   /**
+    * Fetches current system alerts about service disruptions or changes.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing active system alerts
++   * @return Response containing active system alerts, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemAlerts(): GbfsFeedResponse<SystemAlerts> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts))
++  public suspend fun getSystemAlerts(): Result<GbfsFeedResponse<SystemAlerts>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts)) }
+ 
+   /**
+    * Fetches geofencing zones that define geographic restrictions.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing geofencing zone definitions
++   * @return Response containing geofencing zone definitions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getGeofencingZones(): GbfsFeedResponse<GeofencingZones> =
+-    getFeedResponse(service.feeds.getValue(FeedType.GeofencingZones))
++  public suspend fun getGeofencingZones(): Result<GbfsFeedResponse<GeofencingZones>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.GeofencingZones)) }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt
+index b3a821c13436ac6f2c9957e3435f8572896756ae..2df1732013d6256099b2d6bcf82a2308da209005 100644
+--- a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt
++++ b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt
+@@ -13,21 +13,22 @@ class DocsSnippet {
+           .getSystemManifest( // (2)!
+             discoveryUrl = "https://mds.bird.co/gbfs/v2/public/seattle-washington/gbfs.json"
+           )
++          .getOrNull()!!
+           .data
+ 
+       context(manifest.getService("en")) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrNull()!!.data // (4)!
+ 
+         println("System: ${systemInfo.name}")
+         println("Operator: ${systemInfo.operator}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val vehicleTypes = gbfs.getVehicleTypes().data.vehicleTypes // (5)!
++        val vehicleTypes = gbfs.getVehicleTypes().getOrNull()!!.data.vehicleTypes // (5)!
+ 
+         println("\nVehicle Types:")
+         vehicleTypes.forEach { type -> println("  - ${type.formFactor}: (${type.propulsionType})") }
+ 
+-        val freeBikes = gbfs.getFreeBikeStatus().data.bikes // (6)!
++        val freeBikes = gbfs.getFreeBikeStatus().getOrNull()!!.data.bikes // (6)!
+ 
+         println("\nAvailable bikes: ${freeBikes.size}")
+         freeBikes.take(3).forEach { bike ->
+diff --git a/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt b/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt
+index 81a6a18739a263657e2916456ba787763522bd85..7a412f3d63d7e5f1499934899e820f5dc8473184 100644
+--- a/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt
++++ b/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt
+@@ -17,7 +17,6 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GbfsJson) }
+     }
+   )
+@@ -28,7 +27,6 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient(engine) {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GbfsJson) }
+     }
+   )
+@@ -43,10 +41,10 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * their system IDs and available versions.
+    *
+    * @param manifestUrl The URL of the manifest.json file
+-   * @return The manifest response containing dataset information
++   * @return The manifest response containing dataset information, or a failure if the request failed
+    */
+-  public suspend fun getDatasetManifest(manifestUrl: Url): GbfsFeedResponse<DatasetManifest> =
+-    getFeedResponse(manifestUrl)
++  public suspend fun getDatasetManifest(manifestUrl: Url): Result<GbfsFeedResponse<DatasetManifest>> =
++    runCatching { getFeedResponse(manifestUrl) }
+ 
+   /**
+    * Fetches the GBFS manifest (auto-discovery file) from the given URL.
+@@ -54,110 +52,110 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * The manifest contains URLs for all available feeds.
+    *
+    * @param discoveryUrl The URL of the gbfs.json auto-discovery file
+-   * @return The manifest response containing available feeds
++   * @return The manifest response containing available feeds, or a failure if the request failed
+    */
+-  public suspend fun getServiceManifest(discoveryUrl: Url): GbfsFeedResponse<ServiceManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getServiceManifest(discoveryUrl: Url): Result<GbfsFeedResponse<ServiceManifest>> =
++    runCatching { getFeedResponse(discoveryUrl) }
+ 
+   /**
+    * Fetches the list of GBFS versions supported by this system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing supported GBFS versions
++   * @return Response containing supported GBFS versions, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getVersionManifest(): GbfsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GbfsFeedResponse<VersionManifest>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VersionManifest)) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system information
++   * @return Response containing system information, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemInformation(): GbfsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GbfsFeedResponse<SystemInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemInformation)) }
+ 
+   /**
+    * Fetches information about vehicle types available in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing vehicle type definitions
++   * @return Response containing vehicle type definitions, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getVehicleTypes(): GbfsFeedResponse<VehicleTypes> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes))
++  public suspend fun getVehicleTypes(): Result<GbfsFeedResponse<VehicleTypes>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes)) }
+ 
+   /**
+    * Fetches static information about stations in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing station information
++   * @return Response containing station information, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getStationInformation(): GbfsFeedResponse<StationInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationInformation))
++  public suspend fun getStationInformation(): Result<GbfsFeedResponse<StationInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.StationInformation)) }
+ 
+   /**
+    * Fetches real-time status of stations including available bikes and docks.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing current station status
++   * @return Response containing current station status, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getStationStatus(): GbfsFeedResponse<StationStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationStatus))
++  public suspend fun getStationStatus(): Result<GbfsFeedResponse<StationStatus>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.StationStatus)) }
+ 
+   /**
+    * Fetches real-time status of free-floating vehicles not currently docked.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing available vehicle locations and status
++   * @return Response containing available vehicle locations and status, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getVehicleStatus(): GbfsFeedResponse<VehicleStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleStatus))
++  public suspend fun getVehicleStatus(): Result<GbfsFeedResponse<VehicleStatus>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VehicleStatus)) }
+ 
+   /**
+    * Fetches information about geographic regions in the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing system regions
++   * @return Response containing system regions, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemRegions(): GbfsFeedResponse<SystemRegions> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemRegions))
++  public suspend fun getSystemRegions(): Result<GbfsFeedResponse<SystemRegions>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemRegions)) }
+ 
+   /**
+    * Fetches pricing plans for the system.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing pricing plan information
++   * @return Response containing pricing plan information, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemPricingPlans(): GbfsFeedResponse<SystemPricingPlans> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans))
++  public suspend fun getSystemPricingPlans(): Result<GbfsFeedResponse<SystemPricingPlans>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans)) }
+ 
+   /**
+    * Fetches current system alerts about service disruptions or changes.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing active system alerts
++   * @return Response containing active system alerts, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemAlerts(): GbfsFeedResponse<SystemAlerts> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts))
++  public suspend fun getSystemAlerts(): Result<GbfsFeedResponse<SystemAlerts>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts)) }
+ 
+   /**
+    * Fetches geofencing zones that define geographic restrictions.
+    *
+    * @param [service] The GBFS service containing feed URLs
+-   * @return Response containing geofencing zone definitions
++   * @return Response containing geofencing zone definitions, or a failure if the request failed
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getGeofencingZones(): GbfsFeedResponse<GeofencingZones> =
+-    getFeedResponse(service.feeds.getValue(FeedType.GeofencingZones))
++  public suspend fun getGeofencingZones(): Result<GbfsFeedResponse<GeofencingZones>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.GeofencingZones)) }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt
+index 379e42c804115bfe8a602e0b3f5d34c3caabe1e7..747643d025c495170ef3091ec8ee541b77a02399 100644
+--- a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt
++++ b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt
+@@ -14,21 +14,22 @@ class DocsSnippet {
+           .getServiceManifest( // (2)!
+             discoveryUrl = "https://locomotion.app/api/gbfs/3.0/montreal/gbfs"
+           )
++          .getOrNull()!!
+           .data
+ 
+       context(service) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrNull()!!.data // (4)!
+ 
+         println("System: ${systemInfo.name["en-CA"]}")
+         println("Operator: ${systemInfo.operator?.get("en-CA")}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val vehicleTypes = gbfs.getVehicleTypes().data // (5)!
++        val vehicleTypes = gbfs.getVehicleTypes().getOrNull()!!.data // (5)!
+ 
+         println("\nVehicle Types:")
+         vehicleTypes.forEach { type -> println("  - ${type.formFactor}: (${type.propulsionType})") }
+ 
+-        val freeBikes = gbfs.getVehicleStatus().data // (6)!
++        val freeBikes = gbfs.getVehicleStatus().getOrNull()!!.data // (6)!
+ 
+         println("\nAvailable bikes: ${freeBikes.size}")
+         freeBikes.take(3).forEach { bike ->
+diff --git a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt
+index 842c69d0f6dea1f423c66eaa9f981a07d271063f..2b9e5aac35dc6085f374d6cfd70ea02987fc6db5 100644
+--- a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt
++++ b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt
+@@ -7,6 +7,7 @@ import io.ktor.http.HttpStatusCode
+ import io.ktor.http.fullPath
+ import io.ktor.http.headersOf
+ import kotlin.test.Test
++import kotlin.test.assertTrue
+ import kotlinx.coroutines.test.runTest
+ import kotlinx.io.buffered
+ import kotlinx.io.files.FileNotFoundException
+@@ -41,9 +42,11 @@ class ProducerTest {
+   @Test
+   fun bolt() = runTest {
+     val client = GbfsV3Client(createMockEngine("bolt"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getVersionManifest()
+       client.getGeofencingZones()
+       client.getStationInformation()
+@@ -58,9 +61,11 @@ class ProducerTest {
+   @Test
+   fun citiz() = runTest {
+     val client = GbfsV3Client(createMockEngine("citiz"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getSystemInformation()
+       client.getVersionManifest()
+       client.getSystemPricingPlans()
+@@ -75,9 +80,11 @@ class ProducerTest {
+   @Test
+   fun cooltra() = runTest {
+     val client = GbfsV3Client(createMockEngine("cooltra"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getSystemInformation()
+       client.getSystemPricingPlans()
+       client.getVehicleTypes()
+@@ -89,9 +96,11 @@ class ProducerTest {
+   @Test
+   fun cyclocity() = runTest {
+     val client = GbfsV3Client(createMockEngine("cyclocity"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getSystemInformation()
+       client.getVersionManifest()
+       client.getVehicleTypes()
+@@ -103,9 +112,11 @@ class ProducerTest {
+   @Test
+   fun ecovelo() = runTest {
+     val client = GbfsV3Client(createMockEngine("ecovelo"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getSystemInformation()
+       client.getVersionManifest()
+       client.getSystemRegions()
+@@ -122,9 +133,11 @@ class ProducerTest {
+   @Test
+   fun flamingo() = runTest {
+     val client = GbfsV3Client(createMockEngine("flamingo"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getSystemInformation()
+       client.getVersionManifest()
+       client.getSystemPricingPlans()
+@@ -140,9 +153,11 @@ class ProducerTest {
+   @Test
+   fun ridecheck() = runTest {
+     val client = GbfsV3Client(createMockEngine("ridecheck"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val result = client.getServiceManifest("gbfs.json")
++    assertTrue(result.isSuccess)
++    val service = result.getOrNull()!!
+ 
+-    context(service) {
++    context(service.data) {
+       client.getSystemInformation()
+       client.getVehicleTypes()
+       client.getGeofencingZones()
+diff --git a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
+index 54b3fa43c018b45de3754cf8b944fc9845b8475e..87d0649201f3b21e9d0d9e467965721986940956 100644
+--- a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
++++ b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
+@@ -19,7 +19,6 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GofsJson) }
+     }
+   )
+@@ -30,7 +29,6 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+   ) : this(
+     HttpClient(engine) {
+       block()
+-      expectSuccess = true
+       install(ContentNegotiation) { json(GofsJson) }
+     }
+   )
+@@ -47,90 +45,90 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * The manifest contains URLs for all available feeds in all supported languages.
+    *
+    * @param discoveryUrl The URL of the gofs.json auto-discovery file
+-   * @return The manifest response containing available feeds
++   * @return The manifest response containing available feeds, or a failure if the request failed
+    */
+-  public suspend fun getSystemManifest(discoveryUrl: Url): GofsFeedResponse<SystemManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getSystemManifest(discoveryUrl: Url): Result<GofsFeedResponse<SystemManifest>> =
++    runCatching { getFeedResponse(discoveryUrl) }
+ 
+   /**
+    * Fetches the list of GOFS versions supported by this system.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing supported GOFS versions
++   * @return Response containing supported GOFS versions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getVersionManifest(): GofsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GofsFeedResponse<VersionManifest>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VersionManifest)) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing system information
++   * @return Response containing system information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getSystemInformation(): GofsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GofsFeedResponse<SystemInformation>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.SystemInformation)) }
+ 
+   /**
+    * Fetches information about service brands used in the system.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing service brand definitions
++   * @return Response containing service brand definitions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getServiceBrands(): GofsFeedResponse<ServiceBrands> =
+-    getFeedResponse(service.feeds.getValue(FeedType.ServiceBrands))
++  public suspend fun getServiceBrands(): Result<GofsFeedResponse<ServiceBrands>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.ServiceBrands)) }
+ 
+   /**
+    * Fetches information about vehicle types available in the system.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing vehicle type definitions
++   * @return Response containing vehicle type definitions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getVehicleTypes(): GofsFeedResponse<VehicleTypes> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes))
++  public suspend fun getVehicleTypes(): Result<GofsFeedResponse<VehicleTypes>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes)) }
+ 
+   /**
+    * Fetches zone definitions where services operate.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing zone definitions
++   * @return Response containing zone definitions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getZones(): GofsFeedResponse<Zones> =
+-    getFeedResponse(service.feeds.getValue(FeedType.Zones))
++  public suspend fun getZones(): Result<GofsFeedResponse<Zones>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.Zones)) }
+ 
+   /**
+    * Fetches operating rules governing the service.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing operating rules
++   * @return Response containing operating rules, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getOperatingRules(): GofsFeedResponse<OperatingRules> =
+-    getFeedResponse(service.feeds.getValue(FeedType.OperatingRules))
++  public suspend fun getOperatingRules(): Result<GofsFeedResponse<OperatingRules>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.OperatingRules)) }
+ 
+   /**
+    * Fetches calendar definitions for service availability.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing calendar definitions
++   * @return Response containing calendar definitions, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getCalendars(): GofsFeedResponse<Calendars> =
+-    getFeedResponse(service.feeds.getValue(FeedType.Calendars))
++  public suspend fun getCalendars(): Result<GofsFeedResponse<Calendars>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.Calendars)) }
+ 
+   /**
+    * Fetches fare structures and pricing information.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing fare information
++   * @return Response containing fare information, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getFares(): GofsFeedResponse<Fares> =
+-    getFeedResponse(service.feeds.getValue(FeedType.Fares))
++  public suspend fun getFares(): Result<GofsFeedResponse<Fares>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.Fares)) }
+ 
+   /**
+    * Fetches wait time information for services.
+@@ -143,7 +141,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @param dropOffLat Latitude where the user will be dropped off (optional)
+    * @param dropOffLon Longitude where the user will be dropped off (optional)
+    * @param brandIds List of brand IDs to filter wait times (optional)
+-   * @return Response containing wait time information
++   * @return Response containing wait time information, or a failure if the request failed
+    */
+   context(service: Service)
+   public suspend fun getWaitTimes(
+@@ -152,15 +150,14 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+     dropOffLat: Double? = null,
+     dropOffLon: Double? = null,
+     brandIds: List<String> = emptyList(),
+-  ): GofsFeedResponse<WaitTimes> {
+-    val url = URLBuilder(service.feeds.getValue(FeedType.WaitTimes))
+-
++  ): Result<GofsFeedResponse<WaitTimes>> {
+     require(
+       dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
+     ) {
+       "Both dropOffLat and dropOffLon must be provided together"
+     }
+ 
++    val url = URLBuilder(service.feeds.getValue(FeedType.WaitTimes))
+     url.parameters.append("pickup_lat", pickupLat.toString())
+     url.parameters.append("pickup_lon", pickupLon.toString())
+ 
+@@ -174,18 +171,18 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+       url.parameters.append("brand_id", joined)
+     }
+ 
+-    return getFeedResponse(url.build())
++    return runCatching { getFeedResponse(url.build()) }
+   }
+ 
+   /**
+    * Fetches booking rules for the service.
+    *
+    * @param [service] The GOFS service containing feed URLs
+-   * @return Response containing booking rules
++   * @return Response containing booking rules, or a failure if the request failed
+    */
+   context(service: Service)
+-  public suspend fun getBookingRules(): GofsFeedResponse<BookingRules> =
+-    getFeedResponse(service.feeds.getValue(FeedType.BookingRules))
++  public suspend fun getBookingRules(): Result<GofsFeedResponse<BookingRules>> =
++    runCatching { getFeedResponse(service.feeds.getValue(FeedType.BookingRules)) }
+ 
+   /**
+    * Fetches real-time booking information.
+@@ -203,7 +200,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @param brandIds List of brand IDs to filter wait times (optional)
+    * @param pickupAddress Full address where the user will be picked up (optional)
+    * @param dropOffAddress Full address where the user will be dropped off (optional)
+-   * @return Response containing real-time booking information
++   * @return Response containing real-time booking information, or a failure if the request failed
+    */
+   context(service: Service)
+   public suspend fun getRealtimeBookings(
+@@ -214,15 +211,14 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+     brandIds: List<String> = emptyList(),
+     pickupAddress: String? = null,
+     dropOffAddress: String? = null,
+-  ): GofsFeedResponse<RealtimeBookings> {
+-    val url = URLBuilder(service.feeds.getValue(FeedType.RealtimeBookings))
+-
++  ): Result<GofsFeedResponse<RealtimeBookings>> {
+     require(
+       dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
+     ) {
+       "Both dropOffLat and dropOffLon must be provided together"
+     }
+ 
++    val url = URLBuilder(service.feeds.getValue(FeedType.RealtimeBookings))
+     url.parameters.append("pickup_lat", pickupLat.toString())
+     url.parameters.append("pickup_lon", pickupLon.toString())
+ 
+@@ -239,7 +235,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+     if (pickupAddress != null) url.parameters.append("pickup_address", pickupAddress)
+     if (dropOffAddress != null) url.parameters.append("drop_off_address", dropOffAddress)
+ 
+-    return getFeedResponse(url.build())
++    return runCatching { getFeedResponse(url.build()) }
+   }
+ 
+   override fun close(): Unit = httpClient.close()
+diff --git a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
+index e201a88923f97978782caef95d4e39e77f55132e..3f4022dc7dcfc611e5fdfc2241e23e4a9809d152 100644
+--- a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
++++ b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
+@@ -13,22 +13,23 @@ class DocsSnippet {
+           .getSystemManifest( // (2)!
+             discoveryUrl = "<discovery url>"
+           )
++          .getOrNull()!!
+           .data
+ 
+       context(manifest.getService("en")) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrNull()!!.data // (4)!
+ 
+         println("System: ${systemInfo.name}")
+         println("Operator: ${systemInfo.operator}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val serviceBrands = gbfs.getServiceBrands().data // (5)!
++        val serviceBrands = gbfs.getServiceBrands().getOrNull()!!.data // (5)!
+ 
+         println("\nService Brands:")
+         serviceBrands.forEach { brand -> println("  - ${brand.brandName} (ID: ${brand.brandId})") }
+ 
+         val waitTimes = // (6)!
+-          gbfs.getWaitTimes(pickupLat = 41.8781, pickupLon = -87.6298).data
++          gbfs.getWaitTimes(pickupLat = 41.8781, pickupLon = -87.6298).getOrNull()!!.data
+ 
+         println("\nWait Times:")
+         waitTimes.forEach { waitTime ->

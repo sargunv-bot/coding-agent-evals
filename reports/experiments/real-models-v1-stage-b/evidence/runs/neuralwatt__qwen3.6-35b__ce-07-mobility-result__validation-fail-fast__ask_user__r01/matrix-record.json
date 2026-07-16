@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "incomplete",
+        "agent_exit_code": 1,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 546.778401,
+        "endpoint_host": "api.neuralwatt.com",
+        "finished_at": "2026-07-16T21:35:09.255260+00:00",
+        "instruction_mode": "ask_user",
+        "model": "qwen3.6-35b",
+        "model_config_sha256": "595e70cd5ce37b64021c6e2dc0d072800e0d0c0b1ef35a413c8eaa6a8eeb9738",
+        "patch_path": "model.patch",
+        "provider": "neuralwatt",
+        "run_id": "20260716T212611Z-ce-07-mobility-result-461948-1784237171831470739",
+        "scenario": "validation-fail-fast",
+        "started_at": "2026-07-16T21:26:02.476870+00:00",
+        "task_id": "ce-07-mobility-result",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 3332736,
+          "input_tokens": 183048,
+          "output_tokens": 29859,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 0
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 71.82996420603013,
+          "exit_code": 1,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "api": 0,
+            "behavioral": 0,
+            "regression": 0,
+            "reward": 0
+          },
+          "run_dir": "verifier",
+          "scenario": "validation-fail-fast",
+          "task_id": "ce-07-mobility-result"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "qwen3.6-35b",
+    "provider": "neuralwatt",
+    "repeat": 1,
+    "scenario": "validation-fail-fast",
+    "task_id": "ce-07-mobility-result"
+  },
+  "experiment_id": "real-models-v1-stage-b",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-16T21:35:09.513987+00:00"
+}
