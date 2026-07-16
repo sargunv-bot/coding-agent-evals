@@ -1,0 +1,287 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 9a680480d448bb65b476fa501070a4f59f469ca5..5d26ccb8d7a017fa7fe91ec82a1f47bf9a0cc14d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -437,6 +437,7 @@ list(APPEND INCLUDE_FILES
+     ${PROJECT_SOURCE_DIR}/include/mbgl/util/scoped.hpp
+     ${PROJECT_SOURCE_DIR}/include/mbgl/util/size.hpp
+     ${PROJECT_SOURCE_DIR}/include/mbgl/util/string_indexer.hpp
++    ${PROJECT_SOURCE_DIR}/include/mbgl/util/source_location.hpp
+     ${PROJECT_SOURCE_DIR}/include/mbgl/util/string.hpp
+     ${PROJECT_SOURCE_DIR}/include/mbgl/util/thread.hpp
+     ${PROJECT_SOURCE_DIR}/include/mbgl/util/tile_server_options.hpp
+diff --git a/bazel/core.bzl b/bazel/core.bzl
+index 185d99dd0d43a41fee8f0fdef7b72db13ec50d69..e6e897ffac4d9379dfbb76e4b081ad91c374be95 100644
+--- a/bazel/core.bzl
++++ b/bazel/core.bzl
+@@ -839,6 +839,7 @@ MLN_CORE_HEADERS = [
+     "include/mbgl/util/run_loop.hpp",
+     "include/mbgl/util/scoped.hpp",
+     "include/mbgl/util/size.hpp",
++    "include/mbgl/util/source_location.hpp",
+     "include/mbgl/util/string.hpp",
+     "include/mbgl/util/string_indexer.hpp",
+     "include/mbgl/util/tile_server_options.hpp",
+diff --git a/include/mbgl/util/source_location.hpp b/include/mbgl/util/source_location.hpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..aa28b63d30a1333074ba2730a76d2348d96ccbce
+--- /dev/null
++++ b/include/mbgl/util/source_location.hpp
+@@ -0,0 +1,73 @@
++#pragma once
++
++#include <cstdint>
++
++#if defined(__has_include)
++#  if __has_include(<source_location>)
++#    include <source_location>
++#  endif
++#endif
++
++// Use the standard library implementation when it is actually available.
++#if defined(__cpp_lib_source_location) && __cpp_lib_source_location >= 201907L
++#  define MLN_HAS_STD_SOURCE_LOCATION 1
++#endif
++
++namespace mbgl {
++
++#if MLN_HAS_STD_SOURCE_LOCATION
++
++using source_location = std::source_location;
++
++#else
++
++/// A lightweight, standards-safe fallback for `std::source_location` for toolchains
++/// and standard libraries that do not yet provide it (e.g. OpenHarmony's C++ runtime).
++class source_location {
++public:
++    using line_type = std::uint_least32_t;
++    using column_type = std::uint_least32_t;
++
++    constexpr source_location() noexcept
++        : file_name_(nullptr),
++          function_name_(nullptr),
++          line_(0),
++          column_(0) {}
++
++    constexpr source_location(const char* file_name,
++                              const char* function_name,
++                              line_type line,
++                              column_type column = 0) noexcept
++        : file_name_(file_name),
++          function_name_(function_name),
++          line_(line),
++          column_(column) {}
++
++    constexpr line_type line() const noexcept { return line_; }
++    constexpr column_type column() const noexcept { return column_; }
++    constexpr const char* file_name() const noexcept { return file_name_; }
++    constexpr const char* function_name() const noexcept { return function_name_; }
++
++private:
++    const char* file_name_;
++    const char* function_name_;
++    line_type line_;
++    column_type column_;
++};
++
++#endif
++
++} // namespace mbgl
++
++/// Captures the current source location.
++///
++/// When `std::source_location` is available this expands to the standard
++/// `::mbgl::source_location::current()`.  On toolchains without it (e.g.
++/// OpenHarmony) it expands to a fallback constructed from `__FILE__`,
++/// `__FUNCTION__` and `__LINE__` at the call site, preserving useful diagnostic
++/// information.
++#if MLN_HAS_STD_SOURCE_LOCATION
++#  define MLN_SOURCE_LOCATION_CURRENT() (::mbgl::source_location::current())
++#else
++#  define MLN_SOURCE_LOCATION_CURRENT() (::mbgl::source_location(__FILE__, __FUNCTION__, __LINE__))
++#endif
+diff --git a/src/mbgl/layout/symbol_instance.cpp b/src/mbgl/layout/symbol_instance.cpp
+index 6ca7c6f2ff82e5d26bd95fa2baf809fbc7e73458..1b430e0355d7034c08ba2b81e3ed6c408ba9778e 100644
+--- a/src/mbgl/layout/symbol_instance.cpp
++++ b/src/mbgl/layout/symbol_instance.cpp
+@@ -235,7 +235,7 @@ std::optional<size_t> SymbolInstance::getDefaultHorizontalPlacedTextIndex() cons
+ }
+ 
+ #if MLN_SYMBOL_GUARDS
+-bool SymbolInstance::check(const std::source_location& source) const {
++bool SymbolInstance::check(const mbgl::source_location& source) const {
+     return !isFailed && check(check01, 1, source) && check(check02, 2, source) && check(check03, 3, source) &&
+            check(check04, 4, source) && check(check05, 5, source) && check(check06, 6, source) &&
+            check(check07, 7, source) && check(check08, 8, source) && check(check09, 9, source) &&
+@@ -251,7 +251,7 @@ bool SymbolInstance::check(const std::source_location& source) const {
+ bool SymbolInstance::checkIndexes(std::size_t textCount,
+                                   std::size_t iconSize,
+                                   std::size_t sdfSize,
+-                                  const std::source_location& source) const {
++                                  const mbgl::source_location& source) const {
+     return !isFailed && checkIndex(placedRightTextIndex, textCount, source) &&
+            checkIndex(placedCenterTextIndex, textCount, source) && checkIndex(placedLeftTextIndex, textCount, source) &&
+            checkIndex(placedVerticalTextIndex, textCount, source) &&
+@@ -260,12 +260,12 @@ bool SymbolInstance::checkIndexes(std::size_t textCount,
+ }
+ 
+ namespace {
+-inline std::string locationSuffix(const std::source_location& source) {
++inline std::string locationSuffix(const mbgl::source_location& source) {
+     return std::string(" from ") + source.function_name() + " (" + source.file_name() + ":" +
+            util::toString(source.line()) + ")";
+ }
+ } // namespace
+-bool SymbolInstance::check(std::uint64_t v, int n, const std::source_location& source) const {
++bool SymbolInstance::check(std::uint64_t v, int n, const mbgl::source_location& source) const {
+     if (!isFailed && v != checkVal) {
+         isFailed = true;
+         Log::Error(Event::Crash,
+@@ -275,7 +275,7 @@ bool SymbolInstance::check(std::uint64_t v, int n, const std::source_location& s
+     return !isFailed;
+ }
+ 
+-bool SymbolInstance::checkKey(const std::source_location& source) const {
++bool SymbolInstance::checkKey(const mbgl::source_location& source) const {
+     if (!isFailed && key.size() > 10000) { // largest observed value=62
+         isFailed = true;
+         Log::Error(Event::Crash,
+@@ -286,7 +286,7 @@ bool SymbolInstance::checkKey(const std::source_location& source) const {
+ 
+ bool SymbolInstance::checkIndex(const std::optional<std::size_t>& index,
+                                 std::size_t size,
+-                                const std::source_location& source) const {
++                                const mbgl::source_location& source) const {
+     if (index.has_value() && *index >= size) {
+         isFailed = true;
+         Log::Error(Event::Crash,
+diff --git a/src/mbgl/layout/symbol_instance.hpp b/src/mbgl/layout/symbol_instance.hpp
+index 479058d7e6df56ed9da1fafe9b1f4cd102da9db7..fa5a1dc083cb0063aad29f88c24021e7002899a2 100644
+--- a/src/mbgl/layout/symbol_instance.hpp
++++ b/src/mbgl/layout/symbol_instance.hpp
+@@ -4,8 +4,7 @@
+ #include <mbgl/text/collision_feature.hpp>
+ #include <mbgl/style/layers/symbol_layer_properties.hpp>
+ #include <mbgl/util/bitmask_operations.hpp>
+-
+-#include <source_location>
++#include <mbgl/util/source_location.hpp>
+ 
+ #ifndef MLN_SYMBOL_GUARDS
+ #define MLN_SYMBOL_GUARDS 1
+@@ -13,37 +12,9 @@
+ 
+ #if MLN_SYMBOL_GUARDS
+ #define SYM_GUARD_VALUE(N) std::uint64_t check##N = checkVal;
++#define SYM_GUARD_LOC MLN_SOURCE_LOCATION_CURRENT()
+ #else
+ #define SYM_GUARD_VALUE(N)
+-#endif
+-
+-// A temporary shim for partial C++20 support
+-#if MLN_SYMBOL_GUARDS
+-#ifdef __clang__
+-#if __cplusplus <= 201703L || !__has_builtin(__builtin_source_location)
+-namespace std {
+-struct source_location {
+-    const char* fileName_;
+-    const char* functionName_;
+-    unsigned line_;
+-
+-    constexpr uint_least32_t line() const noexcept { return line_; }
+-    constexpr uint_least32_t column() const noexcept { return 0; }
+-    constexpr const char* file_name() const noexcept { return fileName_; }
+-    constexpr const char* function_name() const noexcept { return functionName_; }
+-};
+-} // namespace std
+-#define SYM_GUARD_LOC                    \
+-    std::source_location {               \
+-        __FILE__, __FUNCTION__, __LINE__ \
+-    }
+-#else
+-#define SYM_GUARD_LOC std::source_location::current()
+-#endif
+-#else
+-#define SYM_GUARD_LOC std::source_location::current()
+-#endif
+-#else
+ #define SYM_GUARD_LOC \
+     {                 \
+     }
+@@ -139,14 +110,14 @@ public:
+ 
+ #if MLN_SYMBOL_GUARDS
+     /// Check all guard blocks
+-    bool check(const std::source_location&) const;
++    bool check(const mbgl::source_location&) const;
+     /// Check that an index is in the valid range
+-    bool checkIndex(const std::optional<std::size_t>& index, std::size_t size, const std::source_location&) const;
++    bool checkIndex(const std::optional<std::size_t>& index, std::size_t size, const mbgl::source_location&) const;
+     /// Check all indexes
+     bool checkIndexes(std::size_t textCount,
+                       std::size_t iconSize,
+                       std::size_t sdfSize,
+-                      const std::source_location&) const;
++                      const mbgl::source_location&) const;
+     /// Mark this item as failed (due to some external check) so that it cannot be used later
+     void forceFail() const;
+ #else
+@@ -206,8 +177,8 @@ public:
+ 
+ protected:
+ #if MLN_SYMBOL_GUARDS
+-    bool check(std::uint64_t v, int n, const std::source_location&) const;
+-    bool checkKey(const std::source_location&) const;
++    bool check(std::uint64_t v, int n, const mbgl::source_location&) const;
++    bool checkKey(const mbgl::source_location&) const;
+     void forceFailInternal(); // this is just to avoid warnings about the values never being set
+ #else
+     bool checkKey(std::string_view) const { return true; }
+diff --git a/src/mbgl/renderer/bucket.hpp b/src/mbgl/renderer/bucket.hpp
+index 319a0607be409a107421c753fac894f36d525df7..63759e73fba9a24fc6f08a79d5bd9132290c3158 100644
+--- a/src/mbgl/renderer/bucket.hpp
++++ b/src/mbgl/renderer/bucket.hpp
+@@ -6,6 +6,7 @@
+ #include <mbgl/tile/geometry_tile_data.hpp>
+ 
+ #include <mbgl/util/identity.hpp>
++#include <mbgl/util/source_location.hpp>
+ 
+ #include <atomic>
+ 
+@@ -71,7 +72,7 @@ public:
+     const util::SimpleIdentity& getID() const { return bucketID; }
+ 
+ #if MLN_SYMBOL_GUARDS
+-    virtual bool check(std::source_location) { return true; }
++    virtual bool check(mbgl::source_location) { return true; }
+ #else
+     bool check(std::string_view = {}) { return true; }
+ #endif
+diff --git a/src/mbgl/renderer/buckets/symbol_bucket.cpp b/src/mbgl/renderer/buckets/symbol_bucket.cpp
+index 99cb6b998e5e2f8987ebeaed86808164b4369a96..8837f03a2159c4aa30f67df3372fc42f6bf432d0 100644
+--- a/src/mbgl/renderer/buckets/symbol_bucket.cpp
++++ b/src/mbgl/renderer/buckets/symbol_bucket.cpp
+@@ -235,7 +235,7 @@ SymbolInstanceReferences SymbolBucket::getSymbols(const std::optional<SortKeyRan
+ }
+ 
+ #if MLN_SYMBOL_GUARDS
+-bool SymbolBucket::check(std::source_location source) {
++bool SymbolBucket::check(mbgl::source_location source) {
+     if (text.vertices().elements() != text.dynamicVertices().elements() ||
+         text.vertices().elements() != text.opacityVertices().elements() ||
+         icon.vertices().elements() != icon.dynamicVertices().elements() ||
+diff --git a/src/mbgl/renderer/buckets/symbol_bucket.hpp b/src/mbgl/renderer/buckets/symbol_bucket.hpp
+index 530a9a46723687356b1c80e67a904709defc472a..5996cf4be6365b719becb34e7132285a7b1b6ef8 100644
+--- a/src/mbgl/renderer/buckets/symbol_bucket.hpp
++++ b/src/mbgl/renderer/buckets/symbol_bucket.hpp
+@@ -251,7 +251,7 @@ public:
+     SymbolInstanceReferences getSymbols(const std::optional<SortKeyRange>& sortKeyRange = std::nullopt) const;
+ 
+ #if MLN_SYMBOL_GUARDS
+-    bool check(std::source_location) override;
++    bool check(mbgl::source_location) override;
+ #endif
+ 
+     static SymbolLayoutVertex layoutVertex(Point<float> labelAnchor,
