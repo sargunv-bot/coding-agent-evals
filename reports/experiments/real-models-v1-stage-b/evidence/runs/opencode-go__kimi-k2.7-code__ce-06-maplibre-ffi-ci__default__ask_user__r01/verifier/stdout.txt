@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/tests/verify_workflow.py", line 118, in <module>
+    main()
+  File "/tests/verify_workflow.py", line 74, in main
+    generator = find_generator(source)
+                ^^^^^^^^^^^^^^^^^^^^^^
+  File "/tests/verify_workflow.py", line 48, in find_generator
+    raise AssertionError(f"expected one discoverable workflow generator, got {candidates}")
+AssertionError: expected one discoverable workflow generator, got []

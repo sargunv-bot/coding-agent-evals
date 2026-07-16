@@ -4,7 +4,7 @@
 
 | Cells | Passes | Infra errors | Input | Cached input | Output | Questions |
 |---:|---:|---:|---:|---:|---:|---:|
-| 21 | 3 | 0 | 2883666 | 89098846 | 397821 | 2 |
+| 22 | 3 | 0 | 3361132 | 97923096 | 424955 | 2 |
 
 Provider-reported cost is retained when supplied, but token counts are the primary usage record.
 
@@ -25,6 +25,7 @@ Provider-reported cost is retained when supplied, but token counts are the prima
 | opencode-go | kimi-k2.7-code | ce-03-jvl-completions | — | ask_user | yes | 215235 | 4397013 | 23101 | 20260716T215957Z-ce-03-jvl-completions-461948-1784239197709335464 |
 | opencode-go | kimi-k2.7-code | ce-04-maplibre-source-location | — | ask_user | no | 110761 | 2852037 | 13019 | 20260716T220858Z-ce-04-maplibre-source-location-461948-1784239738467296088 |
 | opencode-go | kimi-k2.7-code | ce-05-mise-slsa-archive | — | ask_user | no | 183157 | 4700369 | 18929 | 20260716T221511Z-ce-05-mise-slsa-archive-461948-1784240111720241840 |
+| opencode-go | kimi-k2.7-code | ce-06-maplibre-ffi-ci | — | ask_user | no | 477466 | 8824250 | 27134 | 20260716T223031Z-ce-06-maplibre-ffi-ci-461948-1784241031210201806 |
 | zai | glm-5.2 | ce-01-antidote-output | — | ask_user | no | 57426 | 1597568 | 7509 | 20260716T172029Z-ce-01-antidote-output-461948-1784222429510249267 |
 | zai | glm-5.2 | ce-02-horologia-overdue | — | ask_user | no | 60019 | 2107456 | 9491 | 20260716T173345Z-ce-02-horologia-overdue-461948-1784223225219993303 |
 | zai | glm-5.2 | ce-03-jvl-completions | — | ask_user | yes | 81323 | 3311744 | 12705 | 20260716T174655Z-ce-03-jvl-completions-461948-1784224015787701415 |
