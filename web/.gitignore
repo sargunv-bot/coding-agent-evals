@@ -1,0 +1,4 @@
+public/evidence/
+dist/
+.astro/
+node_modules/

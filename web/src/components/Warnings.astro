@@ -1,0 +1,5 @@
+---
+import type { Warning } from '../lib/types';
+const { warnings = [] } = Astro.props as { warnings: Warning[] };
+---
+{warnings.length > 0 && <aside class="alert alert-warning my-6" role="status"><div><h2 class="font-bold">Partial data warnings</h2><p>The site remains browsable while optional or live inputs are incomplete.</p><details><summary>{warnings.length} warning{warnings.length === 1 ? '' : 's'}</summary><ul class="mt-2 list-disc pl-5">{warnings.map((w) => <li><strong>{w.scope}:</strong> {w.message}</li>)}</ul></details></div></aside>}

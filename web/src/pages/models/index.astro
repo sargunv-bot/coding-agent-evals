@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { loadSiteData } from '../../lib/data';
+import { basePath } from '../../lib/format';
+const data = await loadSiteData();
+---
+<BaseLayout title="Models">
+  <p class="eyebrow">Browse by model</p>
+  <h1 class="text-4xl font-black">Models</h1>
+  <p class="prose-readable mt-3">A model is the named AI system; its provider is the service used to access it. Open a model to compare its attempts across tasks without collapsing results into a leaderboard.</p>
+  <div class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {data.models.map((model) => {
+      const taskCount = new Set(model.runs.map((run) => run.taskId)).size;
+      const passed = model.runs.filter((run) => run.deterministicPass).length;
+      return <article class="panel axis-card">
+        <p class="eyebrow">Provider · {model.provider}</p>
+        <h2 class="mt-2 text-xl font-bold"><a href={basePath(`models/${model.slug}/`)}>{model.name}</a></h2>
+        <dl class="mini-stats mt-5"><div><dt>Tasks attempted</dt><dd>{taskCount}</dd></div><div><dt>Committed runs</dt><dd>{model.runs.length}</dd></div><div><dt>Deterministic passes</dt><dd>{passed}</dd></div></dl>
+      </article>;
+    })}
+  </div>
+</BaseLayout>
