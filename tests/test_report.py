@@ -64,6 +64,7 @@ class ExperimentReportTest(unittest.TestCase):
             self.assertEqual(20, payload["totals"]["output_tokens"])
             self.assertEqual(1, payload["totals"]["questions"])
             self.assertEqual(1, payload["totals"]["deterministic_passes"])
+            self.assertNotIn(b"\r\n", (output / "results.csv").read_bytes())
             report = (output / "results.json").read_text()
             self.assertNotIn(directory, report)
             self.assertTrue((output / "results.csv").is_file())

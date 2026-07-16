@@ -84,8 +84,12 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
     }
     output.mkdir(parents=True, exist_ok=True)
     (output / "results.json").write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-    with (output / "results.csv").open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]) if rows else ["cell_id"])
+    with (output / "results.csv").open("w", newline="") as handle:
+        writer = csv.DictWriter(
+            handle,
+            fieldnames=list(rows[0]) if rows else ["cell_id"],
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
     (output / "summary.md").write_text(_markdown(payload))
