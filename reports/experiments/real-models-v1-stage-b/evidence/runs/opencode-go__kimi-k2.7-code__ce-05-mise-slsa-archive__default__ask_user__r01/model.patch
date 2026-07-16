@@ -1,0 +1,403 @@
+diff --git a/src/backend/github.rs b/src/backend/github.rs
+index 44141ba06b3d3f8380979647ef3e19ba679e721f..6d5b1223395ffc4ff5e70f28a4a90dfeac3fd4b1 100644
+--- a/src/backend/github.rs
++++ b/src/backend/github.rs
+@@ -131,6 +131,15 @@ enum VerificationStatus {
+     Error(String),
+ }
+ 
++impl std::fmt::Display for VerificationStatus {
++    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
++        match self {
++            VerificationStatus::NoAttestations => write!(f, "No attestations found"),
++            VerificationStatus::Error(msg) => write!(f, "{msg}"),
++        }
++    }
++}
++
+ /// Check if an SLSA verification error indicates a format/parsing issue rather than
+ /// an actual verification failure. Some provenance files (e.g., BuildKit raw provenance)
+ /// exist but aren't in a sigstore-verifiable format.
+@@ -1706,21 +1715,186 @@ impl UnifiedGitBackend {
+         )
+         .await
+         {
+-            Ok(verified) => {
+-                if verified {
+-                    ctx.pr
+-                        .set_message("✓ GitHub artifact attestations verified".to_string());
+-                    debug!("GitHub artifact attestations verified successfully for {tv}");
+-                }
+-                Ok(verified)
++            Ok(true) => {
++                ctx.pr
++                    .set_message("✓ GitHub artifact attestations verified".to_string());
++                debug!("GitHub artifact attestations verified successfully for {tv}");
++                Ok(true)
+             }
++            Ok(false) => Ok(false),
+             Err(crate::github::sigstore::AttestationError::NoAttestations) => {
+-                Err(VerificationStatus::NoAttestations)
++                // Archive-level attestation absent: some releases attest each file inside
++                // the archive rather than the archive blob itself. Try that fallback,
++                // preserving the original archive-level verification path above.
++                ctx.pr.set_message(
++                    "verify per-file GitHub artifact attestations".to_string(),
++                );
++                // Move ownership of the owner/repo/api_url strings into the closure so the
++                // boxed future is only tied to the per-file path reference.
++                let owner = owner.to_string();
++                let repo_name = repo_name.to_string();
++                let api_url = api_url.to_string();
++                let result = Self::verify_archive_per_file_attestations(
++                    file_path,
++                    move |path: &std::path::Path| {
++                        let owner = owner.clone();
++                        let repo_name = repo_name.clone();
++                        let api_url = api_url.clone();
++                        Box::pin(async move {
++                            crate::github::sigstore::verify_attestation(
++                                path,
++                                &owner,
++                                &repo_name,
++                                None,
++                                Some(&api_url),
++                            )
++                            .await
++                        })
++                    },
++                )
++                .await;
++                if let Ok(true) = result {
++                    ctx.pr.set_message(
++                        "✓ per-file GitHub artifact attestations verified".to_string(),
++                    );
++                    debug!(
++                        "Per-file GitHub artifact attestations verified successfully for {tv}"
++                    );
++                }
++                result
+             }
+             Err(e) => Err(VerificationStatus::Error(e.to_string())),
+         }
+     }
+ 
++    /// Recursively collect all regular files under a directory.
++    ///
++    /// Symlinks are ignored because their targets are not guaranteed to be part of
++    /// the extracted archive, and we want every attested byte to be unambiguous.
++    fn collect_regular_files(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
++        let mut files = Vec::new();
++        let mut queue = vec![dir.to_path_buf()];
++        while let Some(current) = queue.pop() {
++            if let Ok(entries) = std::fs::read_dir(&current) {
++                for entry in entries.flatten() {
++                    let path = entry.path();
++                    let Ok(file_type) = entry.file_type() else {
++                        continue;
++                    };
++                    if file_type.is_dir() {
++                        queue.push(path);
++                    } else if file_type.is_file() {
++                        files.push(path);
++                    }
++                }
++            }
++        }
++        files.sort();
++        files
++    }
++
++    /// Fallback verifier for archives whose release attests each contained file
++    /// instead of the archive blob itself.
++    ///
++    /// Returns `Ok(true)` only if every regular file inside the archive is
++    /// individually attested and verified. Returns `Err(NoAttestations)` when the
++    /// path is not an archive, the archive is empty, or none of its files have any
++    /// attestation, so the caller can fall through to other verification mechanisms.
++    /// Returns `Err(Error)` if any file fails verification or if any file is missing
++    /// an attestation while at least one other file is verified (fail-closed).
++    async fn verify_archive_per_file_attestations<F>(
++        file_path: &std::path::Path,
++        verify_file: F,
++    ) -> std::result::Result<bool, VerificationStatus>
++    where
++        F: for<'a> Fn(
++            &'a std::path::Path,
++        ) -> std::pin::Pin<
++            Box<
++                dyn std::future::Future<
++                        Output = std::result::Result<
++                            bool,
++                            crate::github::sigstore::AttestationError,
++                        >,
++                    > + Send
++                    + 'a,
++            >,
++        >,
++    {
++        let filename = file_path
++            .file_name()
++            .and_then(|s| s.to_str())
++            .unwrap_or_default();
++        let format = file::TarFormat::from_file_name(filename);
++        if !format.is_archive() {
++            return Err(VerificationStatus::NoAttestations);
++        }
++
++        let temp_dir = tempfile::tempdir().map_err(|e| {
++            VerificationStatus::Error(format!(
++                "failed to create temporary extraction directory: {e}"
++            ))
++        })?;
++        let extract_dir = temp_dir.path();
++        file::untar(
++            file_path,
++            extract_dir,
++            &file::TarOptions {
++                format,
++                strip_components: 0,
++                pr: None,
++                preserve_mtime: false,
++            },
++        )
++        .map_err(|e| {
++            VerificationStatus::Error(format!(
++                "failed to extract archive for per-file attestation verification: {e}"
++            ))
++        })?;
++
++        let files = Self::collect_regular_files(extract_dir);
++        if files.is_empty() {
++            return Err(VerificationStatus::NoAttestations);
++        }
++
++        let mut verified_count = 0usize;
++        let mut missing_count = 0usize;
++        let mut errors = Vec::new();
++        for file in &files {
++            match verify_file(file).await {
++                Ok(true) => verified_count += 1,
++                Ok(false) => {
++                    errors.push(format!(
++                        "per-file attestation existed but verification returned false for {}",
++                        file.display()
++                    ));
++                }
++                Err(crate::github::sigstore::AttestationError::NoAttestations) => {
++                    missing_count += 1;
++                }
++                Err(e) => {
++                    errors.push(format!(
++                        "per-file attestation verification failed for {}: {e}",
++                        file.display()
++                    ));
++                }
++            }
++        }
++
++        if !errors.is_empty() {
++            return Err(VerificationStatus::Error(errors.join("; ")));
++        }
++        if verified_count == 0 {
++            return Err(VerificationStatus::NoAttestations);
++        }
++        if missing_count > 0 {
++            return Err(VerificationStatus::Error(format!(
++                "per-file attestation missing for {missing_count} file(s) inside the archive"
++            )));
++        }
++        Ok(true)
++    }
++
+     /// Try to verify SLSA provenance. Returns:
+     /// - Ok((true, Some(url))) if provenance exists and verified successfully
+     /// - Ok((false, _)) if provenance exists but verification failed
+@@ -1925,10 +2099,11 @@ fn template_string_for_target(template: &str, tv: &ToolVersion, target: &Platfor
+     }
+ }
+ 
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
+-    use crate::cli::args::BackendArg;
++    #[cfg(test)]
++    mod tests {
++        use super::*;
++        use crate::cli::args::BackendArg;
++        use std::sync::{Arc, Mutex};
+ 
+     fn create_test_backend() -> UnifiedGitBackend {
+         UnifiedGitBackend::from_arg(BackendArg::new(
+@@ -2141,4 +2316,171 @@ mod tests {
+         assert!(!attestations_supported("https://gitlab.com/api/v4"));
+         assert!(!attestations_supported("https://codeberg.org/api/v1"));
+     }
++
++    #[test]
++    fn collect_regular_files_ignores_symlinks_and_directories() {
++        let dir = tempfile::tempdir().unwrap();
++        let regular = dir.path().join("regular");
++        std::fs::write(&regular, "content").unwrap();
++        let subdir = dir.path().join("subdir");
++        std::fs::create_dir(&subdir).unwrap();
++        let nested = subdir.join("nested");
++        std::fs::write(&nested, "nested").unwrap();
++        let link = dir.path().join("link");
++        #[cfg(unix)]
++        std::os::unix::fs::symlink(&regular, &link).unwrap();
++        #[cfg(windows)]
++        std::os::windows::fs::symlink_file(&regular, &link).unwrap();
++
++        let files = UnifiedGitBackend::collect_regular_files(dir.path());
++        assert_eq!(files.len(), 2);
++        assert!(files.contains(&regular));
++        assert!(files.contains(&nested));
++        assert!(!files.contains(&link));
++    }
++
++    fn create_tar_gz(path: &std::path::Path, entries: &[(&str, &[u8])]) -> std::path::PathBuf {
++        let file = std::fs::File::create(path).unwrap();
++        let gz = flate2::write::GzEncoder::new(file, flate2::Compression::default());
++        let mut tar = tar::Builder::new(gz);
++        for (name, data) in entries {
++            let mut header = tar::Header::new_gnu();
++            header.set_size(data.len() as u64);
++            header.set_mode(0o644);
++            header.set_cksum();
++            tar.append_data(&mut header, name, &data[..]).unwrap();
++        }
++        tar.finish().unwrap();
++        path.to_path_buf()
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_accepts_all_attested_files() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = create_tar_gz(
++            &dir.path().join("release.tar.gz"),
++            &[("bin1", b"hello"), ("bin2", b"world")],
++        );
++        let calls = Arc::new(Mutex::new(Vec::new()));
++        let calls_for_closure = Arc::clone(&calls);
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &archive,
++            move |path| {
++                calls_for_closure.lock().unwrap().push(path.to_path_buf());
++                Box::pin(async move { Ok(true) })
++            },
++        )
++        .await;
++        assert!(matches!(result, Ok(true)));
++        let seen = calls.lock().unwrap();
++        assert_eq!(seen.len(), 2);
++        assert!(seen.iter().any(|p| p.file_name().unwrap() == "bin1"));
++        assert!(seen.iter().any(|p| p.file_name().unwrap() == "bin2"));
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_rejects_missing_attestation() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = create_tar_gz(
++            &dir.path().join("release.tar.gz"),
++            &[("bin1", b"hello"), ("bin2", b"world")],
++        );
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &archive,
++            |path| {
++                let name = path.file_name().unwrap().to_string_lossy().to_string();
++                Box::pin(async move {
++                    if name == "bin1" {
++                        Ok(true)
++                    } else {
++                        Err(crate::github::sigstore::AttestationError::NoAttestations)
++                    }
++                })
++            },
++        )
++        .await;
++        let err = result.unwrap_err().to_string();
++        assert!(
++            err.contains("per-file attestation missing") || err.contains("bin2"),
++            "expected fail-closed error about missing attestation, got {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_no_attestations_returns_no_attestations() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = create_tar_gz(
++            &dir.path().join("release.tar.gz"),
++            &[("bin1", b"hello"), ("bin2", b"world")],
++        );
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &archive,
++            |_path| Box::pin(async { Err(crate::github::sigstore::AttestationError::NoAttestations) }),
++        )
++        .await;
++        assert!(matches!(result, Err(VerificationStatus::NoAttestations)));
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_rejects_verification_failure() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = create_tar_gz(&dir.path().join("release.tar.gz"), &[("bin1", b"hello")]);
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &archive,
++            |_path| {
++                Box::pin(async {
++                    Err(crate::github::sigstore::AttestationError::Verification(
++                        "signature mismatch".to_string(),
++                    ))
++                })
++            },
++        )
++        .await;
++        let err = result.unwrap_err().to_string();
++        assert!(
++            err.contains("signature mismatch") && err.contains("bin1"),
++            "expected verification failure error, got {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_rejects_false_verification() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = create_tar_gz(&dir.path().join("release.tar.gz"), &[("bin1", b"hello")]);
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &archive,
++            |_path| Box::pin(async { Ok(false) }),
++        )
++        .await;
++        let err = result.unwrap_err().to_string();
++        assert!(
++            err.contains("verification returned false") && err.contains("bin1"),
++            "expected false-verification error, got {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_skips_non_archives() {
++        let dir = tempfile::tempdir().unwrap();
++        let plain = dir.path().join("plain.txt");
++        std::fs::write(&plain, "not an archive").unwrap();
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &plain,
++            |_path| Box::pin(async { Ok(true) }),
++        )
++        .await;
++        assert!(matches!(result, Err(VerificationStatus::NoAttestations)));
++    }
++
++    #[tokio::test]
++    async fn per_file_archive_empty_archive_returns_no_attestations() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = create_tar_gz(&dir.path().join("release.tar.gz"), &[]);
++        let result = UnifiedGitBackend::verify_archive_per_file_attestations(
++            &archive,
++            |_path| Box::pin(async { Ok(true) }),
++        )
++        .await;
++        assert!(matches!(result, Err(VerificationStatus::NoAttestations)));
++    }
+ }

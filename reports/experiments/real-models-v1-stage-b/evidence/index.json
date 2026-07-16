@@ -63,6 +63,11 @@
     },
     {
       "artifacts": 6,
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "run_id": "20260716T221511Z-ce-05-mise-slsa-archive-461948-1784240111720241840"
+    },
+    {
+      "artifacts": 6,
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
       "run_id": "20260716T172029Z-ce-01-antidote-output-461948-1784222429510249267"
     },
