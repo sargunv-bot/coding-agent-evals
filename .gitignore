@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Evaluation outputs
+.runs/
+.cache/
+artifacts/
+results/
+*.log
+
+# Provider credentials and local configuration
+.env
+providers.toml
+proctor.local.toml
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
