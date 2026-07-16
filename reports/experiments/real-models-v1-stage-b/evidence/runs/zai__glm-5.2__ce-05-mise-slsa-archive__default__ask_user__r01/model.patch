@@ -1,0 +1,773 @@
+diff --git a/crates/mise-sigstore/src/lib.rs b/crates/mise-sigstore/src/lib.rs
+index 20a9047f1b5e1ac1c37ab5f5dbf46c0441a534a6..339b70b3b68d7c0f9494e4c190d5a80b6245ae40 100644
+--- a/crates/mise-sigstore/src/lib.rs
++++ b/crates/mise-sigstore/src/lib.rs
+@@ -369,6 +369,139 @@ async fn verify_github_attestation_inner(
+     verify_attestation_bundles(&attestations, &artifact, signer_workflow, &mut trust_roots).await
+ }
+ 
++// ---------------------------------------------------------------------------
++// Per-file (archive-member) attestation verification
++// ---------------------------------------------------------------------------
++//
++// Some GitHub releases attest each file *inside* an archive rather than the
++// archive blob itself. When the existing archive-level lookup finds no
++// attestation, callers extract the archive's regular files and hand them here.
++//
++// SECURITY MODEL — fail closed. The archive itself carries no attestation, so
++// its byte layout is untrusted. To accept it we require that *every* regular
++// file it contains has a valid, verifiable attestation. If even one file is
++// missing an attestation (or fails verification) while any other file *is*
++// attested, that is treated as evidence of tampering and this fails hard. The
++// only non-failure outcomes are:
++//   * `AllVerified` — every member was attested and verified.
++//   * `NonePresent`  — no member had any attestation at all, meaning the
++//                      release simply does not use per-file attestation; the
++//                      caller should fall through to other mechanisms.
++//
++// `NonePresent` is only distinguishable from a tampered archive by checking
++// *every* member, so the loop below never short-circuits: reordering entries
++// cannot trick it into skipping an unattested file.
++
++/// Per-member result gathered while probing attestations for an archive's files.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub enum MemberResult {
++    /// The member had no attestation at all (the digest returned an empty list).
++    Absent,
++    /// At least one attestation was present and cryptographically verified.
++    Verified,
++    /// At least one attestation was present but none verified (forged/invalid).
++    Failed(String),
++}
++
++/// Outcome of classifying the per-member results for an archive. The
++/// `Partial` (fail-closed) case is surfaced as `Err` from
++/// [`classify_per_file_results`] and [`verify_github_attestations_for_files`].
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum PerFileAttestationOutcome {
++    /// Every member had at least one attestation and all of them verified.
++    AllVerified { count: usize },
++    /// No member had any attestation — the release does not use per-file
++    /// attestation. Callers should fall through to other verification paths.
++    NonePresent,
++}
++
++/// Classify gathered per-member results into an outcome.
++///
++/// Pure (no I/O, no crypto) so the fail-closed policy is exhaustively testable.
++///
++/// * Empty input is an error — a caller that has no members must not claim
++///   vacuous success.
++/// * If every member is `Verified` → `AllVerified`.
++/// * If no member is attested (`Absent` for all) → `NonePresent`.
++/// * Otherwise (at least one member attested but some member absent or failed)
++///   → hard error (fail closed), naming the first offending member.
++pub fn classify_per_file_results(
++    results: &[(String, MemberResult)],
++) -> Result<PerFileAttestationOutcome> {
++    if results.is_empty() {
++        return Err(AttestationError::Verification(
++            "per-file attestation requested but no archive members were supplied".to_string(),
++        ));
++    }
++    if results
++        .iter()
++        .all(|(_, r)| matches!(r, MemberResult::Verified))
++    {
++        return Ok(PerFileAttestationOutcome::AllVerified {
++            count: results.len(),
++        });
++    }
++    let any_present = results
++        .iter()
++        .any(|(_, r)| !matches!(r, MemberResult::Absent));
++    // Input is non-empty and not all-Verified, so at least one failure exists.
++    let first_failure = results
++        .iter()
++        .find_map(|(name, r)| {
++            let reason = match r {
++                MemberResult::Absent => "has no GitHub artifact attestation".to_string(),
++                MemberResult::Failed(msg) => {
++                    format!("failed attestation verification: {msg}")
++                }
++                MemberResult::Verified => return None,
++            };
++            Some(format!("archive member {name:?} {reason}"))
++        })
++        .expect("non-empty input that is not all-Verified must contain a failure");
++    if any_present {
++        Err(AttestationError::Verification(format!(
++            "per-file attestation failed closed: {first_failure}"
++        )))
++    } else {
++        Ok(PerFileAttestationOutcome::NonePresent)
++    }
++}
++
++/// Verify GitHub artifact attestations for every supplied archive member.
++///
++/// `members` is `(relative_path, file_contents)` for each regular file in the
++/// archive (caller is responsible for excluding directories/symlinks). Returns
++/// [`PerFileAttestationOutcome`] on success and a hard error on the fail-closed
++/// `Partial` case (see module docs above) or on fetch/empty-input errors.
++///
++/// Every member's digest is looked up via `source`; the loop does not
++/// short-circuit, so the `NonePresent` vs. tampered distinction is reliable
++/// regardless of member ordering.
++pub async fn verify_github_attestations_for_files(
++    members: &[(String, Vec<u8>)],
++    source: &(dyn AttestationSource + Sync),
++    signer_workflow: Option<&str>,
++) -> Result<PerFileAttestationOutcome> {
++    let mut trust_roots = TrustRoots::default();
++    let mut results: Vec<(String, MemberResult)> = Vec::with_capacity(members.len());
++    for (name, content) in members {
++        let digest = hex::encode(Sha256::digest(content));
++        let artifact_ref = ArtifactRef::from_digest(&format!("sha256:{digest}"));
++        let attestations = source.fetch_attestations(&artifact_ref).await?;
++        if attestations.is_empty() {
++            results.push((name.clone(), MemberResult::Absent));
++            continue;
++        }
++        match verify_attestation_bundles(&attestations, content, signer_workflow, &mut trust_roots)
++            .await
++        {
++            Ok(_) => results.push((name.clone(), MemberResult::Verified)),
++            Err(e) => results.push((name.clone(), MemberResult::Failed(e.to_string()))),
++        }
++    }
++    classify_per_file_results(&results)
++}
++
+ pub async fn verify_cosign_signature(
+     artifact_path: &Path,
+     sig_or_bundle_path: &Path,
+@@ -1196,4 +1329,241 @@ ignature1234567890123456789012345678901234567890Aa==\n\
+             "expected chain validation failure, got {err}"
+         );
+     }
++
++    // ---- per-file attestation tests ----
++
++    /// Digest used to key the mock source, matching what
++    /// `verify_github_attestations_for_files` computes internally.
++    fn member_digest(content: &[u8]) -> String {
++        format!("sha256:{}", hex::encode(Sha256::digest(content)))
++    }
++
++    /// An attestation that is "present" (non-empty list) but carries a malformed
++    /// bundle, so real bundle verification fails. This lets us exercise the
++    /// fail-closed loop without forging valid sigstore crypto: a present member
++    /// becomes `MemberResult::Failed`, distinct from `Absent`.
++    fn present_but_invalid_attestation() -> Attestation {
++        Attestation {
++            bundle: Some(serde_json::json!({})),
++            bundle_url: None,
++        }
++    }
++
++    /// In-memory attestation source keyed by `sha256:<hex>` digest. A digest not
++    /// in the map returns an empty list (mirroring GitHub's 404 → no attestations).
++    struct MockSource {
++        by_digest: std::collections::HashMap<String, Vec<Attestation>>,
++        /// When set, `fetch_attestations` fails for this digest (simulates a
++        /// network/API error that must propagate, not be treated as "absent").
++        fail_digest: Option<String>,
++    }
++
++    impl MockSource {
++        fn new() -> Self {
++            Self {
++                by_digest: std::collections::HashMap::new(),
++                fail_digest: None,
++            }
++        }
++
++        /// Register `attestations` for the given content's digest.
++        fn with(mut self, content: &[u8], attestations: Vec<Attestation>) -> Self {
++            self.by_digest
++                .insert(member_digest(content), attestations);
++            self
++        }
++    }
++
++    #[async_trait]
++    impl AttestationSource for MockSource {
++        async fn fetch_attestations(&self, artifact: &ArtifactRef) -> Result<Vec<Attestation>> {
++            if let Some(fail) = &self.fail_digest
++                && fail == &artifact.digest
++            {
++                return Err(AttestationError::Api("simulated fetch failure".to_string()));
++            }
++            Ok(self.by_digest.get(&artifact.digest).cloned().unwrap_or_default())
++        }
++    }
++
++    // --- classify_per_file_results (pure policy) ---
++
++    #[test]
++    fn classify_empty_is_error_never_vacuous_success() {
++        let err = classify_per_file_results(&[]).unwrap_err().to_string();
++        assert!(
++            err.contains("no archive members"),
++            "empty input must fail, got {err}"
++        );
++    }
++
++    #[test]
++    fn classify_all_verified() {
++        let r = vec![
++            ("a".into(), MemberResult::Verified),
++            ("b".into(), MemberResult::Verified),
++        ];
++        assert_eq!(
++            classify_per_file_results(&r).unwrap(),
++            PerFileAttestationOutcome::AllVerified { count: 2 }
++        );
++    }
++
++    #[test]
++    fn classify_single_verified() {
++        let r = vec![("only".into(), MemberResult::Verified)];
++        assert_eq!(
++            classify_per_file_results(&r).unwrap(),
++            PerFileAttestationOutcome::AllVerified { count: 1 }
++        );
++    }
++
++    #[test]
++    fn classify_all_absent_is_none_present() {
++        let r = vec![
++            ("a".into(), MemberResult::Absent),
++            ("b".into(), MemberResult::Absent),
++        ];
++        assert_eq!(
++            classify_per_file_results(&r).unwrap(),
++            PerFileAttestationOutcome::NonePresent
++        );
++    }
++
++    #[test]
++    fn classify_partial_present_plus_absent_fails_closed() {
++        // A file with attestations present, but another file with none → tamper
++        // signal, must hard-error rather than fall through.
++        let r = vec![
++            ("attested".into(), MemberResult::Verified),
++            ("unattested".into(), MemberResult::Absent),
++        ];
++        let err = classify_per_file_results(&r).unwrap_err().to_string();
++        assert!(err.contains("failed closed"), "got {err}");
++        assert!(err.contains("unattested"), "must name the bad member: {err}");
++        assert!(
++            err.contains("no GitHub artifact attestation"),
++            "got {err}"
++        );
++    }
++
++    #[test]
++    fn classify_partial_is_order_independent() {
++        // Same as above but the unattested file comes FIRST. Reordering inside
++        // the archive must not change the fail-closed verdict.
++        let r = vec![
++            ("unattested".into(), MemberResult::Absent),
++            ("attested".into(), MemberResult::Verified),
++        ];
++        let err = classify_per_file_results(&r).unwrap_err().to_string();
++        assert!(err.contains("failed closed"), "got {err}");
++    }
++
++    #[test]
++    fn classify_present_but_failed_fails_closed() {
++        // A present attestation that does not verify (forged) is still "present",
++        // so a mix with an absent file fails closed.
++        let r = vec![
++            ("forged".into(), MemberResult::Failed("bad sig".into())),
++            ("missing".into(), MemberResult::Absent),
++        ];
++        let err = classify_per_file_results(&r).unwrap_err().to_string();
++        assert!(err.contains("failed closed"), "got {err}");
++        assert!(err.contains("forged"), "got {err}");
++    }
++
++    #[test]
++    fn classify_single_failed_fails_closed() {
++        // Only one file, present-but-invalid: this is NOT NonePresent (something
++        // was present) and NOT all-verified, so it must fail closed.
++        let r = vec![("only".into(), MemberResult::Failed("nope".into()))];
++        assert!(classify_per_file_results(&r).is_err());
++    }
++
++    // --- verify_github_attestations_for_files (async loop) ---
++
++    fn members(items: &[(&str, &[u8])]) -> Vec<(String, Vec<u8>)> {
++        items
++            .iter()
++            .map(|(n, c)| (n.to_string(), c.to_vec()))
++            .collect()
++    }
++
++    #[tokio::test]
++    async fn per_file_all_absent_is_none_present() {
++        let src = MockSource::new(); // no attestations registered
++        let members = members(&[("a", b"a-data"), ("b", b"b-data"), ("c", b"c-data")]);
++        let outcome = verify_github_attestations_for_files(&members, &src, None)
++            .await
++            .unwrap();
++        assert_eq!(outcome, PerFileAttestationOutcome::NonePresent);
++    }
++
++    #[tokio::test]
++    async fn per_file_partial_fails_closed() {
++        // "a" has a (malformed) attestation → present/failed; "b" has none.
++        let a = b"a-data";
++        let src = MockSource::new().with(a, vec![present_but_invalid_attestation()]);
++        let members = members(&[("a", a), ("b", b"b-data")]);
++        let err = verify_github_attestations_for_files(&members, &src, None)
++            .await
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("failed closed"), "got {err}");
++        // The first offending member must be reported.
++        assert!(
++            err.contains("a") || err.contains("b"),
++            "must name an offending member: {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn per_file_partial_order_independent() {
++        // Unattested member listed first must still be caught.
++        let b = b"b-data";
++        let src = MockSource::new().with(b, vec![present_but_invalid_attestation()]);
++        let members = members(&[("a", b"a-data"), ("b", b)]);
++        let err = verify_github_attestations_for_files(&members, &src, None)
++            .await
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("failed closed"), "got {err}");
++    }
++
++    #[tokio::test]
++    async fn per_file_empty_members_is_error() {
++        let src = MockSource::new();
++        let err = verify_github_attestations_for_files(&[], &src, None)
++            .await
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("no archive members"), "got {err}");
++    }
++
++    #[tokio::test]
++    async fn per_file_fetch_error_propagates() {
++        // An API/network error must propagate as a hard error, NOT be swallowed
++        // into NonePresent (which would be a permissive fall-through).
++        let a = b"a-data";
++        let mut src = MockSource::new();
++        src.fail_digest = Some(member_digest(a));
++        let members = members(&[("a", a)]);
++        let err = verify_github_attestations_for_files(&members, &src, None)
++            .await
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("simulated fetch failure"), "got {err}");
++    }
++
++    #[tokio::test]
++    async fn per_file_absent_after_present_still_inspected() {
++        // Guards against a short-circuit optimization: a present member followed
++        // by an absent one must still be classified as fail-closed (Partial),
++        // proving the loop visited *every* member and did not stop early.
++        let a = b"a-data";
++        let src = MockSource::new().with(a, vec![present_but_invalid_attestation()]);
++        let members = members(&[("a", a), ("b", b"b-data"), ("c", b"c-data")]);
++        let res = verify_github_attestations_for_files(&members, &src, None).await;
++        assert!(res.is_err(), "must fail closed, not NonePresent");
++    }
+ }
+diff --git a/src/backend/aqua.rs b/src/backend/aqua.rs
+index 4445d978044479132e0ccd2553eda2cbb30c5665..2885b8ad00747435a24c52cb62da9c1b04bef101 100644
+--- a/src/backend/aqua.rs
++++ b/src/backend/aqua.rs
+@@ -1148,7 +1148,11 @@ impl AquaBackend {
+             .as_ref()
+             .and_then(|att| att.signer_workflow.as_deref().map(unescape_regex_literal));
+ 
+-        match crate::github::sigstore::verify_attestation(
++        // Archive-level attestation first; on NoAttestations this transparently
++        // falls back to per-file (archive-member) verification, failing closed
++        // on a partially-attested/tampered archive and returning Unavailable
++        // only when no file carries an attestation at all.
++        match crate::github::sigstore::verify_attestation_with_per_file_fallback(
+             artifact_path,
+             &pkg.repo_owner,
+             &pkg.repo_name,
+@@ -1157,17 +1161,14 @@ impl AquaBackend {
+         )
+         .await
+         {
+-            Ok(true) => {
++            Ok(crate::github::sigstore::AttestationOutcome::Verified) => {
+                 debug!(
+                     "GitHub attestations verified for {}/{}",
+                     pkg.repo_owner, pkg.repo_name
+                 );
+                 Ok(GithubAttestationStatus::Verified)
+             }
+-            Ok(false) => Err(eyre!(
+-                "GitHub artifact attestations verification returned false"
+-            )),
+-            Err(crate::github::sigstore::AttestationError::NoAttestations) => {
++            Ok(crate::github::sigstore::AttestationOutcome::Unavailable) => {
+                 Ok(GithubAttestationStatus::Unavailable)
+             }
+             Err(e) => Err(eyre!(
+diff --git a/src/backend/github.rs b/src/backend/github.rs
+index 44141ba06b3d3f8380979647ef3e19ba679e721f..078e7062f24dcdb2a2d2cc69e94ff9be44320aab 100644
+--- a/src/backend/github.rs
++++ b/src/backend/github.rs
+@@ -1697,24 +1697,26 @@ impl UnifiedGitBackend {
+         }
+         let (owner, repo_name) = (parts[0], parts[1]);
+ 
+-        match crate::github::sigstore::verify_attestation(
++        // Archive-level attestation first; on NoAttestations this transparently
++        // falls back to per-file (archive-member) verification, which fails
++        // closed on partial/tampered archives and returns Unavailable only when
++        // no file is attested at all.
++        match crate::github::sigstore::verify_attestation_with_per_file_fallback(
+             file_path,
+             owner,
+             repo_name,
+-            None, // We don't know the expected workflow
++            None,
+             Some(api_url),
+         )
+         .await
+         {
+-            Ok(verified) => {
+-                if verified {
+-                    ctx.pr
+-                        .set_message("✓ GitHub artifact attestations verified".to_string());
+-                    debug!("GitHub artifact attestations verified successfully for {tv}");
+-                }
+-                Ok(verified)
++            Ok(crate::github::sigstore::AttestationOutcome::Verified) => {
++                ctx.pr
++                    .set_message("✓ GitHub artifact attestations verified".to_string());
++                debug!("GitHub artifact attestations verified successfully for {tv}");
++                Ok(true)
+             }
+-            Err(crate::github::sigstore::AttestationError::NoAttestations) => {
++            Ok(crate::github::sigstore::AttestationOutcome::Unavailable) => {
+                 Err(VerificationStatus::NoAttestations)
+             }
+             Err(e) => Err(VerificationStatus::Error(e.to_string())),
+diff --git a/src/file.rs b/src/file.rs
+index eb4065dc355d658559d33eb970bcd6bff557e332..3a62e3085f89651ba4d9acb7ff31ec6088c1dc7e 100644
+--- a/src/file.rs
++++ b/src/file.rs
+@@ -3,6 +3,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
+ use std::fmt::Display;
+ use std::fs;
+ use std::fs::File;
++use std::io::Read;
+ use std::io::Write;
+ #[cfg(unix)]
+ use std::os::unix::fs::symlink;
+@@ -1322,6 +1323,87 @@ pub fn inspect_7z_contents(_archive: &Path) -> Result<Vec<(String, bool)>> {
+     unimplemented!("7z format not supported on this platform")
+ }
+ 
++/// Read every regular file out of an archive into memory as
++/// `(entry_path, contents)`, without extracting to disk.
++///
++/// Used by per-file GitHub attestation verification: each contained file must be
++/// hashed and attested individually. Directories, symlinks, hard links, and
++/// other non-regular entries are skipped — GitHub attestations bind to file
++/// *content*, which only regular files have. The caller is responsible for
++/// treating a non-empty result as authoritative for "every regular member".
++///
++/// Only tar-family and zip archives are readable here; 7z and non-archive
++/// formats return an error so the caller can fall through to other verification
++/// paths rather than silently skipping per-file verification.
++pub fn archive_regular_file_contents(
++    archive: &Path,
++    format: TarFormat,
++) -> Result<Vec<(String, Vec<u8>)>> {
++    match format {
++        TarFormat::Zip => read_zip_members(archive),
++        TarFormat::SevenZip => bail!(
++            "7z archives are not supported for per-file attestation inspection: {}",
++            display_path(archive)
++        ),
++        // open_tar treats the single-file compression formats (Gz/Xz/Bz2/Zst) and
++        // Raw as gzip; they are not multi-file archives and are filtered out by
++        // callers via TarFormat::is_archive() before reaching here.
++        TarFormat::TarGz
++        | TarFormat::TarXz
++        | TarFormat::TarBz2
++        | TarFormat::TarZst
++        | TarFormat::Tar
++        | TarFormat::Gz
++        | TarFormat::Xz
++        | TarFormat::Bz2
++        | TarFormat::Zst
++        | TarFormat::Raw => read_tar_members(archive, format),
++    }
++}
++
++fn read_tar_members(archive: &Path, format: TarFormat) -> Result<Vec<(String, Vec<u8>)>> {
++    let err = || format!("failed to read tar members: {}", display_path(archive));
++    let tar = open_tar(format, archive)?;
++    let mut tar_archive = Archive::new(tar);
++    let mut out = Vec::new();
++    for entry in tar_archive.entries().wrap_err_with(err)? {
++        let mut entry = entry.wrap_err_with(err)?;
++        // is_file() is true only for Regular/Continuous entries; it excludes
++        // directories, symlinks, hard links, devices, and fifos.
++        if !entry.header().entry_type().is_file() {
++            continue;
++        }
++        let name = entry.path().wrap_err_with(err)?.display().to_string();
++        let mut buf = Vec::new();
++        entry.read_to_end(&mut buf).wrap_err_with(err)?;
++        out.push((name, buf));
++    }
++    Ok(out)
++}
++
++fn read_zip_members(archive: &Path) -> Result<Vec<(String, Vec<u8>)>> {
++    let err = || format!("failed to read zip members: {}", display_path(archive));
++    let f = File::open(archive).wrap_err_with(err)?;
++    let mut zip = ZipArchive::new(f).wrap_err_with(err)?;
++    let mut out = Vec::new();
++    for i in 0..zip.len() {
++        let mut entry = zip.by_index(i).wrap_err_with(err)?;
++        if entry.is_dir() {
++            continue;
++        }
++        // Skip symlinks: their "content" is a link target, not attestable bytes.
++        // S_IFMT = 0o170000, S_IFLNK = 0o120000.
++        if entry.unix_mode().is_some_and(|m| m & 0o170000 == 0o120000) {
++            continue;
++        }
++        let name = entry.name().to_string();
++        let mut buf = Vec::new();
++        entry.read_to_end(&mut buf).wrap_err_with(err)?;
++        out.push((name, buf));
++    }
++    Ok(out)
++}
++
+ /// Determines if strip_components=1 should be applied based on archive structure
+ pub fn should_strip_components(archive: &Path, format: TarFormat) -> Result<bool> {
+     let top_level_entries = match format {
+@@ -1795,4 +1877,102 @@ mod tests {
+         assert!(!src.exists());
+         assert_eq!(fs::read(dst.join("nested/bun")).unwrap(), b"hello");
+     }
++
++    /// Build a tar.gz in a temp file with a mix of entry types for the
++    /// `archive_regular_file_contents` tests.
++    fn build_mixed_tar_gz(path: &Path) {
++        use flate2::write::GzEncoder;
++        use flate2::Compression;
++        let f = File::create(path).unwrap();
++        let enc = GzEncoder::new(f, Compression::default());
++        let mut builder = tar::Builder::new(enc);
++
++        fn add_regular(builder: &mut tar::Builder<GzEncoder<File>>, path: &str, data: &[u8]) {
++            let mut header = tar::Header::new_gnu();
++            header.set_entry_type(tar::EntryType::Regular);
++            header.set_path(path).unwrap();
++            header.set_size(data.len() as u64);
++            header.set_mode(0o644);
++            header.set_cksum();
++            builder.append(&header, &*data).unwrap();
++        }
++
++        add_regular(&mut builder, "dir/binary", b"BINARY");
++        add_regular(&mut builder, "README", b"readme");
++
++        // Directory entry — must be skipped.
++        let mut dir = tar::Header::new_gnu();
++        dir.set_entry_type(tar::EntryType::Directory);
++        dir.set_path("dir").unwrap();
++        dir.set_size(0);
++        dir.set_mode(0o755);
++        dir.set_cksum();
++        builder.append(&dir, std::io::empty()).unwrap();
++
++        // Symlink entry — must be skipped (no attestable content).
++        let mut link = tar::Header::new_gnu();
++        link.set_entry_type(tar::EntryType::Symlink);
++        link.set_path("link").unwrap();
++        link.set_link_name("dir/binary").unwrap();
++        link.set_size(0);
++        link.set_mode(0o777);
++        link.set_cksum();
++        builder.append(&link, std::io::empty()).unwrap();
++
++        builder.finish().unwrap();
++    }
++
++    #[test]
++    fn test_archive_regular_file_contents_tar_gz_only_regular() {
++        let tmp = tempfile::tempdir().unwrap();
++        let archive_path = tmp.path().join("test.tar.gz");
++        build_mixed_tar_gz(&archive_path);
++
++        let mut members = archive_regular_file_contents(&archive_path, TarFormat::TarGz).unwrap();
++        members.sort_by(|a, b| a.0.cmp(&b.0));
++        assert_eq!(
++            members.len(),
++            2,
++            "directories and symlinks must be excluded: {members:?}"
++        );
++        assert_eq!(members[0].0, "README");
++        assert_eq!(members[0].1, b"readme");
++        assert_eq!(members[1].0, "dir/binary");
++        assert_eq!(members[1].1, b"BINARY");
++    }
++
++    #[test]
++    fn test_archive_regular_file_contents_unsupported_format_errors() {
++        // 7z is not readable cross-platform; the caller treats this as
++        // "per-file verification unavailable" (fall through), never as success.
++        let tmp = tempfile::tempdir().unwrap();
++        let path = tmp.path().join("x.7z");
++        std::fs::write(&path, b"not actually 7z").unwrap();
++        assert!(archive_regular_file_contents(&path, TarFormat::SevenZip).is_err());
++    }
++
++    #[test]
++    fn test_archive_regular_file_contents_zip_only_regular() {
++        use zip::write::SimpleFileOptions;
++        use zip::ZipWriter;
++        let tmp = tempfile::tempdir().unwrap();
++        let path = tmp.path().join("test.zip");
++        let file = File::create(&path).unwrap();
++        let mut zip = ZipWriter::new(file);
++        let opts = SimpleFileOptions::default();
++        zip.start_file("binary", opts).unwrap();
++        zip.write_all(b"BINARY").unwrap();
++        zip.start_file("README", opts).unwrap();
++        zip.write_all(b"readme").unwrap();
++        zip.add_directory("dir/", opts).unwrap();
++        zip.finish().unwrap();
++
++        let mut members = archive_regular_file_contents(&path, TarFormat::Zip).unwrap();
++        members.sort_by(|a, b| a.0.cmp(&b.0));
++        assert_eq!(members.len(), 2, "directory entries must be excluded");
++        assert_eq!(members[0].0, "README");
++        assert_eq!(members[0].1, b"readme");
++        assert_eq!(members[1].0, "binary");
++        assert_eq!(members[1].1, b"BINARY");
++    }
+ }
+diff --git a/src/github/sigstore.rs b/src/github/sigstore.rs
+index dfeeec8fddb905edb11edf280bee3818f1f2543d..ea725c7c562e11e28eb6a8e76c47c4657a8ad8cc 100644
+--- a/src/github/sigstore.rs
++++ b/src/github/sigstore.rs
+@@ -78,6 +78,101 @@ pub async fn verify_attestation(
+     }
+ }
+ 
++/// Outcome of attempting GitHub attestation verification with the per-file fallback.
++#[derive(Debug, Clone, Copy, PartialEq, Eq)]
++pub enum AttestationOutcome {
++    /// A valid attestation was verified — either at the archive level, or every
++    /// regular file inside the archive was individually attested.
++    Verified,
++    /// No attestation was found at any granularity (archive blob and every
++    /// contained regular file). This is not a failure: the release simply does
++    /// not publish GitHub attestations, so the caller should fall through to
++    /// other verification mechanisms (SLSA, checksums) just as before.
++    Unavailable,
++}
++
++/// Verify a GitHub artifact attestation, falling back to per-file verification.
++///
++/// The existing **archive-level** verification is tried first and its behavior is
++/// fully preserved: on success we return [`AttestationOutcome::Verified`].
++///
++/// Only when the archive blob has *no* attestation (`NoAttestations`) do we
++/// attempt the **per-file fallback**: if the artifact is a multi-file archive,
++/// each regular file's contents are extracted and required to carry a valid
++/// GitHub attestation. This lets mise accept releases that attest each contained
++/// file rather than the archive blob.
++///
++/// Fail-closed policy (security-sensitive): if *any* file is attested but
++/// *another* file is not (or fails verification), this returns a hard error — it
++/// is treated as evidence of tampering. Only when *no* file is attested at all do
++/// we return [`AttestationOutcome::Unavailable`] (fall through to SLSA/checksums,
++/// matching prior behavior for non-attested tools). If the archive cannot be
++/// inspected (unsupported format, parse error) we also return `Unavailable` —
++/// per-file verification can't run, but that is not itself a verification failure.
++pub async fn verify_attestation_with_per_file_fallback(
++    artifact_path: &Path,
++    owner: &str,
++    repo: &str,
++    expected_workflow: Option<&str>,
++    api_url: Option<&str>,
++) -> AttestationResult<AttestationOutcome> {
++    match verify_attestation(artifact_path, owner, repo, expected_workflow, api_url).await {
++        Ok(true) => return Ok(AttestationOutcome::Verified),
++        Ok(false) => {
++            return Err(AttestationError::Verification(
++                "GitHub artifact attestations verification returned false".to_string(),
++            ))
++        }
++        // No attestation on the archive blob — try the per-file fallback.
++        Err(AttestationError::NoAttestations) => {}
++        Err(e) => return Err(e),
++    }
++
++    let format = crate::file::TarFormat::from_file_name(
++        &artifact_path
++            .file_name()
++            .map(|n| n.to_string_lossy().to_string())
++            .unwrap_or_default(),
++    );
++    if !format.is_archive() {
++        return Ok(AttestationOutcome::Unavailable);
++    }
++
++    // If the archive can't be inspected, per-file verification can't run. Fall
++    // through to SLSA/checksums (which operate on the archive blob) rather than
++    // turning an unsupported format into a hard failure.
++    let members = match crate::file::archive_regular_file_contents(artifact_path, format) {
++        Ok(m) => m,
++        Err(e) => {
++            debug!(
++                "skipping per-file attestation fallback, could not read archive members: {e}"
++            );
++            return Ok(AttestationOutcome::Unavailable);
++        }
++    };
++    if members.is_empty() {
++        return Ok(AttestationOutcome::Unavailable);
++    }
++
++    let token = resolve_token_for_wrapper(api_url);
++    let source = match api_url {
++        Some(base_url) => GitHubSource::with_base_url(owner, repo, token.as_deref(), base_url),
++        None => GitHubSource::new(owner, repo, token.as_deref()),
++    }
++    .map_err(|e| AttestationError::Api(format!("failed to build GitHub attestation source: {e}")))?;
++
++    match mise_sigstore::verify_github_attestations_for_files(&members, &source, expected_workflow)
++        .await?
++    {
++        mise_sigstore::PerFileAttestationOutcome::AllVerified { .. } => {
++            Ok(AttestationOutcome::Verified)
++        }
++        mise_sigstore::PerFileAttestationOutcome::NonePresent => {
++            Ok(AttestationOutcome::Unavailable)
++        }
++    }
++}
++
+ /// Reason the pre-download attestation probe could not complete.
+ ///
+ /// Preserved as two variants so callers can log distinct warnings for a misconfigured

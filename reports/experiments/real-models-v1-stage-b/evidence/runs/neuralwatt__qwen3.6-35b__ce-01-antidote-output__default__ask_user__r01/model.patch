@@ -1,0 +1,93 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..23ec293e2fcae344b472eb70b54c77d3b377f183 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path 2>&1 1>/dev/null
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script_git_wrapper.md b/tests/test_cmd_script_git_wrapper.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..68117661d1fc987903ac0ab9021e342ba8117579
+--- /dev/null
++++ b/tests/test_cmd_script_git_wrapper.md
+@@ -0,0 +1,73 @@
++# Regression: git wrapper stdout leaks into generated plugin scripts
++
++A git wrapper on PATH may write progress to stdout even when `git --quiet`
++is passed. Since `antidote-script` generates script output on stdout, any
++leaked git text would corrupt the generated `.zsh_plugins.zsh` file.
++
++The fix suppresses git's stdout (redirecting to `/dev/null`) while keeping
++stderr visible for diagnostics.
++
++## Setup
++
++```zsh
++% source ./tests/__init__.zsh
++% t_setup
++%
++```
++
++## Git wrapper ignores --quiet
++
++The mockgit in `t_setup` respects `--quiet` and produces no output. Here we
++define a broken mockgit that writes to stdout even with `--quiet`, simulating
++a real-world git wrapper problem. If the fix is missing, the wrapper's stdout
++output would contaminate the generated script.
++
++```zsh
++% function git {
++>   emulate -L zsh
++>   if [[ "$1" = "clone" ]]; then
++>     if [[ "$@" = *--quiet* ]]; then
++>       # Simulated broken wrapper: writes to stdout despite --quiet
++>       echo "WARNING: git wrapper progress output (should not appear in script)"
++>     fi
++>     local bundledir="${3:-.}"
++>     local repo="$2"
++>     repo="${repo##*/}"
++>     [[ -d "$T_TEMPDIR/fakegitsite.com/$repo" ]] || {
++>       if [[ -d "$T_PRJDIR/tests/fakegitsite.com/${repo%.git}" ]] 2>/dev/null; then
++>         [[ -e "$bundledir" ]] || mkdir -p "$bundledir"
++>         cp -r -- "$T_PRJDIR/tests/fakegitsite.com/${repo%.git}" "$bundledir"
++>       else
++>         return 1
++>       fi
++>     }
++>   fi
++>   if [[ "$1" = "config" && "$@" = "remote.origin.url" ]]; then
++>     echo "https://github.com/foo/bar"
++>   fi
++>   return 0
++> }
++>
++```
++
++The wrapper prints to stdout regardless of `--quiet`. Without the fix, this
++text would leak into the generated script.
++
++```zsh
++% antidote-script foo/bar 2>/dev/null | subenv ANTIDOTE_HOME  #=> --file ./testdata/script-foobar.zsh
++%
++```
++
++Cleanup: restore normal clone behavior so other tests pass.
++
++```zsh
++% function git { mockgit "$@" }
++% t_reset
++%
++```
++
++## Teardown
++
++```zsh
++% t_teardown
++%
+\ No newline at end of file

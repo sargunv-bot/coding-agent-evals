@@ -1,0 +1,278 @@
+diff --git a/server/internal/api/overdue_action_test.go b/server/internal/api/overdue_action_test.go
+index 3b08688cb20a9adad2d3bb7a4f32aad3f990e614..41f02bedf22b3a06b5445cc0297d4756f6b833a6 100644
+--- a/server/internal/api/overdue_action_test.go
++++ b/server/internal/api/overdue_action_test.go
+@@ -71,6 +71,81 @@ func TestOverdueActionRejectedOnOneOff(t *testing.T) {
+ 	assertStatusClose(t, resp, http.StatusBadRequest)
+ }
+ 
++func TestOverdueActionSetStatusOnOneOff(t *testing.T) {
++	env := setupTestServer(t)
++	createSpace(t, env, "home", "Home")
++
++	future := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
++	task := createTask(t, env, "home", fmt.Sprintf(
++		`{"title":"One-off","due":{"at":%q,"timezone":"UTC"},"overdueActionRule":{"after":null,"action":"set_status","status":"done"}}`,
++		future,
++	))
++
++	rule, ok := task["overdueActionRule"].(map[string]any)
++	if !ok {
++		t.Fatalf("overdueActionRule missing or wrong type: %T", task["overdueActionRule"])
++	}
++	if rule["action"] != "set_status" {
++		t.Errorf("action = %v, want set_status", rule["action"])
++	}
++	if rule["status"] != "done" {
++		t.Errorf("status = %v, want done", rule["status"])
++	}
++}
++
++func TestOverdueActionClearDueDateOnOneOff(t *testing.T) {
++	env := setupTestServer(t)
++	createSpace(t, env, "home", "Home")
++
++	future := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
++	task := createTask(t, env, "home", fmt.Sprintf(
++		`{"title":"One-off","due":{"at":%q,"timezone":"UTC"},"overdueActionRule":{"after":null,"action":"clear_due_date"}}`,
++		future,
++	))
++
++	rule, ok := task["overdueActionRule"].(map[string]any)
++	if !ok {
++		t.Fatalf("overdueActionRule missing or wrong type: %T", task["overdueActionRule"])
++	}
++	if rule["action"] != "clear_due_date" {
++		t.Errorf("action = %v, want clear_due_date", rule["action"])
++	}
++}
++
++func TestOverdueActionOnOnDependency(t *testing.T) {
++	env := setupTestServer(t)
++	createSpace(t, env, "home", "Home")
++
++	future := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
++	task := createTask(t, env, "home", fmt.Sprintf(
++		`{"title":"Dependent","recurrenceType":"on_dependency","due":{"at":%q,"timezone":"UTC"},"overdueActionRule":{"after":null,"action":"set_status","status":"done"}}`,
++		future,
++	))
++
++	rule, ok := task["overdueActionRule"].(map[string]any)
++	if !ok {
++		t.Fatalf("overdueActionRule missing or wrong type: %T", task["overdueActionRule"])
++	}
++	if rule["action"] != "set_status" {
++		t.Errorf("action = %v, want set_status", rule["action"])
++	}
++	if rule["status"] != "done" {
++		t.Errorf("status = %v, want done", rule["status"])
++	}
++}
++
++func TestOverdueActionAdvanceRecurrenceOnOnDependencyRejected(t *testing.T) {
++	env := setupTestServer(t)
++	createSpace(t, env, "home", "Home")
++
++	future := time.Now().AddDate(0, 0, 30).Format("2006-01-02")
++	resp := doRequest(t, env, "POST", "/spaces/home/tasks", fmt.Sprintf(
++		`{"title":"Dependent","recurrenceType":"on_dependency","due":{"at":%q,"timezone":"UTC"},"overdueActionRule":{"after":null,"action":"advance_recurrence"}}`,
++		future,
++	))
++	assertStatusClose(t, resp, http.StatusBadRequest)
++}
++
+ func TestOverdueActionRejectedWithoutDue(t *testing.T) {
+ 	env := setupTestServer(t)
+ 	createSpace(t, env, "home", "Home")
+diff --git a/server/internal/database/migrations/00006_relax_overdue_action_recurring.sql b/server/internal/database/migrations/00006_relax_overdue_action_recurring.sql
+new file mode 100644
+index 0000000000000000000000000000000000000000..c12b633610ab385640936286332e28293b0eb7ba
+--- /dev/null
++++ b/server/internal/database/migrations/00006_relax_overdue_action_recurring.sql
+@@ -0,0 +1,39 @@
++-- +goose Up
++
++-- Relax the overdue action recurring constraint so that set_status and
++-- clear_due_date are allowed on one_off and on_dependency tasks.  Only
++-- advance_recurrence is genuinely tied to recurring behavior (it computes
++-- the next RRULE occurrence).
++
++ALTER TABLE tasks
++    DROP CONSTRAINT chk_overdue_action_recurring,
++    ADD CONSTRAINT chk_overdue_action_recurring CHECK (
++        overdue_action IN ('advance_recurrence') IS NOT TRUE
++        OR recurrence_type NOT IN ('one_off'::recurrence_type, 'on_dependency'::recurrence_type)
++    );
++
++-- Drop and recreate the functional index without the recurrence-type exclusion
++-- so overdue actions can fire on one_off and on_dependency tasks too.
++DROP INDEX IF EXISTS idx_tasks_overdue_action;
++
++CREATE INDEX idx_tasks_overdue_action
++    ON tasks ((due_at + COALESCE(overdue_action_after_days, 0)))
++    WHERE overdue_action IS NOT NULL
++      AND due_at IS NOT NULL;
++
++-- +goose Down
++
++DROP INDEX IF EXISTS idx_tasks_overdue_action;
++
++ALTER TABLE tasks
++    DROP CONSTRAINT IF EXISTS chk_overdue_action_recurring,
++    ADD CONSTRAINT chk_overdue_action_recurring CHECK (
++        overdue_action IS NULL
++        OR recurrence_type NOT IN ('one_off'::recurrence_type, 'on_dependency'::recurrence_type)
++    );
++
++CREATE INDEX idx_tasks_overdue_action
++    ON tasks ((due_at + COALESCE(overdue_action_after_days, 0)))
++    WHERE overdue_action IS NOT NULL
++      AND due_at IS NOT NULL
++      AND recurrence_type NOT IN ('one_off', 'on_dependency');
+diff --git a/server/internal/taskengine/overdue_action_validate.go b/server/internal/taskengine/overdue_action_validate.go
+index 02963988eb65ac6650b074c43d99900767b6f6e7..bd593e8880cd8f3576f94a1a3428a429d5256a30 100644
+--- a/server/internal/taskengine/overdue_action_validate.go
++++ b/server/internal/taskengine/overdue_action_validate.go
+@@ -18,8 +18,12 @@ func ValidateOverdueActionRule(
+ 	if !action.Valid {
+ 		return nil // no rule, nothing to validate
+ 	}
+-	if recurrenceType == dbgen.RecurrenceTypeOneOff || recurrenceType == dbgen.RecurrenceTypeOnDependency {
+-		return types.ValidationError("overdue_action_rule is only valid on recurring tasks")
++	if action.OverdueAction == dbgen.OverdueActionAdvanceRecurrence &&
++		(recurrenceType == dbgen.RecurrenceTypeOneOff || recurrenceType == dbgen.RecurrenceTypeOnDependency) {
++		return types.ValidationError(
++			"advance_recurrence overdue action is not valid on " +
++				string(recurrenceType) + " tasks; only set_status and clear_due_date are supported",
++		)
+ 	}
+ 	if !hasDue {
+ 		return types.ValidationError("overdue_action_rule requires a due date")
+diff --git a/server/internal/taskengine/overdue_action_validate_test.go b/server/internal/taskengine/overdue_action_validate_test.go
+index 901bc1036b1e9b2fd1f1f67ff2e3351db9f48b2d..1d8126694d8ea80ffc2a7ed7d2b58a706d58d7dc 100644
+--- a/server/internal/taskengine/overdue_action_validate_test.go
++++ b/server/internal/taskengine/overdue_action_validate_test.go
+@@ -32,25 +32,66 @@ func TestValidateOverdueActionRule(t *testing.T) {
+ 			hasDue:         false,
+ 			wantErr:        false,
+ 		},
+-		// ─── Invalid configurations ───────────────────────────────────────────────────
++		// ─── advance_recurrence restrictions ─────────────────────────────────────────
+ 		{
+-			name:           "rule on one_off task",
++			name:           "advance_recurrence on one_off rejected",
+ 			action:         nullOverdueAction(dbgen.OverdueActionAdvanceRecurrence),
+ 			recurrenceType: dbgen.RecurrenceTypeOneOff,
+ 			hasDue:         true,
+ 			wantErr:        true,
+-			errContains:    "only valid on recurring tasks",
++			errContains:    "advance_recurrence overdue action is not valid on one_off tasks",
+ 		},
+ 		{
+-			name:           "rule on on_dependency task",
++			name:           "advance_recurrence on on_dependency rejected",
+ 			action:         nullOverdueAction(dbgen.OverdueActionAdvanceRecurrence),
+ 			recurrenceType: dbgen.RecurrenceTypeOnDependency,
+ 			hasDue:         true,
+ 			wantErr:        true,
+-			errContains:    "only valid on recurring tasks",
++			errContains:    "advance_recurrence overdue action is not valid on on_dependency tasks",
+ 		},
+ 		{
+-			name:           "rule requires due date",
++			name:           "advance_recurrence on fixed_accumulating rejected",
++			action:         nullOverdueAction(dbgen.OverdueActionAdvanceRecurrence),
++			recurrenceType: dbgen.RecurrenceTypeFixedAccumulating,
++			hasDue:         true,
++			wantErr:        true,
++			errContains:    "not supported on fixed_accumulating",
++		},
++		// ─── set_status on one_off / on_dependency is valid ────────────────────────
++		{
++			name:           "set_status on one_off valid",
++			action:         nullOverdueAction(dbgen.OverdueActionSetStatus),
++			statusName:     pgtype.Text{String: "done", Valid: true},
++			recurrenceType: dbgen.RecurrenceTypeOneOff,
++			hasDue:         true,
++			wantErr:        false,
++		},
++		{
++			name:           "set_status on on_dependency valid",
++			action:         nullOverdueAction(dbgen.OverdueActionSetStatus),
++			statusName:     pgtype.Text{String: "done", Valid: true},
++			recurrenceType: dbgen.RecurrenceTypeOnDependency,
++			hasDue:         true,
++			wantErr:        false,
++		},
++		// ─── clear_due_date on one_off / on_dependency is valid ────────────────────
++		{
++			name:           "clear_due_date on one_off valid",
++			action:         nullOverdueAction(dbgen.OverdueActionClearDueDate),
++			recurrenceType: dbgen.RecurrenceTypeOneOff,
++			hasDue:         true,
++			wantErr:        false,
++		},
++		{
++			name:           "clear_due_date on on_dependency valid",
++			action:         nullOverdueAction(dbgen.OverdueActionClearDueDate),
++			recurrenceType: dbgen.RecurrenceTypeOnDependency,
++			hasDue:         true,
++			wantErr:        false,
++		},
++		// ─── General rules ─────────────────────────────────────────────────────────
++		{
++			name:           "advance_recurrence requires due date",
+ 			action:         nullOverdueAction(dbgen.OverdueActionAdvanceRecurrence),
+ 			recurrenceType: dbgen.RecurrenceTypeCompletionBased,
+ 			hasDue:         false,
+@@ -58,15 +99,21 @@ func TestValidateOverdueActionRule(t *testing.T) {
+ 			errContains:    "requires a due date",
+ 		},
+ 		{
+-			name:           "advance_recurrence on fixed_accumulating",
++			name:           "advance_recurrence on fixed_non_accumulating valid",
+ 			action:         nullOverdueAction(dbgen.OverdueActionAdvanceRecurrence),
+-			recurrenceType: dbgen.RecurrenceTypeFixedAccumulating,
++			recurrenceType: dbgen.RecurrenceTypeFixedNonAccumulating,
+ 			hasDue:         true,
+-			wantErr:        true,
+-			errContains:    "not supported on fixed_accumulating",
++			wantErr:        false,
+ 		},
+ 		{
+-			name:           "set_status without status name",
++			name:           "advance_recurrence on completion_based valid",
++			action:         nullOverdueAction(dbgen.OverdueActionAdvanceRecurrence),
++			recurrenceType: dbgen.RecurrenceTypeCompletionBased,
++			hasDue:         true,
++			wantErr:        false,
++		},
++		{
++			name:           "set_status requires status name",
+ 			action:         nullOverdueAction(dbgen.OverdueActionSetStatus),
+ 			statusName:     pgtype.Text{Valid: false},
+ 			recurrenceType: dbgen.RecurrenceTypeCompletionBased,
+@@ -74,6 +121,23 @@ func TestValidateOverdueActionRule(t *testing.T) {
+ 			wantErr:        true,
+ 			errContains:    "status is required",
+ 		},
++		{
++			name:           "clear_due_date does not require status name",
++			action:         nullOverdueAction(dbgen.OverdueActionClearDueDate),
++			statusName:     pgtype.Text{Valid: false},
++			recurrenceType: dbgen.RecurrenceTypeCompletionBased,
++			hasDue:         true,
++			wantErr:        false,
++		},
++		{
++			name:           "set_status on one_off without status rejected",
++			action:         nullOverdueAction(dbgen.OverdueActionSetStatus),
++			statusName:     pgtype.Text{Valid: false},
++			recurrenceType: dbgen.RecurrenceTypeOneOff,
++			hasDue:         true,
++			wantErr:        true,
++			errContains:    "status is required",
++		},
+ 	}
+ 
+ 	for _, tc := range tests {

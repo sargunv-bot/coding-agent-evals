@@ -1,0 +1,41 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..8383d64bb143c5b0765e64e1c7fe9a659c05917c 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path 1>&2
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..6e35a9bc07aaf91b101532abfcffa48a9895f54d 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -95,6 +95,23 @@ Clone a missing plugin.
+ %
+ ```
+ 
++### git output must not leak into generated scripts
++
++Some git wrappers found on `PATH` write progress to stdout even for
++`git --quiet`. Since `antidote-script`'s stdout *is* the generated plugin
++script, that stray text would corrupt it. It gets routed to stderr instead, so
++real diagnostics stay visible.
++
++```zsh
++% function git { [[ "$1" = "clone" ]] && print 'GITWRAPPER progress on stdout'; mockgit "$@" }
++% antidote-script --kind zsh fakeuser/fakerepo 2>/dev/null | grep 'GITWRAPPER' #=> --exit 1
++% antidote-script --kind zsh fakeuser/fakerepo 2>/dev/null | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++% function git { mockgit "$@" }
++%
++```
++
+ ### kind:zsh
+ 
+ ```zsh

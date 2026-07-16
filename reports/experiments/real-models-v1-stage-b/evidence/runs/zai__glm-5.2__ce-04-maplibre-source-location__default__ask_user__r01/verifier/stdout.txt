@@ -1,0 +1,1 @@
+fallback must not add declarations to namespace std

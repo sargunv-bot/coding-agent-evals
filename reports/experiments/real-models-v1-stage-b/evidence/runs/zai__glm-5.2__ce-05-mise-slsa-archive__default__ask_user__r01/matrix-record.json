@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 2750.597402,
+        "endpoint_host": "api.z.ai",
+        "finished_at": "2026-07-16T18:59:33.779526+00:00",
+        "instruction_mode": "ask_user",
+        "model": "glm-5.2",
+        "model_config_sha256": "ee7c2148bd52a51f1eac52051ca8f86e9665a6cd8d33d6b5489b0f0d1f5f80dc",
+        "patch_path": "model.patch",
+        "provider": "zai",
+        "run_id": "20260716T181352Z-ce-05-mise-slsa-archive-461948-1784225632262619572",
+        "scenario": null,
+        "started_at": "2026-07-16T18:13:43.182135+00:00",
+        "task_id": "ce-05-mise-slsa-archive",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 7261760,
+          "input_tokens": 299926,
+          "output_tokens": 13196,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 74492
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 1.1596838180557825,
+          "exit_code": 101,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "archive_safety": 0,
+            "fail_closed": 0,
+            "reward": 0,
+            "subject_coverage": 0
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-05-mise-slsa-archive"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "zai__glm-5.2__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "glm-5.2",
+    "provider": "zai",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  },
+  "experiment_id": "real-models-v1-stage-b",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-16T18:59:34.075045+00:00"
+}

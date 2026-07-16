@@ -1,0 +1,2 @@
+FAIL: git update stdout contaminated normal command output
+FAIL: git update diagnostics were not preserved on stderr
