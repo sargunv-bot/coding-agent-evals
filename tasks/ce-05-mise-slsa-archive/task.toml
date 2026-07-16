@@ -1,0 +1,40 @@
+schema_version = "1.3"
+[task]
+name = "personal/ce-05-mise-slsa-archive"
+description = "Verify file-attested release archives with fail-closed semantics."
+authors = [{ name = "Sargun Vohra" }]
+keywords = ["rust", "security", "slsa", "supply-chain", "historical-replay"]
+
+[metadata]
+task_id = "ce-05-mise-slsa-archive"
+display_title = "mise fail-closed SLSA archive verification"
+category = "security"
+language = "rust"
+repository_url = "https://github.com/jdx/mise"
+base_commit_hash = "5aea2e1d0df40673dd5fbd7607109e0ebb136d02"
+gold_commit_hash = "3fd427f3be122bd70a2b00f3e21b1a05c74d8d6e"
+track = "historical-replay"
+upstream_license = "MIT"
+
+[verifier]
+environment_mode = "separate"
+timeout_sec = 1800
+
+[verifier.environment]
+cpus = 4
+memory_mb = 8192
+storage_mb = 20480
+allow_internet = false
+
+[agent]
+timeout_sec = 10800
+
+[environment]
+build_timeout_sec = 2400
+os = "linux"
+cpus = 4
+memory_mb = 8192
+storage_mb = 20480
+gpus = 0
+allow_internet = false
+mcp_servers = []

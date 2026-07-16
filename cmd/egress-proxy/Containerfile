@@ -1,0 +1,10 @@
+FROM docker.io/library/golang@sha256:09fb8a652cf7a990b714c46a9f0f5fd2d5bc2222d995166b91907c1c05b7d0e8 AS build
+WORKDIR /src
+COPY main.go .
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /egress-proxy main.go
+
+FROM scratch
+COPY --from=build /egress-proxy /egress-proxy
+USER 65532:65532
+EXPOSE 3128
+ENTRYPOINT ["/egress-proxy"]

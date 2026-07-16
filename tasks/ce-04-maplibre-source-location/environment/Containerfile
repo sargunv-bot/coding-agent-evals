@@ -1,0 +1,22 @@
+FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git g++ clang python3 \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --shell /bin/bash agent
+RUN git init --quiet /app \
+    && git -C /app remote add origin https://github.com/maplibre/maplibre-native.git \
+    && git -C /app fetch --quiet --depth=1 --filter=blob:none origin 5602ad8bd357c1ffb2b63b8d45de1d85123fdb58 \
+    && git -C /app checkout --quiet --detach FETCH_HEAD \
+    && rm -rf /app/.git \
+    && git -C /app init --quiet --initial-branch=main \
+    && git -C /app config user.name benchmark-base \
+    && git -C /app config user.email benchmark@invalid \
+    && git -C /app add --all \
+    && git -C /app commit --quiet -m 'benchmark base' \
+    && chown -R agent:agent /app
+
+WORKDIR /app
+USER agent
+ENV HOME=/home/agent

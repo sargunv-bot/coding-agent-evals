@@ -1,0 +1,41 @@
+schema_version = "1.3"
+[task]
+name = "personal/ce-07-mobility-result"
+description = "Migrate multiplatform HTTP APIs to explicit Result semantics."
+authors = [{ name = "Sargun Vohra" }]
+keywords = ["kotlin", "ktor", "api-migration", "interactive", "historical-replay", "sealed-transfer"]
+
+[metadata]
+task_id = "ce-07-mobility-result"
+display_title = "Mobility Data Kotlin Result propagation"
+category = "api-migration"
+language = "kotlin"
+repository_url = "https://github.com/sargunv/mobility-data-kt"
+base_commit_hash = "541fc977a939501693a195057d0d1ce39188b522"
+gold_commit_hash = "1334676fae7409daa93cd6316285c24b5a7af571"
+track = "historical-replay+sealed-transfer"
+upstream_license = "Apache-2.0"
+interaction_scenarios = ["validation-fail-fast", "all-errors-as-result"]
+
+[verifier]
+environment_mode = "separate"
+timeout_sec = 1800
+
+[verifier.environment]
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+allow_internet = false
+
+[agent]
+timeout_sec = 7200
+
+[environment]
+build_timeout_sec = 2400
+os = "linux"
+cpus = 4
+memory_mb = 8192
+storage_mb = 16384
+gpus = 0
+allow_internet = false
+mcp_servers = []

@@ -1,0 +1,17 @@
+[providers.zai]
+enabled = true
+base_url_env = "ZAI_BASE_URL"
+api_key_env = "ZAI_API_KEY"
+models = ["glm-5.2"]
+
+[providers.neuralwatt]
+enabled = true
+base_url_env = "NEURALWATT_BASE_URL"
+api_key_env = "NEURALWATT_API_KEY"
+models = ["glm-5.2", "qwen3.5-397b"]
+
+[providers.opencode-go]
+enabled = true
+base_url_env = "OPENCODE_GO_BASE_URL"
+api_key_env = "OPENCODE_GO_API_KEY"
+models = ["glm-5.2", "kimi-k2.7-code", "mimo-v2.5-pro", "deepseek-v4-pro"]

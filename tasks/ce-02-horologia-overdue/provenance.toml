@@ -1,0 +1,15 @@
+schema_version = "1.0"
+task_id = "ce-02-horologia-overdue"
+repository_url = "https://github.com/sargunv/horologia"
+base_commit = "1e90747f596becdb06d8cd8729f9a3df7853cdac"
+gold_commit = "9b6335019e5f66d04ea2b5ff22d50d4d69d94ea4"
+track = "historical-replay"
+upstream_license = "owner-authorized-private-replay"
+distribution = "private-evaluation-only"
+gold_patch_sha256 = "3577864c817b1926dd89bdf55cee8c4dfaffe0a7335d0e91d68edd1343354500"
+gold_patch_bytes = 3852
+instruction_sha256 = "e179d21bc586324ccbdff04ebce7bcd0d714a1cf3f822651e9d563114ae24c33"
+containerfile_sha256 = "f672508bfc59d3e9160cb9aee84c581139261c088c571e61b9a7e33aeb77c5f5"
+
+[mutants]
+"remove-broad-guard-only.patch" = "dcc63d730d8ef061721e9d66eba80661c1e3a9da4bf8e98cd3444f359b17eb43"

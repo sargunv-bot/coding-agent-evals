@@ -1,0 +1,15 @@
+schema_version = "1.0"
+task_id = "ce-04-maplibre-source-location"
+repository_url = "https://github.com/maplibre/maplibre-native"
+base_commit = "5602ad8bd357c1ffb2b63b8d45de1d85123fdb58"
+gold_commit = "f6d70e954b07fdadf6a5adda8da49e73178298c6"
+track = "historical-replay"
+upstream_license = "BSD-2-Clause"
+distribution = "private-evaluation-only"
+gold_patch_sha256 = "da53b36030a3b937181637b855d7df851df538bef9ec86daaeb1e829882255d1"
+gold_patch_bytes = 9678
+instruction_sha256 = "694472f409c2bfdb0359997415774118559e436c65a69cd22ae6b9c2cc04d310"
+containerfile_sha256 = "7bd6e952051965ff646638cfaf4498bb468a70e9841dbac462852dbf4d37241b"
+
+[mutants]
+"default-location-macro.patch" = "ffe892c482b12717cdd52560dad03b4137fcb6a966664bc8b92261e7900c0d4f"

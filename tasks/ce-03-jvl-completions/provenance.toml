@@ -1,0 +1,15 @@
+schema_version = "1.0"
+task_id = "ce-03-jvl-completions"
+repository_url = "https://github.com/sargunv/jvl"
+base_commit = "5e38284088677a138458b3b938f35da62b987398"
+gold_commit = "ac0c74d42890fad44238728159f1061d52dfcc8a"
+track = "historical-replay"
+upstream_license = "owner-authorized-private-replay"
+distribution = "private-evaluation-only"
+gold_patch_sha256 = "457222aafb814c58383970cc57c67356d57b6179f48eb04527ff44a193c3917d"
+gold_patch_bytes = 19365
+instruction_sha256 = "65b1c2e0aa9950310bbac2eac2ca91303699213a9b6671153b51f2c47eb2e0ec"
+containerfile_sha256 = "0fa96ade933862e259294e7f252fe3cde1c88eaae2a5667e1f8a5c9d1a8ba90b"
+
+[mutants]
+"no-type-array.patch" = "c9260e340c9f834d59bab713c5caa10c413871f755574007049476a5482f2ec3"

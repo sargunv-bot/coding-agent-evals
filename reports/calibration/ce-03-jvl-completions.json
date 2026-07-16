@@ -1,0 +1,70 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 2.9800621679751202,
+    "exit_code": 101,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "behavioral": 0,
+      "regression": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025701Z-ce-03-jvl-completions-no-op-1784170621393307884",
+    "scenario": null,
+    "task_id": "ce-03-jvl-completions"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 7.742924496997148,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "behavioral": 1,
+      "regression": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025704Z-ce-03-jvl-completions-gold-1784170624373978418",
+    "scenario": null,
+    "task_id": "ce-03-jvl-completions"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 7.594521149992943,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "behavioral": 1,
+      "regression": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025712Z-ce-03-jvl-completions-gold-1784170632117816572",
+    "scenario": null,
+    "task_id": "ce-03-jvl-completions"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 6.9820956499897875,
+    "exit_code": 101,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "behavioral": 0,
+      "regression": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025719Z-ce-03-jvl-completions-mutant-1784170639713192770",
+    "scenario": null,
+    "task_id": "ce-03-jvl-completions"
+  }
+]

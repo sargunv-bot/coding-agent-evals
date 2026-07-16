@@ -1,0 +1,15 @@
+schema_version = "1.0"
+task_id = "ce-06-maplibre-ffi-ci"
+repository_url = "https://github.com/maplibre/maplibre-native-ffi"
+base_commit = "4fa163923d35aae4099417206a7345b52c2fbdc2"
+gold_commit = "c0da43b1c0b48bc88b8d9964e8aff86e55d2285d"
+track = "historical-replay"
+upstream_license = "BSD-2-Clause"
+distribution = "private-evaluation-only"
+gold_patch_sha256 = "f46d4fd61a7e9ae721300c296d434c7b422b374fe7d190d1aac34852f01abae2"
+gold_patch_bytes = 30097
+instruction_sha256 = "940433f6576a8283efc301efbe5ee04e98fbf1b0985b642d568963f3e14fe558"
+containerfile_sha256 = "5d964ceaa7811100508cddcce3ba1e64820d7cef32f83c497817777e673e5106"
+
+[mutants]
+"ignore-unknown-manifest-fields.patch" = "5119ef54ecfbf9a0a7e777d8dd27ffbc9049b8d11493be4e399325643dbe2cf8"

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "base": {
+      "type": "object",
+      "properties": { "from_ref": { "type": "boolean" } }
+    }
+  },
+  "type": "object",
+  "properties": {
+    "all_object": {
+      "allOf": [
+        { "type": "object", "properties": { "alpha": { "type": "boolean" } } },
+        { "type": "object", "properties": { "beta": { "enum": ["b"] } } }
+      ]
+    },
+    "one_object": {
+      "oneOf": [
+        { "type": "object", "properties": { "left": { "type": "boolean" } } },
+        { "type": "object", "properties": { "right": { "type": "boolean" } } }
+      ]
+    },
+    "nested": {
+      "type": "object",
+      "properties": {
+        "choice": { "anyOf": [{ "type": "boolean" }, { "type": "null" }] }
+      }
+    },
+    "ref_object": {
+      "allOf": [
+        { "$ref": "#/$defs/base" },
+        { "type": "object", "properties": { "local": { "type": "boolean" } } }
+      ]
+    },
+    "typed_nullable": { "type": ["boolean", "null"] },
+    "deduplicated": {
+      "anyOf": [
+        { "enum": ["same", "left"] },
+        { "enum": ["same", "right"] }
+      ]
+    }
+  }
+}

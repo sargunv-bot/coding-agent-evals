@@ -1,0 +1,25 @@
+FROM docker.io/library/rust@sha256:7274e0edb5b47eda8053b350ebf3d489f7e0f65d2d7e77b16076299c7c047c28
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git clang libclang-dev cmake pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+RUN useradd --create-home --shell /bin/bash agent
+RUN git init --quiet /app \
+    && git -C /app remote add origin https://github.com/jdx/mise.git \
+    && git -C /app fetch --quiet --depth=1 --filter=blob:none origin 5aea2e1d0df40673dd5fbd7607109e0ebb136d02 \
+    && git -C /app checkout --quiet --detach FETCH_HEAD \
+    && rm -rf /app/.git \
+    && git -C /app init --quiet --initial-branch=main \
+    && git -C /app config user.name benchmark-base \
+    && git -C /app config user.email benchmark@invalid \
+    && git -C /app add --all \
+    && git -C /app commit --quiet -m 'benchmark base'
+
+WORKDIR /app
+RUN cargo fetch --locked \
+    && cargo test --locked -p mise-sigstore --no-run \
+    && cargo test --locked --bin mise --no-run \
+    && chown -R agent:agent /app /usr/local/cargo
+
+USER agent
+ENV HOME=/home/agent CARGO_NET_OFFLINE=true LIBCLANG_PATH=/usr/lib/llvm-18/lib

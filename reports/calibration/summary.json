@@ -1,0 +1,66 @@
+{
+  "ce-01-antidote-output": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 1.048
+  },
+  "ce-02-horologia-overdue": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 4.096
+  },
+  "ce-03-jvl-completions": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 25.3
+  },
+  "ce-04-maplibre-source-location": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 3.686
+  },
+  "ce-05-mise-slsa-archive": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 233.64
+  },
+  "ce-06-maplibre-ffi-ci": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 9.251
+  },
+  "ce-07-all-errors-as-result": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 480.091
+  },
+  "ce-07-validation-fail-fast": {
+    "controls": 4,
+    "expectations_met": 4,
+    "gold_passes": 2,
+    "infrastructure_errors": 0,
+    "mutants_rejected": 1,
+    "runtime_seconds": 484.359
+  }
+}

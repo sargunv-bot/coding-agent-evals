@@ -1,0 +1,15 @@
+schema_version = "1.0"
+task_id = "ce-05-mise-slsa-archive"
+repository_url = "https://github.com/jdx/mise"
+base_commit = "5aea2e1d0df40673dd5fbd7607109e0ebb136d02"
+gold_commit = "3fd427f3be122bd70a2b00f3e21b1a05c74d8d6e"
+track = "historical-replay"
+upstream_license = "MIT"
+distribution = "private-evaluation-only"
+gold_patch_sha256 = "52bf436ac5325f1563bc7b7f3da4edb781cc0a13bcb03e04f6b9ba41044e267d"
+gold_patch_bytes = 31252
+instruction_sha256 = "7ce132a3e817cb2f33bc7184a330bd4a0edea2e0e6e6babcaeb2e6320091df1c"
+containerfile_sha256 = "54ada7f53947a88a410fd6d2d2d1d0b964a8bd216f199a594de8ae762d202a05"
+
+[mutants]
+"digest-only-subject-match.patch" = "e06b9987bc847739192ae103f6cce154edeeb13476345038ec8fd858af3519da"

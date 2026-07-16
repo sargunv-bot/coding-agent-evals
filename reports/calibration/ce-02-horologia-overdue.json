@@ -1,0 +1,70 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 1.5872346249525435,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "behavioral": 0,
+      "regression": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025657Z-ce-02-horologia-overdue-no-op-1784170617226713132",
+    "scenario": null,
+    "task_id": "ce-02-horologia-overdue"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 0.8477689370047301,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "behavioral": 1,
+      "regression": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025658Z-ce-02-horologia-overdue-gold-1784170618814808154",
+    "scenario": null,
+    "task_id": "ce-02-horologia-overdue"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 0.8297830320079811,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "behavioral": 1,
+      "regression": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025659Z-ce-02-horologia-overdue-gold-1784170619663128972",
+    "scenario": null,
+    "task_id": "ce-02-horologia-overdue"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 0.8313822610070929,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "behavioral": 0,
+      "regression": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025700Z-ce-02-horologia-overdue-mutant-1784170620493678877",
+    "scenario": null,
+    "task_id": "ce-02-horologia-overdue"
+  }
+]

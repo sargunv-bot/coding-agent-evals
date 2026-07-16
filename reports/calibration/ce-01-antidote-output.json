@@ -1,0 +1,66 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 0.258746393956244,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "behavioral": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025656Z-ce-01-antidote-output-no-op-1784170616088925071",
+    "scenario": null,
+    "task_id": "ce-01-antidote-output"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 0.24846489098854363,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "behavioral": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025656Z-ce-01-antidote-output-gold-1784170616348165144",
+    "scenario": null,
+    "task_id": "ce-01-antidote-output"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 0.28124776895856485,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "behavioral": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025656Z-ce-01-antidote-output-gold-1784170616597283091",
+    "scenario": null,
+    "task_id": "ce-01-antidote-output"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 0.2592129079857841,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "behavioral": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025656Z-ce-01-antidote-output-mutant-1784170616879364008",
+    "scenario": null,
+    "task_id": "ce-01-antidote-output"
+  }
+]

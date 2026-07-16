@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/sargunv-bot/coding-agent-evals/schemas/proctor-review.schema.json",
+  "title": "Coding Agent Eval Proctor Review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id", "task_id", "proctor", "proctor_model",
+    "blinded_to_model_identity", "scope_discipline", "code_clarity",
+    "test_quality", "repository_fit", "security_and_safety", "mergeable",
+    "blockers", "strengths", "summary", "deterministic_result_path",
+    "can_override_deterministic"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "task_id": {"type": "string", "minLength": 1},
+    "proctor": {"type": "string", "minLength": 1},
+    "proctor_model": {"type": "string", "minLength": 1},
+    "blinded_to_model_identity": {"type": "boolean"},
+    "scope_discipline": {"$ref": "#/$defs/score"},
+    "code_clarity": {"$ref": "#/$defs/score"},
+    "test_quality": {"$ref": "#/$defs/score"},
+    "repository_fit": {"$ref": "#/$defs/score"},
+    "security_and_safety": {"$ref": "#/$defs/score"},
+    "mergeable": {"type": "boolean"},
+    "blockers": {"type": "array", "items": {"type": "string"}},
+    "strengths": {"type": "array", "items": {"type": "string"}},
+    "summary": {"type": "string", "minLength": 1},
+    "deterministic_result_path": {"type": "string", "minLength": 1},
+    "can_override_deterministic": {"const": false}
+  },
+  "$defs": {
+    "score": {"type": "integer", "minimum": 1, "maximum": 5}
+  }
+}

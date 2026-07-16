@@ -1,0 +1,40 @@
+schema_version = "1.3"
+[task]
+name = "personal/ce-06-maplibre-ffi-ci"
+description = "Make CI target policy declarative and drift-checked."
+authors = [{ name = "Sargun Vohra" }]
+keywords = ["python", "toml", "github-actions", "tooling", "historical-replay"]
+
+[metadata]
+task_id = "ce-06-maplibre-ffi-ci"
+display_title = "MapLibre Native FFI manifest-driven CI"
+category = "build-tooling"
+language = "python"
+repository_url = "https://github.com/maplibre/maplibre-native-ffi"
+base_commit_hash = "4fa163923d35aae4099417206a7345b52c2fbdc2"
+gold_commit_hash = "c0da43b1c0b48bc88b8d9964e8aff86e55d2285d"
+track = "historical-replay"
+upstream_license = "BSD-2-Clause"
+
+[verifier]
+environment_mode = "separate"
+timeout_sec = 900
+
+[verifier.environment]
+cpus = 2
+memory_mb = 4096
+storage_mb = 8192
+allow_internet = false
+
+[agent]
+timeout_sec = 10800
+
+[environment]
+build_timeout_sec = 1200
+os = "linux"
+cpus = 2
+memory_mb = 4096
+storage_mb = 8192
+gpus = 0
+allow_internet = false
+mcp_servers = []

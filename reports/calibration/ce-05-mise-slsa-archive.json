@@ -1,0 +1,74 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 2.81761537498096,
+    "exit_code": 101,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "archive_safety": 0,
+      "fail_closed": 0,
+      "reward": 0,
+      "subject_coverage": 0
+    },
+    "run_dir": "20260716T025730Z-ce-05-mise-slsa-archive-no-op-1784170650558816932",
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 113.3957584539894,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "archive_safety": 1,
+      "fail_closed": 1,
+      "reward": 1,
+      "subject_coverage": 1
+    },
+    "run_dir": "20260716T025733Z-ce-05-mise-slsa-archive-gold-1784170653377229048",
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 114.02388739504386,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "archive_safety": 1,
+      "fail_closed": 1,
+      "reward": 1,
+      "subject_coverage": 1
+    },
+    "run_dir": "20260716T025926Z-ce-05-mise-slsa-archive-gold-1784170766773708174",
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 3.4022894949885085,
+    "exit_code": 101,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "archive_safety": 0,
+      "fail_closed": 0,
+      "reward": 0,
+      "subject_coverage": 0
+    },
+    "run_dir": "20260716T030120Z-ce-05-mise-slsa-archive-mutant-1784170880829926492",
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  }
+]

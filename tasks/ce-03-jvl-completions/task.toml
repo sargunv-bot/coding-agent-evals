@@ -1,0 +1,40 @@
+schema_version = "1.3"
+[task]
+name = "personal/ce-03-jvl-completions"
+description = "Complete composed JSON Schema traversal for LSP suggestions."
+authors = [{ name = "Sargun Vohra" }]
+keywords = ["rust", "lsp", "json-schema", "historical-replay"]
+
+[metadata]
+task_id = "ce-03-jvl-completions"
+display_title = "JVL composed-schema completions"
+category = "feature"
+language = "rust"
+repository_url = "https://github.com/sargunv/jvl"
+base_commit_hash = "5e38284088677a138458b3b938f35da62b987398"
+gold_commit_hash = "ac0c74d42890fad44238728159f1061d52dfcc8a"
+track = "historical-replay"
+upstream_license = "owner-authorized-private-replay"
+
+[verifier]
+environment_mode = "separate"
+timeout_sec = 1200
+
+[verifier.environment]
+cpus = 4
+memory_mb = 8192
+storage_mb = 12288
+allow_internet = false
+
+[agent]
+timeout_sec = 5400
+
+[environment]
+build_timeout_sec = 1800
+os = "linux"
+cpus = 4
+memory_mb = 8192
+storage_mb = 12288
+gpus = 0
+allow_internet = false
+mcp_servers = []

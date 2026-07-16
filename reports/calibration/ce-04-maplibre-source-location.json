@@ -1,0 +1,74 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 0.4129747520200908,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "fallback": 0,
+      "manifests": 0,
+      "native": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025726Z-ce-04-maplibre-source-location-no-op-1784170646761005033",
+    "scenario": null,
+    "task_id": "ce-04-maplibre-source-location"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 1.8232865949976258,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "fallback": 1,
+      "manifests": 1,
+      "native": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025727Z-ce-04-maplibre-source-location-gold-1784170647174588881",
+    "scenario": null,
+    "task_id": "ce-04-maplibre-source-location"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 0.884933627967257,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "fallback": 1,
+      "manifests": 1,
+      "native": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T025728Z-ce-04-maplibre-source-location-gold-1784170648999099954",
+    "scenario": null,
+    "task_id": "ce-04-maplibre-source-location"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 0.5650087939575315,
+    "exit_code": 134,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "fallback": 0,
+      "manifests": 0,
+      "native": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T025729Z-ce-04-maplibre-source-location-mutant-1784170649884924618",
+    "scenario": null,
+    "task_id": "ce-04-maplibre-source-location"
+  }
+]

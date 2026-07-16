@@ -1,6 +1,6 @@
 # Personalized Coding-Agent Evaluation Suite — Research & Design
 
-**Status:** Proposed; no model evaluations have been run.
+**Status:** Runner and task suite implemented; no candidate-model evaluations have been run.
 **Date:** 2026-07-16
 **Owner:** Sargun Vohra
 
@@ -73,7 +73,7 @@ Mitigations:
 - Results are labeled `historical-replay`, not novel-task performance.
 - If the suite becomes important, add a private `transfer` sibling for each task with a counterfactual requirement and unpublished tests.
 
-## 5. Proposed core task suite
+## 5. Implemented core task suite
 
 ### CE-01 — Antidote subprocess output isolation
 
@@ -97,7 +97,7 @@ Mitigations:
 - Exit status from failed git commands must remain meaningful.
 - Existing project tests must pass.
 
-**Clarification profile:** no question should be necessary. If asked whether diagnostics should remain visible, answer card says “Yes—keep diagnostics on stderr; only prevent stdout from becoming generated content.”
+**Clarification profile:** no question should be necessary. If asked whether diagnostics should remain visible, the proctor answers “Yes—keep diagnostics on stderr; only prevent stdout from becoming generated content.”
 
 ### CE-02 — Horologia overdue-action validation matrix
 
@@ -120,7 +120,7 @@ Mitigations:
 - Unknown actions remain invalid.
 - Existing task-engine tests pass.
 
-**Clarification profile:** optional diagnostic clarification. An agent can infer the action matrix from code. A useful question about which actions are recurrence-specific receives the fixed matrix; generic requests for implementation guidance receive “Please inspect the task-engine model and make a reasonable choice.”
+**Clarification profile:** optional diagnostic clarification. An agent can infer the action matrix from code. A useful question about which actions are recurrence-specific receives the policy matrix; generic requests for implementation guidance receive “Please inspect the task-engine model and make a reasonable choice.”
 
 ### CE-03 — JVL composed-schema completions
 
@@ -198,7 +198,7 @@ Mitigations:
 - Existing archive-level verification remains unchanged.
 - Any security-gate failure marks the run `unsafe`, regardless of partial score.
 
-**Clarification profile:** asking about the trust boundary is useful. Fixed answers disclose policy, never implementation. Broad “what should I code?” questions are refused.
+**Clarification profile:** asking about the trust boundary is useful. The proctor discloses policy, never implementation. Broad “what should I code?” questions are refused.
 
 ### CE-06 — MapLibre Native FFI manifest-driven CI
 
@@ -224,7 +224,7 @@ Mitigations:
 - Existing permissions, concurrency behavior, pinned actions, setup steps, required aggregate job, and relevant target policy are preserved.
 - Generated files are marked and formatting/lint orchestration includes manifests, generator, and generated output.
 
-**Clarification profile:** one architectural question is expected or at least reasonable. Fixed cards define that manifests should be per subproject plus a central variant catalog, generated output remains checked in, and current CI semantics should be preserved unless they are clearly duplicated policy.
+**Clarification profile:** one architectural question is expected or at least reasonable. The proctor clarifies that manifests should be per subproject plus a central variant catalog, generated output remains checked in, and current CI semantics should be preserved unless they are clearly duplicated policy.
 
 ## 6. Core interaction task and reserves
 
@@ -246,7 +246,7 @@ Mitigations:
 - `validation-fail-fast` (historical): transport, HTTP, and deserialization failures become `Result.failure`; caller argument/precondition validation continues to throw immediately.
 - `all-errors-as-result` (sealed counterfactual): caller validation is also represented as `Result.failure`.
 
-The initial prompt is identical. In `full_info`, the selected policy is stated. In `baseline`, it is withheld. In `ask_user`, a question that distinguishes caller misuse from operational failure receives the fixed scenario answer. Tests also check Ktor `expectSuccess`, coroutine cancellation, API dumps, documentation snippets, and consistency across modules.
+The initial prompt is identical. In `full_info`, the selected policy is stated. In `baseline`, it is withheld. In `ask_user`, a question that distinguishes caller misuse from operational failure receives the selected scenario policy. Tests also check Ktor `expectSuccess`, coroutine cancellation, API dumps, documentation snippets, and consistency across modules.
 
 ### CE-R1 — dprint clang-format config mapping in Wasm
 
@@ -268,31 +268,21 @@ The initial prompt is identical. In `full_info`, the selected policy is stated. 
 
 ### 7.1 Tool surface
 
-Every OpenCode run receives one additional tool:
+Every `ask_user`-mode OpenCode run receives one additional tool:
 
 ```text
 ask_user(question: string) -> string
 ```
 
-Pier's current OpenCode adapter natively translates task `mcp_servers` entries into `opencode.json` and records custom tool calls in its ATIF trajectory. The compatibility spike therefore only needs to validate the moderator transport; no Pier fork should be required.
+The custom rootless-Podman runner writes the local MCP entry into `opencode.json` only for `ask_user` mode and records OpenCode JSON events in its normalized trajectory. Pier's inspected OpenCode adapter provides a compatible reference implementation; no Pier fork is required.
 
-The task container cannot read answer cards. The tool calls a host-side moderator over a narrow local channel. It has no general network access.
+The task container cannot read sealed scenario policy or verifier artifacts. The tool calls a host-side moderator through a mounted filesystem queue and stdio MCP process. It has no general network access.
 
-### 7.2 Fixed answer cards
+### 7.2 Live proctor
 
-Each task contains a private moderator file with:
+The active SOTA Hermes model acts as Sargun's live proxy. It answers scope and product-semantics questions naturally, using the selected scenario's sealed policy where applicable, while refusing solution fishing. Every question and answer is recorded with task, scenario, timestamps, and proctor model provenance.
 
-- card ID;
-- semantic topic;
-- exact response text;
-- whether the topic is blocking, useful, repository-answerable, or out of scope;
-- maximum disclosure level.
-
-Sargun maps free-form questions to cards for the first run. Later semantically equivalent questions receive exactly the same text. Unmatched questions receive:
-
-> No additional requirement is specified. Please inspect the repository and make a reasonable choice, documenting any consequential assumption.
-
-This keeps interaction natural while preventing later models from receiving richer requirements.
+Semantically equivalent questions should receive materially equivalent requirements. The proctor may direct an agent back to repository evidence but cannot reveal hidden tests, historical patches, expected symbols, or an implementation plan. This preserves natural interaction without using an unconstrained user simulator as the task oracle.
 
 ### 7.3 Clarification analysis
 
@@ -318,7 +308,7 @@ For tasks with a registered consequential blocker, run three explicitly labeled 
 
 Use this only where two or more reasonable intended worlds imply incompatible correct behavior. Each blocker records when it becomes discoverable, acceptable question paraphrases, the deterministic answer in each scenario, and whether repository evidence can resolve it. Report blocker recall, question precision, redundant-question count, turns to resolution, and whether the implementation changed after the answer. This adapts the strongest parts of HiL-Bench's blocker/Ask-F1 framing without adopting its SWE-bench-derived corpus or LLM user simulator.
 
-CE-07 is the best initial paired-interaction candidate: “return failures as `Result`” leaves it consequentially unclear whether caller precondition errors should remain fail-fast. Two sealed intended-world variants can use the same initial prompt while returning different fixed answer cards.
+CE-07 is the best initial paired-interaction candidate: “return failures as `Result`” leaves it consequentially unclear whether caller precondition errors should remain fail-fast. Two sealed intended-world variants use the same initial prompt while the live proctor returns the selected scenario policy.
 
 ## 8. Execution architecture
 
@@ -349,7 +339,7 @@ Separate verifier container
   └─ emits structured requirement-level results
 ```
 
-Secrets remain host-side. The task sees only a loopback/allowlisted model proxy and clarification endpoint.
+Only the selected provider credential enters the candidate environment, through inherited process environment rather than config or command arguments. It is absent from verifier containers and committed artifacts. The candidate has only exact-host model egress and the local stdio clarification tool.
 
 ## 9. Task quality gates before model execution
 
@@ -359,8 +349,8 @@ Every task must pass:
 2. **No-op baseline:** essential new behavior fails.
 3. **Gold baseline:** historical patch passes all behavioral and regression tests.
 4. **Targeted mutants:** deliberately broken variants fail the intended requirement.
-5. **Test/instruction alignment:** every hidden assertion traces to prompt text, a repository invariant, or an answer card.
-6. **Isolation check:** agent cannot read hidden tests, solution, answer cards, or future history.
+5. **Test/instruction alignment:** every hidden assertion traces to prompt text, a repository invariant, or sealed scenario policy.
+6. **Isolation check:** agent cannot read hidden tests, solutions, sealed scenario policy, or future history.
 7. **Cheat review:** common test tampering, generated-file spoofing, and grader bypasses fail.
 8. **Flake check:** verifier passes repeatedly under constrained CPU/memory.
 9. **License/provenance review:** record upstream license and avoid publishing source/gold patches under an incompatible license.
@@ -427,49 +417,20 @@ This avoids an expensive blind Cartesian product while retaining comparable evid
 - Provider defaults unless a model's documented reasoning mode is necessary; record every setting.
 - Same network, tool, and repository permissions for all models.
 
-## 12. Implementation phases after approval
+## 12. Implementation status
 
-### Phase 0 — Compatibility spike
+| Phase | Status | Evidence |
+|---|---|---|
+| Runtime compatibility | Complete | Harbor schema `1.3`, pinned OpenCode, custom rootless-Podman adapter, exact-host proxy, separate verifier, MCP bridge, trajectory and patch capture |
+| Calibration tasks | Complete | CE-01 and CE-02 no-op/gold/repeated-gold/mutant controls |
+| Medium tasks | Complete | CE-03, genuine GCC/Clang CE-04 fallback checks, and paired CE-07 worlds |
+| Long tasks | Complete | CE-05 fail-closed security verifier and CE-06 strict deterministic workflow generation |
+| Dry validation | Complete | Normalized records under `reports/calibration/`, isolation smoke tests, repeated image builds, static/unit gates |
+| Candidate-model evaluation | Not authorized | No substantive candidate model or model matrix has run |
 
-- Create a local private repository, tentatively `~/coding-agent-evals`.
-- Pin OpenCode and the Harbor task schema.
-- Compare pinned current Harbor plus a minimal Podman adapter against Pier PR #14 at `6263c12c`.
-- Validate rootless Podman lifecycle, phase-specific filtered egress, separate verifier, MCP clarification, ATIF output, artifact extraction, and cleanup.
-- Run a toy no-op/gold task only; do not run candidate models.
-- Validate the host-side `ask_user` bridge with a fake scripted agent.
+## 13. Resolved decisions and future scope
 
-### Phase 1 — Package calibration tasks
-
-- Implement CE-01 and CE-02.
-- Add no-op, gold, mutant, isolation, and flake checks.
-- Have Sargun approve prompts and answer cards.
-
-### Phase 2 — Package medium tasks
-
-- Implement CE-03, CE-04, and CE-07.
-- Ensure C++ fallback is exercised genuinely on Linux rather than statically string-matched.
-- Validate CE-07's paired intended worlds with fixed blocker cards in `full_info`, `baseline`, and `ask_user` conditions.
-
-### Phase 3 — Package long tasks
-
-- Implement CE-05 and CE-06.
-- Perform adversarial verifier review, especially for fail-closed security and generated-file spoofing.
-
-### Phase 4 — Dry validation
-
-- Rebuild every image.
-- Run no-op, gold, and all mutants.
-- Produce a task audit report.
-- Stop and request explicit approval before any model matrix execution.
-
-### Phase 5 — Model evaluation
-
-Not authorized by the current request. Execute only after Sargun reviews the validated task audit and model configuration matrix.
-
-## 13. Decisions requested from Sargun
-
-1. Approve the seven core tasks, or swap a core task for CE-R1/CE-R2.
-2. Approve the Harbor-compatible task format and a Phase-0 comparison of pinned Pier PR #14 against a thin Harbor/Podman adapter.
-3. Approve the fixed-card clarification protocol.
-4. Decide whether exact historical replay is sufficient for v1 or whether every task should also get a private counterfactual transfer variant.
-5. Decide whether task files/results should stay local/private initially or live in a new private GitHub repository.
+- The seven core tasks, private repository, Harbor-compatible format, and live SOTA proctor were approved.
+- Current Harbor is the schema/substrate reference; Pier PR `#14` is retained as an inspected Podman reference rather than adopted as the harness.
+- Historical replay remains explicitly contamination-prone. CE-07 adds the first sealed transfer world; additional private counterfactual siblings are future work.
+- Any candidate-model matrix requires a separate explicit approval after review of calibration evidence and model configuration.

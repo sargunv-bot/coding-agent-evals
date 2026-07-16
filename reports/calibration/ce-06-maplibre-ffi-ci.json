@@ -1,0 +1,74 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 0.8545092970016412,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "determinism": 0,
+      "reward": 0,
+      "strictness": 0,
+      "structure": 0
+    },
+    "run_dir": "20260716T030124Z-ce-06-maplibre-ffi-ci-no-op-1784170884362056977",
+    "scenario": null,
+    "task_id": "ce-06-maplibre-ffi-ci"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 4.332310074009001,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "determinism": 1,
+      "reward": 1,
+      "strictness": 1,
+      "structure": 1
+    },
+    "run_dir": "20260716T030125Z-ce-06-maplibre-ffi-ci-gold-1784170885217217866",
+    "scenario": null,
+    "task_id": "ce-06-maplibre-ffi-ci"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 2.0481054080300964,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "determinism": 1,
+      "reward": 1,
+      "strictness": 1,
+      "structure": 1
+    },
+    "run_dir": "20260716T030129Z-ce-06-maplibre-ffi-ci-gold-1784170889550604521",
+    "scenario": null,
+    "task_id": "ce-06-maplibre-ffi-ci"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 2.015622310980689,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "determinism": 0,
+      "reward": 0,
+      "strictness": 0,
+      "structure": 0
+    },
+    "run_dir": "20260716T030131Z-ce-06-maplibre-ffi-ci-mutant-1784170891599563129",
+    "scenario": null,
+    "task_id": "ce-06-maplibre-ffi-ci"
+  }
+]

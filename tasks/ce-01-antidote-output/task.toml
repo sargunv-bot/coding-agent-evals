@@ -1,0 +1,41 @@
+schema_version = "1.3"
+
+[task]
+name = "personal/ce-01-antidote-output"
+description = "Prevent subprocess stdout from contaminating generated shell output."
+authors = [{ name = "Sargun Vohra" }]
+keywords = ["zsh", "diagnosis", "process-io", "historical-replay"]
+
+[metadata]
+task_id = "ce-01-antidote-output"
+display_title = "Antidote subprocess output isolation"
+category = "bug-fix"
+language = "zsh"
+repository_url = "https://github.com/mattmc3/antidote"
+base_commit_hash = "61a07ca521e8f811bbcd6da74a244119209980cb"
+gold_commit_hash = "f4c883c757c449e44f31af8d611a6b3441ce45a4"
+track = "historical-replay"
+upstream_license = "MIT"
+
+[verifier]
+environment_mode = "separate"
+timeout_sec = 300
+
+[verifier.environment]
+cpus = 2
+memory_mb = 2048
+storage_mb = 4096
+allow_internet = false
+
+[agent]
+timeout_sec = 1800
+
+[environment]
+build_timeout_sec = 900
+os = "linux"
+cpus = 2
+memory_mb = 2048
+storage_mb = 4096
+gpus = 0
+allow_internet = false
+mcp_servers = []

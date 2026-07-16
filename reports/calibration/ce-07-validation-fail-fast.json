@@ -1,0 +1,74 @@
+[
+  {
+    "command_stderr": "",
+    "control": "no-op",
+    "duration_seconds": 39.43731502699666,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "api": 0,
+      "behavioral": 0,
+      "regression": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T033232Z-ce-07-mobility-result-validation-fail-fast-no-op-1784172752722504994",
+    "scenario": "validation-fail-fast",
+    "task_id": "ce-07-mobility-result"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 178.8996552400058,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "api": 1,
+      "behavioral": 1,
+      "regression": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T033312Z-ce-07-mobility-result-validation-fail-fast-gold-1784172792161359970",
+    "scenario": "validation-fail-fast",
+    "task_id": "ce-07-mobility-result"
+  },
+  {
+    "command_stderr": "",
+    "control": "gold",
+    "duration_seconds": 176.30374711198965,
+    "exit_code": 0,
+    "expectation_met": true,
+    "expected_pass": true,
+    "outcome": "passed",
+    "reward": {
+      "api": 1,
+      "behavioral": 1,
+      "regression": 1,
+      "reward": 1
+    },
+    "run_dir": "20260716T033611Z-ce-07-mobility-result-validation-fail-fast-gold-1784172971062380919",
+    "scenario": "validation-fail-fast",
+    "task_id": "ce-07-mobility-result"
+  },
+  {
+    "command_stderr": "",
+    "control": "mutant",
+    "duration_seconds": 89.71793053398142,
+    "exit_code": 1,
+    "expectation_met": true,
+    "expected_pass": false,
+    "outcome": "failed",
+    "reward": {
+      "api": 0,
+      "behavioral": 0,
+      "regression": 0,
+      "reward": 0
+    },
+    "run_dir": "20260716T033907Z-ce-07-mobility-result-validation-fail-fast-mutant-1784173147368239051",
+    "scenario": "validation-fail-fast",
+    "task_id": "ce-07-mobility-result"
+  }
+]

@@ -1,0 +1,14 @@
+diff --git a/server/internal/taskengine/overdue_action_validate.go b/server/internal/taskengine/overdue_action_validate.go
+index 0296398..d2f2aea 100644
+--- a/server/internal/taskengine/overdue_action_validate.go
++++ b/server/internal/taskengine/overdue_action_validate.go
+@@ -18,9 +18,6 @@ func ValidateOverdueActionRule(
+ 	if !action.Valid {
+ 		return nil // no rule, nothing to validate
+ 	}
+-	if recurrenceType == dbgen.RecurrenceTypeOneOff || recurrenceType == dbgen.RecurrenceTypeOnDependency {
+-		return types.ValidationError("overdue_action_rule is only valid on recurring tasks")
+-	}
+ 	if !hasDue {
+ 		return types.ValidationError("overdue_action_rule requires a due date")
+ 	}
