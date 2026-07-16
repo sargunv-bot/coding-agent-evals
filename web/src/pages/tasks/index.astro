@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Warnings from '../../components/Warnings.astro';
+import { loadSiteData } from '../../lib/data';
+import { basePath } from '../../lib/format';
+const data = await loadSiteData();
+---
+<BaseLayout title="Tasks">
+  <p class="eyebrow">Browse by task</p>
+  <h1 class="text-4xl font-black">Tasks</h1>
+  <p class="prose-readable mt-3">A task is a pinned software change request with executable verification. Select one to compare every provider/model attempt against the same expected behavior.</p>
+  <Warnings warnings={data.warnings}/>
+  <div class="mt-8 grid gap-4 md:grid-cols-2">
+    {data.tasks.map((task) => {
+      const passed = task.runs.filter((run) => run.deterministicPass).length;
+      return <article class="panel axis-card flex flex-col"><div class="flex-1">
+        <div class="flex flex-wrap gap-2"><span class="badge badge-outline">{task.language || 'Unknown language'}</span><span class="badge badge-outline">{task.category || 'Uncategorized'}</span></div>
+        <h2 class="mt-3 text-xl font-bold"><a href={basePath(`tasks/${task.taskId}/`)}>{task.title}</a></h2>
+        <p class="mt-2 text-base-content/75">{task.description}</p>
+      </div><div class="mt-5 flex flex-wrap items-end justify-between gap-3"><p><strong>{task.runs.length}</strong> committed runs · <strong>{passed}</strong> deterministic passes</p><a class="btn btn-sm btn-primary" href={basePath(`tasks/${task.taskId}/`)}>View task</a></div></article>;
+    })}
+  </div>
+</BaseLayout>

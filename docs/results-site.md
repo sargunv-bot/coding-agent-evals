@@ -23,38 +23,40 @@ The generator does not inspect uncommitted run directories. Inputs may be absent
 
 ## Output contract
 
-`python3 -m sitegen build --data-root <root> --output _site --base-path <path>` produces:
+`cd web && RESULTS_DATA_ROOT=<root> TASK_DATA_ROOT=<trusted-root> BASE_PATH=<path> npm run build` produces:
 
-- `/index.html`: experiment index;
-- `/experiments/<id>/index.html`: experiment summary and filterable cell table;
-- `/experiments/<id>/cells/<cell-id>/index.html`: semantic cell detail page;
-- `/data/site.json`, `/data/experiments/<id>.json`, and per-cell JSON: stable machine-readable data;
-- `/artifacts/<experiment-id>/<cell-id>/...`: copied committed evidence, including canonical transcript JSONL, patch, verifier output, and manifests;
-- `/assets/site.css` and `/assets/site.js`: intentionally small baseline assets with stable classes and data attributes for a separate design pass; and
+- `/index.html` and `/tasks/index.html`: task-first landing and task index;
+- `/tasks/<task-id>/index.html`: task provenance and all associated runs;
+- `/models/index.html` and `/models/<provider--model>/index.html`: model views;
+- `/runs/<experiment-id>/<cell-id>/index.html`: semantic run detail, diff, transcript, verifier result, review, and evidence;
+- `/glossary/index.html`: plain-language terminology;
+- `/evidence/<experiment-id>/<cell-id>/...`: allowlisted, Git-committed evidence with recomputed hashes; and
 - `/.nojekyll`.
 
-All generated JSON uses sorted keys and stable indentation. Directory and row traversal is sorted. No wall-clock timestamp is emitted, so identical inputs and arguments produce byte-identical output. The output directory is replaced atomically enough for CI: generation occurs in a sibling temporary directory and is renamed only after successful generation.
+Directory and row traversal is sorted and no wall-clock timestamp is emitted, so identical inputs and arguments produce byte-identical output. Astro replaces `dist/` on each build, and the evidence preparation step removes stale copied evidence first.
 
 ## Partial and malformed data behavior
 
 Discovery is the union of results rows, evidence-index entries, and committed evidence run directories. Thus a completed evidence cell can appear before an aggregate `results.json` update. Matrix-record data fills missing result fields when available.
 
-A malformed optional document does not abort the site build. The affected experiment or cell remains browsable with `Unavailable` values and a visible warning. Unsafe artifact paths (absolute paths or `..` traversal) are rejected. Artifact hashes are recomputed during generation and mismatches are shown; the published detail JSON preserves expected and actual hashes. A missing experiment tree produces a valid empty site.
+A malformed optional document does not abort the site build. The affected experiment or cell remains browsable with `Unavailable` values and a visible warning. Unsafe artifact paths (absolute paths, `..` traversal, or symlinks) are rejected. Only explicit allowlisted files that `git ls-files` proves committed are copied. Artifact hashes are recomputed during generation and mismatches are shown. A missing experiment tree produces a valid empty site.
 
-Validation is separate from ingestion tolerance. `python3 -m sitegen validate --site _site` verifies required pages/data, JSON readability, internal root-relative URLs under the configured base path, and referenced local files. It fails only when the generated site itself is inconsistent.
+Validation is separate from ingestion tolerance. `npm run validate` verifies required pages, real run deep links, and the absence of hash-only routing.
 
 ## Accessibility and progressive enhancement
 
-Pages use landmarks, headings, labeled controls, tables with captions and header scopes, status text, and links that work without JavaScript. JavaScript only adds client-side filtering and result counts. Focus styles, reduced-motion compatibility, readable contrast, and horizontal table overflow are baseline requirements. CSS custom properties, component classes, `data-*` hooks, and the standalone asset files are extension points; visual polish is intentionally out of scope.
+Pages use landmarks, headings, labeled controls, tables with captions and header scopes, status text, and links that work without JavaScript. JavaScript provides the persisted theme toggle and interactive React evidence viewers; task/model/run navigation, verifier results, final transcript messages, artifact metadata, and raw patch/JSONL downloads remain available in static HTML. Focus styles, reduced-motion compatibility, readable contrast, dark-theme support, and constrained horizontal evidence overflow are baseline requirements.
+
+The frontend is Astro with React islands, Tailwind CSS, and daisyUI. Candidate patches use the pinned `@pierre/diffs` React renderer. Transcript composition adapts Vercel AI Elements' pinned Conversation, Message, and Tool patterns; candidate final messages are rendered with `react-markdown` and GFM while raw HTML remains disabled.
 
 ## GitHub Pages deployment
 
 The Pages workflow:
 
-1. checks out `main` at the workspace root for trusted generator/site code;
+1. checks out `main` as trusted Astro/site code;
 2. checks out `results-live` into a separate `results-live/` directory for committed live data;
-3. runs unit tests, builds with the repository Pages base path, and validates output;
-4. configures Pages and uploads `_site` with the official Pages actions; and
+3. runs `npm ci`, lint, Astro type checking, Vitest, builds with the Pages base path, and validates output;
+4. configures Pages and uploads `web/dist` with immutable-SHA-pinned official actions; and
 5. deploys with the official deploy action and the minimal Pages/OIDC permissions.
 
 It runs on site-code pushes to `main`, manual dispatch, and `repository_dispatch` with event type `results_updated`. Branch data is treated only as data and no code from `results-live` is executed.

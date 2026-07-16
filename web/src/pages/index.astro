@@ -1,0 +1,19 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Warnings from '../components/Warnings.astro';
+import RunTable from '../components/RunTable.astro';
+import { loadSiteData } from '../lib/data';
+import { basePath } from '../lib/format';
+const data = await loadSiteData();
+const completed = data.runs.filter((run) => run.state === 'completed').length;
+const passed = data.runs.filter((run) => run.deterministicPass).length;
+---
+<BaseLayout title="Results">
+  <section class="grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-center"><div><p class="eyebrow">Task-first evidence browser</p><h1 class="mt-2 text-4xl font-black tracking-tight sm:text-6xl">What can coding agents actually solve?</h1><p class="prose-readable mt-5 text-lg text-base-content/75">Start with a reproducible software <a href={basePath('glossary/#task')}>task</a>, compare model attempts, then inspect the verifier, candidate patch, and human-readable transcript. Experiment stages remain available only as provenance.</p><div class="mt-6 flex flex-wrap gap-3"><a class="btn btn-primary" href={basePath('tasks/')}>Browse tasks</a><a class="btn btn-outline" href={basePath('models/')}>Browse models</a></div></div>
+  <div class="grid grid-cols-2 gap-3"><div class="metric"><div class="stat-title">Tasks</div><div class="stat-value">{data.tasks.length}</div></div><div class="metric"><div class="stat-title">Models</div><div class="stat-value">{data.models.length}</div></div><div class="metric"><div class="stat-title">Committed runs</div><div class="stat-value">{completed}</div></div><div class="metric"><div class="stat-title">Deterministic passes</div><div class="stat-value">{passed}</div></div></div></section>
+  <Warnings warnings={data.warnings}/>
+
+  <section class="mt-14"><div class="section-heading"><div><p class="eyebrow">Start from the problem</p><h2 class="text-2xl font-bold">Tasks</h2></div><a href={basePath('tasks/')}>View all task details</a></div><div class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{data.tasks.map((task) => <article class="panel axis-card"><p class="eyebrow">{task.language || 'Unknown'} · {task.category || 'Uncategorized'}</p><h3 class="mt-2 text-lg font-bold"><a href={basePath(`tasks/${task.taskId}/`)}>{task.title}</a></h3><p class="mt-3 text-sm text-base-content/70">{task.runs.length} committed runs · {task.runs.filter((run) => run.deterministicPass).length} passed</p></article>)}</div></section>
+
+  <section class="mt-14"><div class="section-heading"><div><p class="eyebrow">Drill into evidence</p><h2 class="text-2xl font-bold">Committed runs</h2></div><p class="text-sm text-base-content/65">First 10 in deterministic task/model order</p></div><div class="mt-5"><RunTable runs={data.runs.slice(0, 10)} caption="Committed evaluation runs" /></div></section>
+</BaseLayout>

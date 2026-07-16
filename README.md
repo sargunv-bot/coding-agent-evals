@@ -225,6 +225,28 @@ cae report experiments/real-models-v1-stage-a.toml \
   --output reports/experiments/real-models-v1-stage-a
 ```
 
+## Static results site
+
+The production results browser is the Astro project under `web/`. It is task-first,
+generates real static task/model/run routes, and reads committed result data only; it
+never executes an evaluation or reads `.runs`.
+
+```bash
+cd web
+npm ci --ignore-scripts
+npm run lint
+npm run check
+npm test
+RESULTS_DATA_ROOT=.. TASK_DATA_ROOT=.. BASE_PATH=/coding-agent-evals/ npm run build
+npm run validate
+```
+
+For a separate live-results checkout, set `RESULTS_DATA_ROOT` to that checkout and
+keep `TASK_DATA_ROOT` pointed at the trusted source checkout. Build-time ingestion
+publishes only allowlisted files proven committed by Git, rejects path and symlink
+escapes, recomputes evidence hashes, and displays optional-input warnings. See
+[`docs/results-site.md`](docs/results-site.md) and `web/THIRD_PARTY_NOTICES.md`.
+
 ## Storage and cleanup
 
 The default floor is 80 GiB free. Override it explicitly when appropriate:

@@ -1,0 +1,28 @@
+---
+import '../styles/global.css';
+import { basePath } from '../lib/format';
+interface Props { title: string; description?: string }
+const { title, description = 'Transparent coding-agent evaluation results.' } = Astro.props;
+const pathname = Astro.url.pathname;
+const links = [['Tasks', basePath('tasks/')], ['Models', basePath('models/')], ['Glossary', basePath('glossary/')]];
+---
+<!doctype html>
+<html lang="en" data-theme="linen">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width"/><meta name="description" content={description}/><title>{title} · Coding agent evaluations</title>
+  <script is:inline>
+    (() => { try { const saved = localStorage.getItem('evals-theme'); const dark = matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.dataset.theme = saved || (dark ? 'graphite' : 'linen'); } catch {} })();
+  </script>
+</head>
+<body>
+<a class="btn btn-primary fixed left-2 top-2 z-50 -translate-y-24 focus:translate-y-0" href="#main">Skip to content</a>
+<header class="site-header"><nav class="navbar shell" aria-label="Global navigation">
+  <div class="navbar-start"><a class="brand no-underline" href={basePath()}><span aria-hidden="true">AE</span><strong>Agent evals</strong></a></div>
+  <div class="navbar-end gap-1">{links.map(([label, href]) => <a class:list={['btn btn-ghost btn-sm', pathname.startsWith(href) && 'btn-active']} href={href}>{label}</a>)}<button id="theme-toggle" class="btn btn-ghost btn-sm" type="button" aria-label="Toggle color theme">Theme</button></div>
+</nav></header>
+<main id="main" class="shell py-8 sm:py-12"><slot /></main>
+<footer class="mt-16 border-t border-base-300 bg-base-100"><div class="shell py-8 text-sm text-base-content/70"><p>Committed evidence only. Deterministic verification is authoritative; subjective review is separate.</p><p><a href={basePath('notices/')}>Open-source notices</a></p></div></footer>
+<script is:inline>
+  (() => { const root = document.documentElement; const button = document.getElementById('theme-toggle'); if (!button) return; const update = () => { const dark = root.dataset.theme === 'graphite'; button.textContent = dark ? 'Light' : 'Dark'; button.setAttribute('aria-pressed', String(dark)); }; update(); button.addEventListener('click', () => { root.dataset.theme = root.dataset.theme === 'graphite' ? 'linen' : 'graphite'; try { localStorage.setItem('evals-theme', root.dataset.theme); } catch {} update(); }); })();
+</script>
+</body></html>
