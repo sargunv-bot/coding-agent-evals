@@ -11,6 +11,7 @@ build/
 bin/
 
 # Evaluation outputs
+.hermes/
 .runs/
 .cache/
 artifacts/

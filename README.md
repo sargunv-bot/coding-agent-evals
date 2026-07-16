@@ -109,16 +109,14 @@ Copy the example without committing it:
 cp providers.example.toml providers.toml
 ```
 
-Set the endpoint and credential environment variables referenced by that file. For the same requested model, routing priority is:
-
-1. `zai`
-2. `neuralwatt`
-3. `opencode-go`
+Set the endpoint and credential environment variables referenced by that file. Provider
+selection is always explicit: the harness has no priority order and never falls back to
+another provider.
 
 Inspect the redacted route:
 
 ```bash
-cae route glm-5.2 --providers providers.toml
+cae route glm-5.2 --provider zai --providers providers.toml
 ```
 
 The command reports the provider, model, endpoint, and credential variable name—never the credential value.
@@ -145,6 +143,7 @@ Candidate execution is intentionally gated:
 ```bash
 CAE_ALLOW_CANDIDATE_RUN=1 cae run \
   ce-07-mobility-result glm-5.2 \
+  --provider zai \
   --providers providers.toml \
   --scenario validation-fail-fast \
   --mode ask_user
@@ -190,6 +189,41 @@ cae review-template <run-id> <task-id> \
 ```
 
 Review covers scope discipline, code clarity, tests, repository fit/taste, security, and mergeability. It cannot promote a deterministic failure into a behavioral pass.
+
+## Real-model experiment manifests
+
+Paid model runs are described by operator-authored manifests under `experiments/`. Each
+model entry names one exact provider and model pair. Plan and inspect the expansion before
+enabling candidate execution:
+
+```bash
+cae matrix plan experiments/real-models-v1-stage-a.toml --providers providers.toml
+CAE_ALLOW_CANDIDATE_RUN=1 cae matrix run \
+  experiments/real-models-v1-stage-a.toml --providers providers.toml
+cae matrix status experiments/real-models-v1-stage-a.toml --providers providers.toml
+cae matrix resume experiments/real-models-v1-stage-a.toml --providers providers.toml
+```
+
+The first run requires a clean, signed benchmark commit and freezes a local lock containing
+the commit, manifest digest, explicit routes, image IDs, OpenCode version, and expanded
+cells. Resume refuses drift. Completed model failures are outcomes, not retry candidates;
+only infrastructure errors receive the manifest's bounded retry.
+
+While an `ask_user` matrix is active, the live proctor can wait for unanswered questions:
+
+```bash
+scripts/watch_proctor.py --wait --timeout 900
+```
+
+Results record input, cached-input, output, and reasoning tokens. Provider-reported cost is
+retained when available but is secondary for subscription-backed routes. Generate a
+normalized report with:
+
+```bash
+cae report experiments/real-models-v1-stage-a.toml \
+  --providers providers.toml \
+  --output reports/experiments/real-models-v1-stage-a
+```
 
 ## Storage and cleanup
 

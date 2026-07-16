@@ -28,18 +28,23 @@ class ProviderRoutingTest(unittest.TestCase):
         {"ZAI_URL": "https://zai.invalid/v1", "ZAI_KEY": "super-secret-value"},
         clear=False,
     )
-    def test_prefers_zai_for_same_model(self) -> None:
-        route = resolve_model("same", self.providers)
+    def test_selects_explicit_provider_for_same_model(self) -> None:
+        route = resolve_model("zai", "same", self.providers)
         self.assertEqual("zai", route.provider)
         self.assertEqual("ZAI_KEY", route.redacted()["api_key_env"])
         self.assertNotIn("super-secret-value", str(route.redacted()))
 
-    def test_falls_back_to_neuralwatt(self) -> None:
-        self.assertEqual("neuralwatt", resolve_model("nw-only", self.providers).provider)
+    def test_does_not_fall_back_to_another_provider(self) -> None:
+        with self.assertRaisesRegex(LookupError, "not configured for provider"):
+            resolve_model("opencode-go", "nw-only", self.providers)
+
+    def test_unknown_provider_is_explicit(self) -> None:
+        with self.assertRaisesRegex(LookupError, "not configured"):
+            resolve_model("missing", "same", self.providers)
 
     def test_missing_endpoint_environment_is_explicit(self) -> None:
         with patch.dict(os.environ, {}, clear=True), self.assertRaises(RuntimeError):
-            resolve_model("same", self.providers)
+            resolve_model("zai", "same", self.providers)
 
 
 if __name__ == "__main__":

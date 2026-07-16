@@ -19,6 +19,17 @@ The proctor is the active SOTA Hermes model acting as Sargun would:
 
 For repeated runs, reuse an existing semantically equivalent answer when possible. New materially distinct questions may receive a live answer. Equivalent models and conditions must not receive materially different requirements.
 
+For a sequential matrix, monitor unanswered queues without granting the watcher authority to
+answer:
+
+```bash
+scripts/watch_proctor.py --wait --timeout 900
+```
+
+For each returned row, inspect the task, scenario, trajectory context, and sealed policy, then
+use `cae proctor answer`. Record the active Hermes provider/model exactly. The watcher is
+read-only and performs no model or provider selection.
+
 ## Final review
 
 After deterministic verification, the proctor reviews a model-blinded patch and trajectory. It reports, separately from executable reward:

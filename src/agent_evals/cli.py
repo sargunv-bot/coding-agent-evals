@@ -9,8 +9,11 @@ from pathlib import Path
 
 from .agent import AgentRunner
 from .engine import DEFAULT_MIN_FREE_GIB, PodmanEngine
+from .experiment import ExperimentSpec
+from .matrix import MatrixRunner
 from .proctor import ProctorQueue
 from .providers import load_routes, resolve_model
+from .report import write_experiment_report
 from .review import ProctorReview
 from .task import TaskSpec, TaskValidationError, discover_tasks
 
@@ -64,6 +67,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = commands.add_parser("run")
     run.add_argument("task_id")
     run.add_argument("model")
+    run.add_argument("--provider", required=True)
     run.add_argument("--providers", type=Path, default=Path("providers.toml"))
     run.add_argument("--scenario")
     run.add_argument("--mode", choices=("baseline", "ask_user", "full_info"), default="ask_user")
@@ -101,7 +105,20 @@ def build_parser() -> argparse.ArgumentParser:
 
     route = commands.add_parser("route")
     route.add_argument("model")
+    route.add_argument("--provider", required=True)
     route.add_argument("--providers", type=Path, required=True)
+
+    matrix = commands.add_parser("matrix")
+    matrix_commands = matrix.add_subparsers(dest="matrix_command", required=True)
+    for name in ("plan", "run", "status", "resume"):
+        matrix_command = matrix_commands.add_parser(name)
+        matrix_command.add_argument("manifest", type=Path)
+        matrix_command.add_argument("--providers", type=Path, required=True)
+
+    report = commands.add_parser("report")
+    report.add_argument("manifest", type=Path)
+    report.add_argument("--providers", type=Path, required=True)
+    report.add_argument("--output", type=Path, required=True)
 
     review = commands.add_parser("review-template")
     review.add_argument("run_id")
@@ -142,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     if args.command == "run":
-        route = resolve_model(args.model, load_routes(args.providers))
+        route = resolve_model(args.provider, args.model, load_routes(args.providers))
         result = AgentRunner(repo, engine).run(
             _task(repo, args.task_id),
             route,
@@ -191,7 +208,23 @@ def main(argv: list[str] | None = None) -> int:
             _print(asdict(queue.answer(args.question_id, args.answer, args.proctor)))
         return 0
     if args.command == "route":
-        _print(resolve_model(args.model, load_routes(args.providers)).redacted())
+        _print(resolve_model(args.provider, args.model, load_routes(args.providers)).redacted())
+        return 0
+    if args.command == "matrix":
+        providers = load_routes(args.providers)
+        experiment = ExperimentSpec.load(args.manifest, repo, providers)
+        matrix_runner = MatrixRunner(repo, engine, experiment, experiment.routes(providers))
+        if args.matrix_command == "plan":
+            _print(matrix_runner.plan())
+        elif args.matrix_command == "status":
+            _print(matrix_runner.status())
+        else:
+            _print(matrix_runner.run())
+        return 0
+    if args.command == "report":
+        providers = load_routes(args.providers)
+        experiment = ExperimentSpec.load(args.manifest, repo, providers)
+        _print(write_experiment_report(repo, experiment, args.output)["totals"])
         return 0
     if args.command == "review-template":
         review = ProctorReview(

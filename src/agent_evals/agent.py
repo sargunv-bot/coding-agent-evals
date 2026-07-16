@@ -6,6 +6,7 @@ import shlex
 import subprocess
 import time
 from dataclasses import asdict, dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -20,6 +21,23 @@ OPENCODE_VERSION = "1.18.2"
 LABEL = "io.sargunv.coding-agent-evals=true"
 
 
+def _token_count(tokens: dict, *keys: str) -> int:
+    for key in keys:
+        value = tokens.get(key)
+        if isinstance(value, int) and not isinstance(value, bool):
+            return max(0, value)
+    return 0
+
+
+@dataclass(frozen=True)
+class AgentUsage:
+    input_tokens: int = 0
+    cached_input_tokens: int = 0
+    output_tokens: int = 0
+    reasoning_tokens: int = 0
+    provider_reported_cost: float | None = None
+
+
 @dataclass(frozen=True)
 class AgentRunResult:
     run_id: str
@@ -27,9 +45,15 @@ class AgentRunResult:
     scenario: str | None
     provider: str
     model: str
+    endpoint_host: str
+    instruction_mode: str
+    started_at: str
+    finished_at: str
+    duration_seconds: float
     agent_exit_code: int
     patch_path: str
     trajectory_path: str
+    usage: AgentUsage
     verification: dict | None
 
 
@@ -160,6 +184,8 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
         scenario: str | None = None,
         instruction_mode: str = "ask_user",
     ) -> AgentRunResult:
+        started_monotonic = time.monotonic()
+        started_at = datetime.now(UTC).isoformat()
         if os.environ.get("CAE_ALLOW_CANDIDATE_RUN") != "1":
             raise RuntimeError("candidate runs are gated; set CAE_ALLOW_CANDIDATE_RUN=1 explicitly")
         self.engine.ensure_space()
@@ -336,8 +362,10 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                         + "\n"
                     )
 
+            event_path = logs / "opencode.jsonl"
+            usage = self._extract_usage(event_path)
             trajectory_path = logs / "trajectory.json"
-            self._write_atif(logs / "opencode.jsonl", trajectory_path, run_id, route)
+            self._write_atif(event_path, trajectory_path, run_id, route, usage)
             if patch_path.exists():
                 verification_result = self.engine.verify(
                     task, control="candidate", patch=patch_path, scenario=scenario
@@ -349,9 +377,15 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 scenario=scenario,
                 provider=route.provider,
                 model=route.model,
+                endpoint_host=endpoint.hostname,
+                instruction_mode=instruction_mode,
+                started_at=started_at,
+                finished_at=datetime.now(UTC).isoformat(),
+                duration_seconds=round(time.monotonic() - started_monotonic, 6),
                 agent_exit_code=agent_exit,
                 patch_path=str(patch_path),
                 trajectory_path=str(trajectory_path),
+                usage=usage,
                 verification=verification,
             )
             (run_dir / "run-result.json").write_text(json.dumps(asdict(result), indent=2) + "\n")
@@ -371,8 +405,58 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 stderr=subprocess.DEVNULL,
             )
 
+    @staticmethod
+    def _extract_usage(source: Path) -> AgentUsage:
+        input_tokens = 0
+        cached_input_tokens = 0
+        output_tokens = 0
+        reasoning_tokens = 0
+        costs: list[float] = []
+        if not source.exists():
+            return AgentUsage()
+        for line in source.read_text(errors="replace").splitlines():
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if event.get("type") != "step_finish":
+                continue
+            part = event.get("part")
+            if not isinstance(part, dict):
+                continue
+            tokens = part.get("tokens")
+            if not isinstance(tokens, dict):
+                continue
+            cache_value = tokens.get("cache")
+            cache = cache_value if isinstance(cache_value, dict) else {}
+
+            input_tokens += _token_count(tokens, "input", "input_tokens", "prompt_tokens")
+            output_tokens += _token_count(tokens, "output", "output_tokens", "completion_tokens")
+            reasoning_tokens += _token_count(tokens, "reasoning", "reasoning_tokens")
+            cached = cache.get("read")
+            if not isinstance(cached, int) or isinstance(cached, bool):
+                cached = _token_count(
+                    tokens, "cached_input_tokens", "cache_read_input_tokens", "cache_read"
+                )
+            cached_input_tokens += max(0, cached)
+            cost = part.get("cost")
+            if isinstance(cost, int | float) and not isinstance(cost, bool):
+                costs.append(float(cost))
+        return AgentUsage(
+            input_tokens=input_tokens,
+            cached_input_tokens=cached_input_tokens,
+            output_tokens=output_tokens,
+            reasoning_tokens=reasoning_tokens,
+            provider_reported_cost=round(sum(costs), 12) if costs else None,
+        )
+
     def _write_atif(
-        self, source: Path, destination: Path, run_id: str, route: ProviderRoute
+        self,
+        source: Path,
+        destination: Path,
+        run_id: str,
+        route: ProviderRoute,
+        usage: AgentUsage,
     ) -> None:
         steps: list[dict] = []
         if source.exists():
@@ -396,7 +480,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
             "session_id": run_id,
             "agent": {"name": "opencode", "version": OPENCODE_VERSION, "model_name": route.model},
             "steps": steps,
-            "final_metrics": {"total_steps": len(steps)},
+            "final_metrics": {"total_steps": len(steps), "usage": asdict(usage)},
         }
         destination.write_text(json.dumps(payload, indent=2) + "\n")
 
