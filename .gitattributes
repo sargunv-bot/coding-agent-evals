@@ -1,2 +1,4 @@
 # Patch fixtures preserve exact upstream/generated whitespace by design.
 *.patch whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab
+# Published evidence preserves byte-identical transcripts and tool output for hash verification.
+reports/experiments/**/evidence/** whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

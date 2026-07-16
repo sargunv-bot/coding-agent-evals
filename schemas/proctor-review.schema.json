@@ -8,7 +8,8 @@
     "run_id", "task_id", "proctor", "proctor_model",
     "blinded_to_model_identity", "scope_discipline", "code_clarity",
     "test_quality", "repository_fit", "security_and_safety", "mergeable",
-    "blockers", "strengths", "summary", "deterministic_result_path",
+    "blockers", "strengths", "summary", "rating_rationales", "overall_reasoning",
+    "deterministic_result_path",
     "can_override_deterministic"
   ],
   "properties": {
@@ -26,6 +27,22 @@
     "blockers": {"type": "array", "items": {"type": "string"}},
     "strengths": {"type": "array", "items": {"type": "string"}},
     "summary": {"type": "string", "minLength": 1},
+    "rating_rationales": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scope_discipline", "code_clarity", "test_quality",
+        "repository_fit", "security_and_safety"
+      ],
+      "properties": {
+        "scope_discipline": {"type": "string", "minLength": 1},
+        "code_clarity": {"type": "string", "minLength": 1},
+        "test_quality": {"type": "string", "minLength": 1},
+        "repository_fit": {"type": "string", "minLength": 1},
+        "security_and_safety": {"type": "string", "minLength": 1}
+      }
+    },
+    "overall_reasoning": {"type": "string", "minLength": 1},
     "deterministic_result_path": {"type": "string", "minLength": 1},
     "can_override_deterministic": {"const": false}
   },

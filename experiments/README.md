@@ -54,3 +54,8 @@ cae report experiments/<name>.toml --providers providers.toml --output reports/e
 The first paid `run` requires a clean, validly signed Git commit. Before calling a model it writes an ignored lock under `.runs/experiments/<id>/lock.json` containing the signed benchmark commit, manifest SHA-256, explicit redacted routes, OpenCode version, canonical generated model configurations and SHA-256 digests, exact task/agent image IDs, and expanded cells. Resume refuses a changed commit, manifest, route, or generated configuration.
 
 Normalized reports record input, cached-input, output, and reasoning tokens. Provider-reported cost is retained when present but is secondary because these providers are subscription-backed.
+
+`cae export-evidence <experiment-id> --output <reports-path>` publishes an allowlisted,
+credential-scanned bundle containing canonical JSONL transcripts, candidate patches, exact
+instructions/configuration, deterministic verifier output, normalized matrix records, and
+schema-valid proctor reviews. It intentionally does not copy mutable `.runs/` wholesale.

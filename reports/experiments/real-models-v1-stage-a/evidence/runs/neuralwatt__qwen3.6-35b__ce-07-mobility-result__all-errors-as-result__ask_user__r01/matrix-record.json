@@ -1,0 +1,61 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_exit_code": 1,
+        "duration_seconds": 2415.890804,
+        "endpoint_host": "api.neuralwatt.com",
+        "finished_at": "2026-07-16T08:58:52.160632+00:00",
+        "instruction_mode": "ask_user",
+        "model": "qwen3.6-35b",
+        "patch_path": "model.patch",
+        "provider": "neuralwatt",
+        "run_id": "20260716T081846Z-ce-07-mobility-result-2822821-1784189926146085542",
+        "scenario": "all-errors-as-result",
+        "started_at": "2026-07-16T08:18:36.269839+00:00",
+        "task_id": "ce-07-mobility-result",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 7717248,
+          "input_tokens": 380430,
+          "output_tokens": 36447,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 0
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 80.40261449100217,
+          "exit_code": 1,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "api": 0,
+            "behavioral": 0,
+            "regression": 0,
+            "reward": 0
+          },
+          "run_dir": "verifier",
+          "scenario": "all-errors-as-result",
+          "task_id": "ce-07-mobility-result"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+    "mode": "ask_user",
+    "model": "qwen3.6-35b",
+    "provider": "neuralwatt",
+    "repeat": 1,
+    "scenario": "all-errors-as-result",
+    "task_id": "ce-07-mobility-result"
+  },
+  "experiment_id": "real-models-v1-stage-a",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-16T08:58:52.407755+00:00"
+}

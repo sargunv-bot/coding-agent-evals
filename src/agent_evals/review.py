@@ -21,6 +21,8 @@ class ProctorReview:
     blockers: list[str] = field(default_factory=list)
     strengths: list[str] = field(default_factory=list)
     summary: str = ""
+    rating_rationales: dict[str, str] = field(default_factory=dict)
+    overall_reasoning: str = ""
     deterministic_result_path: str = ""
     can_override_deterministic: bool = False
 
@@ -40,6 +42,22 @@ class ProctorReview:
             errors.append("a mergeable patch cannot have blockers")
         if self.mergeable is not None and not self.summary.strip():
             errors.append("completed review requires a summary")
+        if self.mergeable is not None:
+            expected = {
+                "scope_discipline",
+                "code_clarity",
+                "test_quality",
+                "repository_fit",
+                "security_and_safety",
+            }
+            missing = sorted(
+                name for name in expected if not self.rating_rationales.get(name, "").strip()
+            )
+            if missing:
+                detail = ", ".join(missing)
+                errors.append(f"completed review requires rating rationales for {detail}")
+            if not self.overall_reasoning.strip():
+                errors.append("completed review requires overall reasoning")
         if self.can_override_deterministic:
             errors.append("qualitative review cannot override deterministic grading")
         return errors

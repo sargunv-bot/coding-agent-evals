@@ -42,6 +42,8 @@ class ProctorReviewTests(unittest.TestCase):
         self.assertIn("scope_discipline must be between 1 and 5", errors)
         self.assertIn("a mergeable patch cannot have blockers", errors)
         self.assertIn("completed review requires a summary", errors)
+        self.assertTrue(any("rating rationales" in error for error in errors))
+        self.assertIn("completed review requires overall reasoning", errors)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,45 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..53abce9170fd3027ecb3c1f8509242555469f95e 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,8 +87,13 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
+-    [[ $? -eq 0 ]] || return 1
++    local clone_output clone_status
++    clone_output=$(git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path)
++    clone_status=$?
++    if (( clone_status != 0 )); then
++      [[ -n "$clone_output" ]] && print -ru2 "$clone_output"
++      return 1
++    fi
+   fi
+ 
+   # if we only needed to clone the bundle, compile and we're done
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..12afa74d7b21e2623c69ec11f6764f06a70b911e 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -283,6 +283,20 @@ zsh-defer post-event
+ %
+ ```
+ 
++### No leakage from a noisy git wrapper
++
++A git wrapper on PATH that writes progress to stdout even when `--quiet` is
++used must not leak that text into the generated plugin script.
++
++```zsh
++% function git { [[ "$1" == "clone" ]] && echo "NOISY_GIT_PROGRESS"; mockgit "$@" }
++% antidote-script --kind zsh https://fakegitsite.com/fakeuser/fakerepo 2>/dev/null | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++% function git { mockgit "$@" }
++%
++```
++
+ ## Private functions
+ 
+ ### \_\_antidote_initfiles

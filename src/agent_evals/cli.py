@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .agent import AgentRunner
 from .engine import DEFAULT_MIN_FREE_GIB, PodmanEngine
+from .evidence import export_experiment_evidence
 from .experiment import ExperimentSpec
 from .matrix import MatrixRunner
 from .proctor import ProctorQueue
@@ -120,6 +121,10 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--providers", type=Path, required=True)
     report.add_argument("--output", type=Path, required=True)
 
+    evidence = commands.add_parser("export-evidence")
+    evidence.add_argument("experiment_id")
+    evidence.add_argument("--output", type=Path, required=True)
+
     review = commands.add_parser("review-template")
     review.add_argument("run_id")
     review.add_argument("task_id")
@@ -225,6 +230,9 @@ def main(argv: list[str] | None = None) -> int:
         providers = load_routes(args.providers)
         experiment = ExperimentSpec.load(args.manifest, repo, providers)
         _print(write_experiment_report(repo, experiment, args.output)["totals"])
+        return 0
+    if args.command == "export-evidence":
+        _print(export_experiment_evidence(repo, args.experiment_id, args.output))
         return 0
     if args.command == "review-template":
         review = ProctorReview(
