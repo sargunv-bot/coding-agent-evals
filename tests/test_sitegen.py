@@ -166,9 +166,28 @@ mode = "ask_user"
         self.assertEqual(detail["verifier_output"][0]["path"], "verifier/stdout.txt")
         page = (self.output / "experiments" / experiment / "cells" / cell / "index.html").read_text()
         self.assertIn("provider / model", page)
+        self.assertIn("<h1>provider / model</h1>", page)
+        self.assertNotIn(f"<h1>{cell}</h1>", page)
         self.assertIn("Deterministic result", page)
         self.assertIn("Canonical transcript", page)
         self.assertIn("reviewer/judge", page)
+        self.assertIn('aria-label="Cell evidence"', page)
+        self.assertIn('<details open><summary>Inline preview</summary>', page)
+        transcript = page.split('id="transcript"', 1)[1].split("</section>", 1)[0]
+        self.assertIn("<details><summary>Inline preview</summary>", transcript)
+        self.assertNotIn("<details open>", transcript)
+        self.assertIn('title="Exact runtime: 3.5 seconds"', page)
+        self.assertIn('title="Exact value: 10"', page)
+        self.assertIn("Download raw", page)
+        experiment_page = (self.output / "experiments" / experiment / "index.html").read_text()
+        self.assertIn("1 completed of 1 planned", experiment_page)
+        self.assertIn("Completed / planned", experiment_page)
+        self.assertIn('data-label="Provider / model"', experiment_page)
+        self.assertNotIn("1 of 1 cells", experiment_page)
+        self.assertNotIn("data.js", (self.output / "index.html").read_text())
+        self.assertIn("--linen:", (self.output / "assets" / "site.css").read_text())
+        self.assertIn("index-metrics", (self.output / "index.html").read_text())
+        self.assertIn("localStorage", (self.output / "assets" / "site.js").read_text())
         self.assertEqual(validate_site(self.output), [])
 
     def test_partial_and_malformed_metadata_builds_with_warnings(self) -> None:
@@ -201,6 +220,20 @@ mode = "ask_user"
         self.assertTrue(any("unsafe" in warning for warning in cell_data["warnings"]))
         self.assertIsNone(cell_data["subjective"])
         self.assertEqual(validate_site(self.output), [])
+
+    def test_progress_uses_completed_out_of_planned_not_discovered(self) -> None:
+        experiment, _ = self.make_complete_experiment()
+        config = self.data / "experiments" / f"{experiment}.toml"
+        config.write_text(config.read_text().replace("repeats = 1", "repeats = 40"))
+
+        build_site(self.data, self.output, "/repo")
+        page = (self.output / "experiments" / experiment / "index.html").read_text()
+        index = (self.output / "index.html").read_text()
+
+        self.assertIn("1 completed of 40 planned", page)
+        self.assertIn("1 completed of 40 planned", index)
+        self.assertNotIn("1 completed of 1 planned", page)
+        self.assertIn('<dd>1<span aria-hidden="true"> / </span>40</dd>', page)
 
     def test_empty_data_root_produces_valid_empty_site(self) -> None:
         build_site(self.data, self.output, "/repo")
