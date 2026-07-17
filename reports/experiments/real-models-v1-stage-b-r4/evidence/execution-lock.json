@@ -423,6 +423,12 @@
       "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
       "task_image_id": "ed943b51a7ce420266e7aa1e57fbd3d41a38efb574eaf65a5a9b6db1daa8f6aa"
     },
+    "ce-04-maplibre-source-location": {
+      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
+      "agent_image_id": "081a7c623d7a5470ccc2dbaad688fc09a4c8be41a47f650200c8a3eb24b2c947",
+      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
+      "task_image_id": "ea6993a2ec6f7e45c422e09a0e1f7b9face4319cd1820a9601d51b468c2dcee7"
+    },
     "ce-05-mise-slsa-archive": {
       "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
       "agent_image_id": "793a7ea5e30b18e51c6207d0758364b9675ab7012ad54f2944796a3ee42c7d7b",

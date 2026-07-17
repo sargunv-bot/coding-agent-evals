@@ -4,7 +4,7 @@
 
 | Cells | Passes | Infra errors | Input | Cached input | Output | Questions |
 |---:|---:|---:|---:|---:|---:|---:|
-| 11 | 6 | 0 | 1202530 | 40299040 | 201671 | 2 |
+| 12 | 6 | 0 | 1321586 | 45957088 | 224038 | 2 |
 
 Provider-reported cost is retained when supplied, but token counts are the primary usage record.
 
@@ -15,6 +15,7 @@ Provider-reported cost is retained when supplied, but token counts are the prima
 | neuralwatt | qwen3.6-35b | ce-01-antidote-output | — | ask_user | no | 115346 | 8570496 | 50244 | 20260717T204909Z-ce-01-antidote-output-2382897-1784321349613246093 |
 | neuralwatt | qwen3.6-35b | ce-02-horologia-overdue | — | ask_user | yes | 66255 | 2309472 | 17555 | 20260717T211449Z-ce-02-horologia-overdue-2500315-1784322889433846634 |
 | neuralwatt | qwen3.6-35b | ce-03-jvl-completions | — | ask_user | no | 79905 | 3066624 | 19185 | 20260717T213627Z-ce-03-jvl-completions-2592778-1784324187601120562 |
+| neuralwatt | qwen3.6-35b | ce-04-maplibre-source-location | — | ask_user | no | 119056 | 5658048 | 22367 | 20260717T221036Z-ce-04-maplibre-source-location-2667985-1784326236192187401 |
 | zai | glm-5.2 | ce-01-antidote-output | — | ask_user | yes | 42015 | 1306112 | 4395 | 20260717T153919Z-ce-01-antidote-output-1273157-1784302759238741353 |
 | zai | glm-5.2 | ce-02-horologia-overdue | — | ask_user | yes | 84283 | 1782784 | 8245 | 20260717T160715Z-ce-02-horologia-overdue-1420651-1784304435700983320 |
 | zai | glm-5.2 | ce-03-jvl-completions | — | ask_user | yes | 67837 | 2590400 | 12055 | 20260717T163045Z-ce-03-jvl-completions-1523565-1784305845185403744 |
