@@ -410,6 +410,12 @@
       "agent_image_id": "49b99ac2b144c6a04b8127b6876d913d30b22c63da6f8e73bef7180b15f07332",
       "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
       "task_image_id": "1f172f566c2d51ae8feca1b712ff6ec66f31f4cbee438d985efd005cdde5b7e6"
+    },
+    "ce-02-horologia-overdue": {
+      "agent_image": "localhost/coding-agent-evals/ce-02-horologia-overdue-opencode:dev",
+      "agent_image_id": "130f943100fd7645e6d5f7528b66f77d1f207daaf7003b391b4e43de8cb9fc4a",
+      "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
+      "task_image_id": "7e3b9619a1afa94200fe524d8ee9b335a5dd76a0886c28e9ed0b74f7adcde8be"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",
