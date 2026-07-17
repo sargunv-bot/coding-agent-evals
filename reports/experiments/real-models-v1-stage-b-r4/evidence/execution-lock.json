@@ -416,6 +416,12 @@
       "agent_image_id": "8c80b8111066135c567e1f3eaa91e4059e84ec2eff4d28d50dcbd18feee9d371",
       "task_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci:dev",
       "task_image_id": "e3ea0ecd3129fcc60ca43be66da8696b2b0a06bc4541c276843b3f736ff78cbf"
+    },
+    "ce-07-mobility-result": {
+      "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
+      "agent_image_id": "1052b531fca33d1df0ec39ed980700f2f4a031e8d3d1f81021f9f545a757d3e8",
+      "task_image": "localhost/coding-agent-evals/ce-07-mobility-result:dev",
+      "task_image_id": "a3ea6ca3df371c312768e73286ab1fb7a88144adac5d5639f2d226aaac1a8a7a"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",

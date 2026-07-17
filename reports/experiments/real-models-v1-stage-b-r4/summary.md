@@ -4,7 +4,7 @@
 
 | Cells | Passes | Infra errors | Input | Cached input | Output | Questions |
 |---:|---:|---:|---:|---:|---:|---:|
-| 6 | 4 | 0 | 730368 | 19792128 | 80609 | 2 |
+| 7 | 4 | 0 | 839078 | 22506560 | 97346 | 2 |
 
 Provider-reported cost is retained when supplied, but token counts are the primary usage record.
 
@@ -18,3 +18,4 @@ Provider-reported cost is retained when supplied, but token counts are the prima
 | zai | glm-5.2 | ce-04-maplibre-source-location | — | ask_user | no | 52498 | 1715584 | 7986 | 20260717T165317Z-ce-04-maplibre-source-location-1623962-1784307197423393593 |
 | zai | glm-5.2 | ce-05-mise-slsa-archive | — | ask_user | no | 145930 | 6219840 | 24760 | 20260717T173610Z-ce-05-mise-slsa-archive-1733366-1784309770502929858 |
 | zai | glm-5.2 | ce-06-maplibre-ffi-ci | — | ask_user | yes | 337805 | 6177408 | 23168 | 20260717T183846Z-ce-06-maplibre-ffi-ci-1990983-1784313526518319230 |
+| zai | glm-5.2 | ce-07-mobility-result | validation-fail-fast | ask_user | no | 108710 | 2714432 | 16737 | 20260717T194139Z-ce-07-mobility-result-2131547-1784317299850593810 |
