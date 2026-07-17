@@ -5,6 +5,11 @@
       "artifacts": 7,
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
       "run_id": "20260717T071531Z-ce-01-antidote-output-3726935-1784272531111477272"
+    },
+    {
+      "artifacts": 7,
+      "cell_id": "zai__glm-5.2__ce-02-horologia-overdue__default__ask_user__r01",
+      "run_id": "20260717T073817Z-ce-02-horologia-overdue-3816132-1784273897579106895"
     }
   ],
   "schema_version": 1
