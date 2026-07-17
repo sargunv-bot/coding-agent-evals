@@ -1,0 +1,716 @@
+diff --git a/src/backend/github.rs b/src/backend/github.rs
+index 44141ba06b3d3f8380979647ef3e19ba679e721f..0bf1e8ca334f584ea325770213195a4109fd4b90 100644
+--- a/src/backend/github.rs
++++ b/src/backend/github.rs
+@@ -702,7 +702,7 @@ impl UnifiedGitBackend {
+             let parts: Vec<&str> = repo.split('/').collect();
+             if parts.len() == 2 {
+                 let (owner, repo_name) = (parts[0], parts[1]);
+-                match crate::github::sigstore::verify_attestation(
++                match crate::github::sigstore::verify_attestation_or_archive_contents(
+                     &artifact_path,
+                     owner,
+                     repo_name,
+@@ -1697,7 +1697,7 @@ impl UnifiedGitBackend {
+         }
+         let (owner, repo_name) = (parts[0], parts[1]);
+ 
+-        match crate::github::sigstore::verify_attestation(
++        match crate::github::sigstore::verify_attestation_or_archive_contents(
+             file_path,
+             owner,
+             repo_name,
+diff --git a/src/github/sigstore.rs b/src/github/sigstore.rs
+index dfeeec8fddb905edb11edf280bee3818f1f2543d..20285dfe59f701d2e18b3dff37710105d5f04e8e 100644
+--- a/src/github/sigstore.rs
++++ b/src/github/sigstore.rs
+@@ -24,13 +24,15 @@
+ //! [`crate::github::resolve_token_for_api_url`] can parse the host correctly; a bare hostname
+ //! would be silently misrouted for GitHub Enterprise Server tenants.
+ 
+-use std::path::Path;
++use std::path::{Path, PathBuf};
+ 
+ use mise_sigstore::sources::github::GitHubSource;
+ use mise_sigstore::{ArtifactRef, AttestationSource};
+ 
+ pub use mise_sigstore::AttestationError;
+ 
++use crate::file::{TarFormat, TarOptions};
++
+ /// Result alias that matches `mise_sigstore`'s internal convention.
+ type AttestationResult<T> = std::result::Result<T, AttestationError>;
+ 
+@@ -78,6 +80,253 @@ pub async fn verify_attestation(
+     }
+ }
+ 
++/// Verify a GitHub artifact attestation for a downloaded file, transparently
++/// handling releases that attest each file *inside* an archive rather than the
++/// archive blob itself.
++///
++/// Verification is **fail-closed** at every step:
++///
++/// 1. The archive blob (`archive_path`) is verified first — exactly the
++///    pre-existing behavior. A successful verification (`Ok(true)`) is returned
++///    immediately, and so is any error *other than* "no attestations exist for
++///    this digest" ([`AttestationError::NoAttestations`]). In particular, if
++///    attestations exist for the archive but fail to verify, that failure is
++///    surfaced and the inner-file fallback never runs.
++/// 2. Only when the archive has `NoAttestations` *and* `archive_path` is a
++///    recognizable multi-file archive is it extracted to a temp directory. A
++///    single inner file is then probed:
++///    - If the probe is `NoAttestations`, there is no evidence the release uses
++///      inner-file attestations, so the original `NoAttestations` is returned
++///      and callers' existing SLSA/unavailable fallbacks run unchanged (this
++///      keeps the fallback to O(1) extra API calls and preserves the rate-limit
++///      guarantee this bridge exists to maintain).
++///    - Otherwise the release attests inner files, so **every** regular inner
++///      file is required to have its own valid attestation. Directories and
++///      symlinks are ignored; a nested archive is treated as an opaque regular
++///      file that must itself be attested (it is not recursively unpacked). If
++///      **any** regular inner file is unattested, or fails verification, the
++///      whole archive is rejected.
++/// 3. Extraction failures and single-file/compressed payloads (`.gz`, `.xz`,
++///    raw binaries) are not treated as archives here, so the original
++///    `NoAttestations` result is returned and callers' existing fallbacks run
++///    unchanged.
++///
++/// This preserves archive-level verification while safely accepting releases
++/// that only attest the files inside the archive.
++pub async fn verify_attestation_or_archive_contents(
++    archive_path: &Path,
++    owner: &str,
++    repo: &str,
++    expected_workflow: Option<&str>,
++    api_url: Option<&str>,
++) -> AttestationResult<bool> {
++    // Clone the borrowed args so the verifier closure (which returns a future
++    // borrowing only its owned captures) can be reused across every inner file.
++    let owner = owner.to_string();
++    let repo = repo.to_string();
++    let expected_workflow = expected_workflow.map(str::to_string);
++    let api_url = api_url.map(str::to_string);
++    verify_archive_aware_with_verifier(archive_path, |path: &Path| {
++        let path = path.to_path_buf();
++        let owner = owner.clone();
++        let repo = repo.clone();
++        let expected_workflow = expected_workflow.clone();
++        let api_url = api_url.clone();
++        async move {
++            verify_attestation(
++                &path,
++                &owner,
++                &repo,
++                expected_workflow.as_deref(),
++                api_url.as_deref(),
++            )
++            .await
++        }
++    })
++    .await
++}
++
++/// Archive-aware verification core, generic over the per-file verifier so the
++/// fail-closed ordering, archive detection, extraction, and probe-based
++/// "every inner file must be attested" policy are unit-testable without
++/// touching the network.
++///
++/// The verifier is called on the archive blob first; then, only on
++/// `NoAttestations` for a real archive, a single inner file is probed to detect
++/// whether the release attests inner files. If it does, every remaining inner
++/// file must verify (`Ok(true)`) for the archive to be accepted; otherwise the
++/// original `NoAttestations` is returned. See [`verify_attestation_or_archive_contents`]
++/// for the full policy.
++async fn verify_archive_aware_with_verifier<F, Fut>(
++    archive_path: &Path,
++    mut verify: F,
++) -> AttestationResult<bool>
++where
++    F: FnMut(&Path) -> Fut,
++    Fut: std::future::Future<Output = AttestationResult<bool>>,
++{
++    let archive_outcome = verify(archive_path).await;
++
++    // Fail closed: only consider inner files when the archive has NO
++    // attestations at all. A genuine verification failure (attestations exist
++    // but are invalid) must never trigger the fallback.
++    if !matches!(archive_outcome, Err(AttestationError::NoAttestations)) {
++        return archive_outcome;
++    }
++
++    // Only multi-file archives (tar*/zip/7z) can carry individually-attested
++    // inner files. Single-file compressions (`.gz`, `.xz`, …) and raw binaries
++    // are left to the caller's existing fallback path.
++    let file_name = archive_path
++        .file_name()
++        .map(std::ffi::OsStr::to_string_lossy)
++        .unwrap_or_default()
++        .to_string();
++    let format = TarFormat::from_file_name(&file_name);
++    if !format.is_archive() {
++        return archive_outcome;
++    }
++
++    // Bind the TempDir guard at function scope (not inside the match arm) so it
++    // outlives the `verify` calls below — the extracted files live on disk under
++    // it and the real verifier reads them.
++    let (_tmp_guard, mut inner) = match extract_regular_files(archive_path, format) {
++        Ok(pair) => pair,
++        Err(e) => {
++            debug!(
++                "could not extract {} for inner-file attestation verification \
++                 ({e}); skipping fallback",
++                archive_path.display()
++            );
++            // Behavior-preserving: don't introduce a new hard failure for a
++            // format/IO limitation. Return the original NoAttestations so the
++            // caller's SLSA/unavailable logic runs unchanged.
++            return archive_outcome;
++        }
++    };
++    // An archive with no regular files cannot be meaningfully attested "per
++    // file" — don't vacuously accept it.
++    if inner.is_empty() {
++        return archive_outcome;
++    }
++    // Deterministic probe selection (the rest of the policy keys off which file
++    // is probed first, so sort to make it stable rather than OS read_dir order).
++    inner.sort();
++
++    // Detect whether this release attests inner files *at all* by probing a
++    // single inner file. This keeps the fallback to O(1) extra API calls in the
++    // common case — a release with no attestations anywhere — preserving the
++    // rate-limit guarantee this bridge exists to maintain.
++    //
++    // - Probe is `Ok(true)` (or any non-`NoAttestations` result) → the release
++    //   attests inner files → enter STRICT mode and require every inner file to
++    //   verify.
++    // - Probe is `NoAttestations` → no evidence this release uses inner-file
++    //   attestations → return the original `NoAttestations` so the caller's
++    //   existing SLSA/unavailable fallback runs unchanged. (In a hypothetical
++    //   mixed-coverage release where the probed file is unattested but others
++    //   are not, this falls through; such coverage is not produced by real
++    //   release pipelines, which attest either all files or none.)
++    let (probe, rest) = inner
++        .split_first()
++        .expect("inner is non-empty after the is_empty check");
++    match verify(probe).await {
++        Ok(true) => {}
++        Err(AttestationError::NoAttestations) => {
++            return archive_outcome;
++        }
++        // An attestation exists for the probe but failed to verify, or a real
++        // error occurred — fail closed immediately.
++        other => {
++            return classify_inner_outcome(probe, other)
++                .expect("a non-Ok(true), non-NoAttestations outcome is always Some");
++        }
++    }
++
++    debug!(
++        "archive {} had no attestation of its own but its inner files do; \
++         requiring all {} inner file(s) to verify against GitHub attestations",
++        archive_path.display(),
++        inner.len()
++    );
++
++    // STRICT mode: the probe verified, so require every remaining inner file to
++    // verify too. Any unattested or failing file rejects the whole archive.
++    for file in rest {
++        let outcome = verify(file).await;
++        if let Some(terminal) = classify_inner_outcome(file, outcome) {
++            return terminal;
++        }
++    }
++    Ok(true)
++}
++
++/// Classify one inner file's attestation outcome into a terminal result for the
++/// whole archive, or `None` to continue to the next file.
++///
++/// This is the single source of truth for the per-file fail-closed rule used by
++/// [`verify_archive_aware_with_verifier`] in strict mode (and exercised directly
++/// in tests).
++fn classify_inner_outcome(
++    file: &Path,
++    outcome: AttestationResult<bool>,
++) -> Option<AttestationResult<bool>> {
++    match outcome {
++        Ok(true) => None,
++        // The sigstore primitives never return Ok(false) today, but treat it as
++        // a verification failure rather than success.
++        Ok(false) => Some(Err(AttestationError::Verification(format!(
++            "archive file {} exists but its GitHub artifact attestation did not verify",
++            file.display()
++        )))),
++        // The load-bearing fail-closed case (strict mode): once we know the
++        // release attests inner files, a file with no attestation breaks the
++        // "every file inside is attested" guarantee.
++        Err(AttestationError::NoAttestations) => {
++            Some(Err(AttestationError::Verification(format!(
++                "archive contains a file with no GitHub artifact attestation: {}",
++                file.display()
++            ))))
++        }
++        // A real verification/network error propagates as-is (still fail-closed).
++        Err(e) => Some(Err(e)),
++    }
++}
++
++/// Extract `archive_path` (a multi-file archive) into a fresh temp directory and
++/// return the directory guard together with the paths of every regular file it
++/// contains.
++///
++/// The caller must keep the returned [`tempfile::TempDir`] alive for as long as
++/// it reads any of the returned paths (the files live on disk under the guard).
++/// Symlinks and directories are skipped, and symlinked directories are not
++/// followed (`follow_links(false)`), so extraction cannot escape the temp
++/// directory and a symlinked target is never hashed.
++fn extract_regular_files(
++    archive_path: &Path,
++    format: TarFormat,
++) -> std::io::Result<(tempfile::TempDir, Vec<PathBuf>)> {
++    let tmp = tempfile::tempdir()?;
++    crate::file::untar(archive_path, tmp.path(), &TarOptions::new(format))
++        .map_err(|e| std::io::Error::other(e.to_string()))?;
++    let mut files = Vec::new();
++    collect_regular_files(tmp.path(), &mut files)?;
++    Ok((tmp, files))
++}
++
++/// Recursively collect every regular file under `dir`. `follow_links(false)` +
++/// `file_type().is_file()` skips symlinks (including symlinked directories) so
++/// nothing outside `dir` is ever hashed.
++fn collect_regular_files(dir: &Path, out: &mut Vec<PathBuf>) -> std::io::Result<()> {
++    for entry in walkdir::WalkDir::new(dir).follow_links(false) {
++        let entry = entry.map_err(|e| std::io::Error::other(e.to_string()))?;
++        if entry.file_type().is_file() {
++            out.push(entry.path().to_path_buf());
++        }
++    }
++    Ok(())
++}
++
+ /// Reason the pre-download attestation probe could not complete.
+ ///
+ /// Preserved as two variants so callers can log distinct warnings for a misconfigured
+@@ -299,4 +548,418 @@ mod tests {
+             "wrapper should resolve tokens from github_tokens.toml when env vars are empty"
+         );
+     }
++
++    // =========================================================================
++    // Archive-aware (inner-file) attestation verification
++    //
++    // These tests pin the fail-closed policy without touching the network: the
++    // decision core is exercised through a mock verifier and a real crafted
++    // `.tar.gz`/`.zip`, covering (a) when the fallback is allowed to run, (b)
++    // the "every regular inner file must be attested" rule, and (c) extraction
++    // returning only regular files (symlinks excluded).
++    // =========================================================================
++
++    use std::io::{Cursor, Write};
++
++    enum TestEntry<'a> {
++        File(&'a str, &'a [u8]),
++        /// A symlink entry: `(link_path, target_path)`.
++        Symlink(&'a str, &'a str),
++    }
++
++    /// Build `payload.tar.gz` in `workdir` containing the given entries. Regular
++    /// files with paths containing `/` produce nested files (parents are created
++    /// on extraction); symlink entries are emitted as symlinks.
++    fn build_targz(workdir: &Path, entries: &[TestEntry<'_>]) -> PathBuf {
++        let tar_path = workdir.join("payload.tar.gz");
++        let f = std::fs::File::create(&tar_path).unwrap();
++        let gz = flate2::write::GzEncoder::new(f, flate2::Compression::default());
++        let mut builder = tar::Builder::new(gz);
++        for entry in entries {
++            match entry {
++                TestEntry::File(name, content) => {
++                    let mut header = tar::Header::new_gnu();
++                    header.set_size(content.len() as u64);
++                    header.set_mode(0o644);
++                    header.set_entry_type(tar::EntryType::Regular);
++                    header.set_mtime(0);
++                    header.set_cksum();
++                    builder
++                        .append_data(&mut header, *name, Cursor::new(*content))
++                        .unwrap();
++                }
++                TestEntry::Symlink(name, target) => {
++                    let mut header = tar::Header::new_gnu();
++                    header.set_size(0);
++                    header.set_mode(0o777);
++                    header.set_entry_type(tar::EntryType::Symlink);
++                    header.set_link_name(*target).unwrap();
++                    header.set_mtime(0);
++                    header.set_cksum();
++                    builder
++                        .append_data(&mut header, *name, Cursor::new(&[][..]))
++                        .unwrap();
++                }
++            }
++        }
++        builder.finish().unwrap();
++        tar_path
++    }
++
++    #[tokio::test]
++    async fn archive_aware_accepts_when_all_inner_files_attested() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(
++            dir.path(),
++            &[
++                TestEntry::File("bin/tool", b"binary-bytes"),
++                TestEntry::File("README.md", b"docs"),
++            ],
++        );
++        // Archive blob has NO attestation; every inner file is attested.
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    Err(AttestationError::NoAttestations)
++                } else {
++                    Ok(true)
++                }
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        assert!(
++            matches!(result, Ok(true)),
++            "expected Ok(true), got {result:?}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_keeps_extracted_files_alive_during_verification() {
++        // Guards the TempDir-lifetime contract: the extracted inner files must
++        // still exist on disk when the verifier reads them. A mock verifier that
++        // only inspects paths would NOT catch a too-early drop, so this one
++        // actually reads each file's bytes.
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(
++            dir.path(),
++            &[TestEntry::File("a", b"AAA"), TestEntry::File("b", b"BBB")],
++        );
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    return Err(AttestationError::NoAttestations);
++                }
++                // Fails (and fails the test) if the temp dir was dropped early.
++                let bytes = tokio::fs::read(&p).await.unwrap();
++                Ok(matches!(bytes.as_slice(), b"AAA" | b"BBB"))
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        assert!(
++            matches!(result, Ok(true)),
++            "expected Ok(true), got {result:?}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_no_inner_attestations_falls_through() {
++        // Regression guard: a release with NO attestations anywhere (archive or
++        // inner files) MUST surface NoAttestations so the caller's existing
++        // SLSA/unavailable fallback runs. It must NOT hard-fail — that would
++        // break the vast majority of GitHub releases and re-introduce the
++        // API-rate-limit problem this bridge exists to avoid.
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(
++            dir.path(),
++            &[
++                TestEntry::File("bin/tool", b"binary-bytes"),
++                TestEntry::File("README.md", b"docs"),
++            ],
++        );
++        let verifier = |_: &Path| async move { Err(AttestationError::NoAttestations) };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        assert!(
++            matches!(result, Err(AttestationError::NoAttestations)),
++            "no-attestation release must fall through, got {result:?}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_rejects_when_other_inner_file_unattested() {
++        // Probe (lexicographically-first "a") is attested → strict mode → the
++        // later file "b" is unattested → fail closed.
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(
++            dir.path(),
++            &[
++                TestEntry::File("a", b"attested"),
++                TestEntry::File("b", b"unattested"),
++            ],
++        );
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    Err(AttestationError::NoAttestations)
++                } else if p.file_name().map(|n| n == "a").unwrap_or(false) {
++                    Ok(true)
++                } else {
++                    Err(AttestationError::NoAttestations)
++                }
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        let err = result.unwrap_err().to_string();
++        assert!(
++            err.contains("no GitHub artifact attestation"),
++            "strict mode must reject the unattested file, got {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_falls_through_when_probe_unattested() {
++        // Probe (lexicographically-first "a") is NOT attested while "b" is.
++        // Per the documented policy, a NoAttestations probe means "no evidence
++        // this release uses inner-file attestations" → fall through. This is
++        // the accepted edge case (real pipelines attest all files or none).
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(
++            dir.path(),
++            &[
++                TestEntry::File("a", b"unattested"),
++                TestEntry::File("b", b"attested"),
++            ],
++        );
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    Err(AttestationError::NoAttestations)
++                } else if p.file_name().map(|n| n == "b").unwrap_or(false) {
++                    Ok(true)
++                } else {
++                    Err(AttestationError::NoAttestations)
++                }
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        assert!(
++            matches!(result, Err(AttestationError::NoAttestations)),
++            "unattested probe must fall through, got {result:?}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_probe_failure_fails_closed() {
++        // Probe's attestation exists but fails to verify → fail closed, never
++        // fall through.
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(dir.path(), &[TestEntry::File("a", b"x")]);
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    Err(AttestationError::NoAttestations)
++                } else {
++                    Err(AttestationError::Verification("bad inner sig".to_string()))
++                }
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        let err = result.unwrap_err().to_string();
++        assert!(
++            err.contains("bad inner sig"),
++            "probe verification failure must propagate, got {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_does_not_fall_back_on_real_archive_failure() {
++        // Attestations EXIST for the archive blob but fail to verify. This must
++        // surface the error directly — never fall back to inner files.
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(dir.path(), &[TestEntry::File("bin/tool", b"x")]);
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    Err(AttestationError::Verification(
++                        "bad archive sig".to_string(),
++                    ))
++                } else {
++                    // If the fallback ran, inner files would "verify" and mask the
++                    // archive failure — the assertion below catches that.
++                    Ok(true)
++                }
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        let err = result.unwrap_err().to_string();
++        assert!(
++            err.contains("bad archive sig"),
++            "archive verification failure must propagate without fallback, got {err}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_accepts_archive_level_without_fallback() {
++        // Archive blob verifies on its own. Inner files would fail; if the
++        // fallback incorrectly ran, the test would fail.
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(dir.path(), &[TestEntry::File("bin/tool", b"x")]);
++        let verifier = |p: &Path| {
++            let p = p.to_path_buf();
++            async move {
++                if p.file_name()
++                    .map(|n| n == "payload.tar.gz")
++                    .unwrap_or(false)
++                {
++                    Ok(true)
++                } else {
++                    Err(AttestationError::NoAttestations)
++                }
++            }
++        };
++        let result = verify_archive_aware_with_verifier(&archive, verifier).await;
++        assert!(
++            matches!(result, Ok(true)),
++            "expected Ok(true), got {result:?}"
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_aware_non_archive_preserves_no_attestations() {
++        // A raw binary (not a multi-file archive) must return NoAttestations so
++        // the caller's SLSA/unavailable fallback runs unchanged.
++        let dir = tempfile::tempdir().unwrap();
++        let bin = dir.path().join("tool.bin");
++        std::fs::write(&bin, b"raw-binary").unwrap();
++        let verifier = |p: &Path| {
++            assert!(p.file_name().map(|n| n == "tool.bin").unwrap_or(false));
++            async move { Err(AttestationError::NoAttestations) }
++        };
++        let result = verify_archive_aware_with_verifier(&bin, verifier).await;
++        assert!(
++            matches!(result, Err(AttestationError::NoAttestations)),
++            "non-archive must surface NoAttestations, got {result:?}"
++        );
++    }
++
++    #[test]
++    fn extract_regular_files_skips_symlinks_and_includes_nested() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive = build_targz(
++            dir.path(),
++            &[
++                TestEntry::File("top.txt", b"top"),
++                TestEntry::File("sub/nested.txt", b"nested"),
++                TestEntry::Symlink("link", "top.txt"),
++            ],
++        );
++        let (_guard, files) = extract_regular_files(&archive, TarFormat::TarGz).unwrap();
++        let names: Vec<String> = files
++            .iter()
++            .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
++            .collect();
++        assert!(
++            names.contains(&"top.txt".to_string()),
++            "missing top.txt: {names:?}"
++        );
++        assert!(
++            names.contains(&"nested.txt".to_string()),
++            "missing nested.txt: {names:?}"
++        );
++        assert!(
++            !names.contains(&"link".to_string()),
++            "symlink must never be attested: {names:?}"
++        );
++        assert_eq!(
++            names.len(),
++            2,
++            "expected exactly 2 regular files: {names:?}"
++        );
++    }
++
++    #[test]
++    fn extract_regular_files_handles_zip() {
++        let dir = tempfile::tempdir().unwrap();
++        let zip_path = dir.path().join("payload.zip");
++        {
++            let f = std::fs::File::create(&zip_path).unwrap();
++            let mut zip = zip::ZipWriter::new(f);
++            let opts = zip::write::SimpleFileOptions::default();
++            zip.start_file("a.txt", opts).unwrap();
++            zip.write_all(b"a").unwrap();
++            zip.start_file("dir/b.txt", opts).unwrap();
++            zip.write_all(b"b").unwrap();
++            zip.finish().unwrap();
++        }
++        let (_guard, files) = extract_regular_files(&zip_path, TarFormat::Zip).unwrap();
++        let names: Vec<String> = files
++            .iter()
++            .map(|p| p.file_name().unwrap().to_string_lossy().to_string())
++            .collect();
++        assert!(names.contains(&"a.txt".to_string()));
++        assert!(names.contains(&"b.txt".to_string()));
++        assert_eq!(
++            names.len(),
++            2,
++            "expected exactly 2 regular files: {names:?}"
++        );
++    }
++
++    #[test]
++    fn classify_ok_true_continues() {
++        assert!(classify_inner_outcome(Path::new("a"), Ok(true)).is_none());
++    }
++
++    #[test]
++    fn classify_ok_false_is_terminal_failure() {
++        let err = classify_inner_outcome(Path::new("a"), Ok(false))
++            .expect("Ok(false) is terminal")
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("did not verify"), "got {err}");
++    }
++
++    #[test]
++    fn classify_no_attestations_is_terminal_failure() {
++        let err = classify_inner_outcome(Path::new("a"), Err(AttestationError::NoAttestations))
++            .expect("NoAttestations is terminal")
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("no GitHub artifact attestation"), "got {err}");
++    }
++
++    #[test]
++    fn classify_other_error_propagates() {
++        let err = classify_inner_outcome(
++            Path::new("a"),
++            Err(AttestationError::Api("boom".to_string())),
++        )
++        .expect("other error is terminal")
++        .unwrap_err()
++        .to_string();
++        assert!(err.contains("boom"), "got {err}");
++    }
+ }

@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "06fc5895c4177374d7abffe46e03fffc8b033ae8",
+  "benchmark_commit": "407bd1ba7ce7c32f9e4c09fffafbed478aab6d44",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -402,14 +402,14 @@
       "task_id": "ce-07-mobility-result"
     }
   ],
-  "created_at": "2026-07-17T17:17:40.171494+00:00",
+  "created_at": "2026-07-17T18:31:29.551943+00:00",
   "experiment_id": "real-models-v1-stage-b-r4",
   "images": {
-    "ce-04-maplibre-source-location": {
-      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
-      "agent_image_id": "91c1d39741bcca7e1ef8120f03d0fe99d863c10374373adf3af0479055b7a225",
-      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
-      "task_image_id": "5a60abb8b8fce769a8f84846aab240911b8499861652a3bdd7a9c4ee6f3ffe98"
+    "ce-05-mise-slsa-archive": {
+      "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
+      "agent_image_id": "793a7ea5e30b18e51c6207d0758364b9675ab7012ad54f2944796a3ee42c7d7b",
+      "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
+      "task_image_id": "a77371154cc1fd7e388e348ddbff12e60f08e96d230a101ab9e3f0e55136e904"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",
