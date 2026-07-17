@@ -75,16 +75,24 @@ class AgentRunner:
         return f"localhost/coding-agent-evals/{task.task_id}-opencode:dev"
 
     @staticmethod
-    def agent_shell(model_arg: str) -> str:
+    def agent_shell(
+        model_arg: str,
+        *,
+        instruction_path: str = "/run/cae/instruction.txt",
+        log_dir: str = "/logs/agent",
+    ) -> str:
+        instruction = shlex.quote(instruction_path)
+        transcript = shlex.quote(f"{log_dir}/opencode.jsonl")
+        patch = shlex.quote(f"{log_dir}/model.patch")
         return (
             "set -o pipefail; "
             "base=$(git rev-parse HEAD) || exit 125; "
             f"opencode run --model={model_arg} --format=json --thinking --auto "
-            '-- "$(cat /run/cae/instruction.txt)" '
-            "2>&1 </dev/null | stdbuf -oL tee /logs/agent/opencode.jsonl; "
+            f'-- "$(cat {instruction})" '
+            f"2>&1 </dev/null | stdbuf -oL tee {transcript}; "
             "agent_status=${PIPESTATUS[0]}; "
             "git add --all || exit 125; "
-            'git diff --cached --binary --full-index "$base" -- > /logs/agent/model.patch '
+            f'git diff --cached --binary --full-index "$base" -- > {patch} '
             "|| exit 125; "
             "exit $agent_status"
         )
@@ -125,6 +133,7 @@ class AgentRunner:
     def opencode_config_sha256(cls, route: ProviderRoute, instruction_mode: str) -> str:
         config = cls.opencode_config_text(route, instruction_mode).encode()
         return hashlib.sha256(config).hexdigest()
+
 
     def build_tools(self) -> dict[str, str]:
         self.engine.ensure_space()
