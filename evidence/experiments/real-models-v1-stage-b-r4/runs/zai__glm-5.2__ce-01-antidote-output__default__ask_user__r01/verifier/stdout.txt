@@ -1,1 +1,0 @@
-PASS: noisy git output is isolated from generated content
