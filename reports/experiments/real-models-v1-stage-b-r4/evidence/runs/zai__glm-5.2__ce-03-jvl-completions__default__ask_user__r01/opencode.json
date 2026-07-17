@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "cae": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "zai",
+      "options": {
+        "baseURL": "https://api.z.ai/api/coding/paas/v4",
+        "apiKey": "{env:CAE_PROVIDER_API_KEY}"
+      },
+      "models": {
+        "glm-5.2": {
+          "name": "glm-5.2"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "proctor": {
+      "type": "local",
+      "command": [
+        "/opt/cae/proctor-mcp"
+      ],
+      "enabled": true
+    }
+  }
+}
