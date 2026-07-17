@@ -5,8 +5,9 @@ import unittest
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
+from unittest.mock import patch
 
-from agent_evals.engine import CommandResult, PodmanEngine
+from agent_evals.engine import CommandResult, CommandRunner, PodmanEngine
 from agent_evals.task import TaskSpec
 
 
@@ -87,6 +88,30 @@ class EngineVerificationTest(unittest.TestCase):
             self.assertEqual(result.reward, {"reward": 0})
             assert runner.command is not None
             self.assertNotIn("git apply", runner.command[-1])
+
+    def test_environment_audit_runs_offline_as_candidate_user(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dev_check = root / "dev-check.sh"
+            dev_check.write_text("exit 0\n")
+            task = cast(
+                TaskSpec,
+                SimpleNamespace(
+                    task_id="dev-ready",
+                    dev_check=dev_check,
+                    resources=SimpleNamespace(cpus=2, memory_mb=512),
+                    verifier_timeout=30,
+                ),
+            )
+            runner = FakeRunner()
+            engine = PodmanEngine(root, runner=cast(CommandRunner, runner), min_free_gib=0)
+            with patch.object(engine, "build", return_value="sha256:image"):
+                result = engine.audit_environment(task)
+            self.assertTrue(result.passed)
+            command = runner.commands[-1]
+            self.assertIn("agent", command)
+            self.assertIn("none", command)
+            self.assertIn(f"{dev_check}:/tmp/cae-dev-check.sh:ro", command)
 
 
 if __name__ == "__main__":

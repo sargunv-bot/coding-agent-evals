@@ -52,10 +52,26 @@ Prerequisites:
 ```bash
 cae doctor
 cae validate
-cae build ce-01-antidote-output
+cae audit-environment ce-01-antidote-output
 cae audit-task ce-01-antidote-output --gold-repeats 2
 scripts/calibrate.sh
 ```
+
+`audit-environment` builds the candidate image and runs the task's
+`environment/dev-check.sh` as the unprivileged `agent` user with networking disabled. The
+check must exercise the normal task-relevant format, lint, test, build, and generator
+workflows using only source, tools, fixtures, and caches available to the candidate.
+
+Run one exact expanded matrix cell without eagerly building unrelated task images:
+
+```bash
+CAE_ALLOW_CANDIDATE_RUN=1 cae matrix run experiments/example.toml \
+  --providers providers.toml \
+  --cell '<exact-cell-id>'
+```
+
+The cell ID must match `cae matrix plan` output. Unknown IDs fail before lock creation or
+image builds. Repeating a completed cell remains a no-op.
 
 `calibrate.sh` writes normalized control evidence and a suite summary under
 `reports/calibration/`.

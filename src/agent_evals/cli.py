@@ -86,6 +86,9 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--gold-repeats", type=int, default=2)
     audit.add_argument("--scenario")
 
+    audit_environment = commands.add_parser("audit-environment")
+    audit_environment.add_argument("task_id", nargs="?")
+
     cleanup = commands.add_parser("cleanup")
     cleanup.add_argument("--include-images", action="store_true")
 
@@ -115,6 +118,8 @@ def build_parser() -> argparse.ArgumentParser:
         matrix_command = matrix_commands.add_parser(name)
         matrix_command.add_argument("manifest", type=Path)
         matrix_command.add_argument("--providers", type=Path, required=True)
+        if name in {"run", "resume"}:
+            matrix_command.add_argument("--cell", help="run exactly one expanded cell ID")
 
     report = commands.add_parser("report")
     report.add_argument("manifest", type=Path)
@@ -147,9 +152,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "validate":
         tasks = [_task(repo, args.task_id)] if args.task_id else discover_tasks(repo / "tasks")
-        results = {task.task_id: task.validate() for task in tasks}
-        _print(results)
-        return 1 if any(results.values()) else 0
+        validation_results = {task.task_id: task.validate() for task in tasks}
+        _print(validation_results)
+        return 1 if any(validation_results.values()) else 0
     if args.command == "build":
         digest = engine.build(_task(repo, args.task_id))
         _print({"task_id": args.task_id, "image_id": digest})
@@ -165,41 +170,46 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "run":
         route = resolve_model(args.provider, args.model, load_routes(args.providers))
-        result = AgentRunner(repo, engine).run(
+        run_result = AgentRunner(repo, engine).run(
             _task(repo, args.task_id),
             route,
             scenario=args.scenario,
             instruction_mode=args.mode,
         )
-        _print(asdict(result))
+        _print(asdict(run_result))
         return 0
     if args.command == "verify":
-        result = engine.verify(
+        verification_result = engine.verify(
             _task(repo, args.task_id),
             control=args.control,
             patch=args.patch,
             scenario=args.scenario,
         )
-        _print(asdict(result))
-        return 0 if result.expectation_met else 1
+        _print(asdict(verification_result))
+        return 0 if verification_result.expectation_met else 1
     if args.command == "audit-task":
         task = _task(repo, args.task_id)
-        results = [
+        audit_results = [
             engine.verify(task, control="no-op", scenario=args.scenario),
             engine.verify(task, control="gold", scenario=args.scenario),
         ]
         for _ in range(max(0, args.gold_repeats - 1)):
-            results.append(engine.verify(task, control="gold", scenario=args.scenario))
+            audit_results.append(engine.verify(task, control="gold", scenario=args.scenario))
         mutant_roots = [task.root / "mutants"]
         if args.scenario:
             mutant_roots.append(task.scenario(args.scenario).root / "mutants")
         mutants = sorted(mutant for root in mutant_roots for mutant in root.glob("*.patch"))
         for mutant in mutants:
-            results.append(
+            audit_results.append(
                 engine.verify(task, control="mutant", patch=mutant, scenario=args.scenario)
             )
-        _print([asdict(result) for result in results])
-        return 0 if all(result.expectation_met for result in results) else 1
+        _print([asdict(result) for result in audit_results])
+        return 0 if all(result.expectation_met for result in audit_results) else 1
+    if args.command == "audit-environment":
+        tasks = [_task(repo, args.task_id)] if args.task_id else discover_tasks(repo / "tasks")
+        environment_results = [engine.audit_environment(task) for task in tasks]
+        _print([asdict(result) for result in environment_results])
+        return 0 if all(result.passed for result in environment_results) else 1
     if args.command == "cleanup":
         _print(engine.cleanup(include_images=args.include_images))
         return 0
@@ -224,7 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.matrix_command == "status":
             _print(matrix_runner.status())
         else:
-            _print(matrix_runner.run())
+            _print(matrix_runner.run(cell_id=args.cell))
         return 0
     if args.command == "report":
         providers = load_routes(args.providers)

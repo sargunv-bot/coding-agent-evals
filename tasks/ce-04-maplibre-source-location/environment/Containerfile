@@ -2,21 +2,26 @@ FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c0
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git g++ clang python3 \
+    && apt-get install -y --no-install-recommends \
+        build-essential ca-certificates ccache clang clang-format cmake git glslang-dev \
+        libbz2-dev libcurl4-openssl-dev libglfw3-dev libicu-dev libjpeg-dev libopengl0 libpng-dev \
+        libsqlite3-dev libuv1-dev libwebp-dev libx11-xcb-dev libxcursor-dev libxi-dev libxinerama-dev \
+        llvm mesa-vulkan-drivers ninja-build pkg-config python3 ripgrep \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --shell /bin/bash agent
 RUN git init --quiet /app \
     && git -C /app remote add origin https://github.com/maplibre/maplibre-native.git \
-    && git -C /app fetch --quiet --depth=1 --filter=blob:none origin 5602ad8bd357c1ffb2b63b8d45de1d85123fdb58 \
-    && git -C /app checkout --quiet --detach FETCH_HEAD \
-    && rm -rf /app/.git \
-    && git -C /app init --quiet --initial-branch=main \
+    && git -C /app fetch --quiet --filter=blob:none origin refs/pull/4318/head \
+    && git -C /app checkout --quiet --detach 5602ad8bd357c1ffb2b63b8d45de1d85123fdb58 \
+    && git -C /app submodule update --init --recursive --depth=1 \
+    && git -C /app submodule foreach --quiet --recursive 'git remote remove origin 2>/dev/null || true' \
+    && git -C /app remote remove origin \
     && git -C /app config user.name benchmark-base \
     && git -C /app config user.email benchmark@invalid \
-    && git -C /app add --all \
-    && git -C /app commit --quiet -m 'benchmark base' \
     && chown -R agent:agent /app
 
 WORKDIR /app
 USER agent
 ENV HOME=/home/agent
+RUN cmake --preset linux-opengl -DMLN_WITH_CLANG_TIDY=OFF -DMLN_WITH_COVERAGE=OFF \
+    && cmake --build build-linux-opengl --target mbgl-core --parallel 2

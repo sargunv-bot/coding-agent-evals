@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 import tomllib
 from dataclasses import dataclass
@@ -72,6 +73,10 @@ class TaskSpec:
         return self.root / "instruction.md"
 
     @property
+    def dev_check(self) -> Path:
+        return self.root / "environment" / "dev-check.sh"
+
+    @property
     def tests(self) -> Path:
         return self.root / "tests"
 
@@ -134,9 +139,16 @@ class TaskSpec:
             errors.append("gold_commit_hash must be a lowercase 40-character SHA")
         if self.base_commit == self.gold_commit:
             errors.append("base and gold commits must differ")
-        for required in (self.containerfile, self.instruction, self.tests / "test.sh"):
+        for required in (
+            self.containerfile,
+            self.dev_check,
+            self.instruction,
+            self.tests / "test.sh",
+        ):
             if not required.is_file():
                 errors.append(f"missing {required.relative_to(self.root)}")
+        if self.dev_check.is_file() and not os.access(self.dev_check, os.X_OK):
+            errors.append("environment/dev-check.sh must be executable")
         if require_solution and not self.gold_patch.is_file():
             errors.append("missing evaluator-only solution/solution.patch")
         seen_scenarios: set[str] = set()

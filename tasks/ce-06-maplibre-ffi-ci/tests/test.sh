@@ -3,7 +3,7 @@ set -uo pipefail
 mkdir -p /logs/verifier
 cd /app
 set +e
-/opt/venv/bin/python /tests/verify_workflow.py > /logs/verifier/test-stdout.txt 2>&1
+python3 /tests/verify_workflow.py > /logs/verifier/test-stdout.txt 2>&1
 status=$?
 set -e
 if [[ $status -eq 0 ]]; then

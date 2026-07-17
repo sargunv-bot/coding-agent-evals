@@ -9,7 +9,7 @@ distribution = "private-evaluation-only"
 gold_patch_sha256 = "457222aafb814c58383970cc57c67356d57b6179f48eb04527ff44a193c3917d"
 gold_patch_bytes = 19365
 instruction_sha256 = "65b1c2e0aa9950310bbac2eac2ca91303699213a9b6671153b51f2c47eb2e0ec"
-containerfile_sha256 = "0fa96ade933862e259294e7f252fe3cde1c88eaae2a5667e1f8a5c9d1a8ba90b"
+containerfile_sha256 = "af341410b291826546f21660027ba308fc198df885b24ea9b86e7f237c875b5f"
 
 [mutants]
 "no-type-array.patch" = "c9260e340c9f834d59bab713c5caa10c413871f755574007049476a5482f2ec3"

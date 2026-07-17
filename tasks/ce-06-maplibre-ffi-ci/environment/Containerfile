@@ -1,11 +1,11 @@
-FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c06ba2cef9ebffbc7092d90
+FROM docker.io/library/python@sha256:db5942d111df72110e7a67da3fc5159e83ac85cd24808b91bdc4769e166ed1b7
 
-ARG DEBIAN_FRONTEND=noninteractive
+ENV UV_CACHE_DIR=/opt/uv-cache
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git python3 python3-venv \
-    && rm -rf /var/lib/apt/lists/*
-RUN python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir pydantic==2.13.4 pyyaml==6.0.3
+    && apt-get install -y --no-install-recommends ca-certificates git ripgrep \
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir uv==0.11.11 \
+    && uv pip install --system pydantic==2.13.4 pyyaml==6.0.3
 RUN useradd --create-home --shell /bin/bash agent
 RUN git init --quiet /app \
     && git -C /app remote add origin https://github.com/maplibre/maplibre-native-ffi.git \
@@ -16,9 +16,11 @@ RUN git init --quiet /app \
     && git -C /app config user.name benchmark-base \
     && git -C /app config user.email benchmark@invalid \
     && git -C /app add --all \
-    && git -C /app commit --quiet -m 'benchmark base' \
-    && chown -R agent:agent /app
+    && git -C /app commit --quiet -m 'benchmark base'
 
 WORKDIR /app
+RUN uv sync --locked \
+    && chown -R agent:agent /app /opt/uv-cache
+
 USER agent
-ENV HOME=/home/agent PATH=/opt/venv/bin:$PATH
+ENV HOME=/home/agent UV_OFFLINE=1 UV_PYTHON_DOWNLOADS=never

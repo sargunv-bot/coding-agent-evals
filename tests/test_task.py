@@ -37,6 +37,9 @@ class TaskSpecTest(unittest.TestCase):
             (root / "solution").mkdir()
             (root / "task.toml").write_text(MANIFEST)
             (root / "environment" / "Containerfile").write_text("FROM scratch\n")
+            dev_check = root / "environment" / "dev-check.sh"
+            dev_check.write_text("exit 0\n")
+            dev_check.chmod(0o755)
             (root / "instruction.md").write_text("Do the task.\n")
             (root / "tests" / "test.sh").write_text("exit 0\n")
             (root / "solution" / "solution.patch").write_text("patch\n")
@@ -49,7 +52,25 @@ class TaskSpecTest(unittest.TestCase):
             (root / "task.toml").write_text(MANIFEST.replace("1" * 40, "bad"))
             errors = TaskSpec.load(root).validate()
             self.assertTrue(any("base_commit_hash" in error for error in errors))
+            self.assertIn("missing environment/dev-check.sh", errors)
             self.assertTrue(any("missing" in error for error in errors))
+
+    def test_dev_check_must_be_executable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "test-task"
+            (root / "environment").mkdir(parents=True)
+            (root / "tests").mkdir()
+            (root / "solution").mkdir()
+            (root / "task.toml").write_text(MANIFEST)
+            (root / "environment" / "Containerfile").write_text("FROM scratch\n")
+            (root / "environment" / "dev-check.sh").write_text("exit 0\n")
+            (root / "instruction.md").write_text("Do the task.\n")
+            (root / "tests" / "test.sh").write_text("exit 0\n")
+            (root / "solution" / "solution.patch").write_text("patch\n")
+            self.assertIn(
+                "environment/dev-check.sh must be executable",
+                TaskSpec.load(root).validate(),
+            )
 
 
 if __name__ == "__main__":

@@ -52,18 +52,34 @@ class MatrixRunner:
             "cells": [asdict(cell) for cell in self.experiment.expand()],
         }
 
-    def prepare_lock(self) -> dict:
+    def prepare_lock(self, task_ids: set[str] | None = None) -> dict:
         commit = self._signed_clean_commit()
         if self.lock_path.exists():
             lock = json.loads(self.lock_path.read_text())
             self._validate_lock(lock, commit)
-            return lock
+        else:
+            self.root.mkdir(parents=True, exist_ok=True)
+            self.results.mkdir(parents=True, exist_ok=True)
+            lock = {
+                "schema_version": 1,
+                "experiment_id": self.experiment.experiment_id,
+                "stage": self.experiment.stage,
+                "created_at": datetime.now(UTC).isoformat(),
+                "benchmark_commit": commit,
+                "manifest_path": str(self.experiment.path.relative_to(self.repo_root)),
+                "manifest_sha256": self.experiment.digest,
+                "opencode_version": OPENCODE_VERSION,
+                "proctor_model": self.experiment.proctor_model,
+                "routes": [self._redacted_route(route) for route in self.routes.values()],
+                "model_configs": self._model_configs(),
+                "images": {},
+                "cells": [asdict(cell) for cell in self.experiment.expand()],
+            }
 
-        self.root.mkdir(parents=True, exist_ok=True)
-        self.results.mkdir(parents=True, exist_ok=True)
+        required_task_ids = task_ids or {cell.task_id for cell in self.experiment.expand()}
         agent = AgentRunner(self.repo_root, self.engine)
-        images: dict[str, dict[str, str]] = {}
-        for task_id in sorted({cell.task_id for cell in self.experiment.expand()}):
+        images = lock["images"]
+        for task_id in sorted(required_task_ids - images.keys()):
             task = self.tasks[task_id]
             task_image_id = self.engine.build(task)
             agent_image = agent.build_agent_image(task)
@@ -76,32 +92,25 @@ class MatrixRunner:
                 "agent_image": agent_image,
                 "agent_image_id": agent_image_id,
             }
-        lock = {
-            "schema_version": 1,
-            "experiment_id": self.experiment.experiment_id,
-            "stage": self.experiment.stage,
-            "created_at": datetime.now(UTC).isoformat(),
-            "benchmark_commit": commit,
-            "manifest_path": str(self.experiment.path.relative_to(self.repo_root)),
-            "manifest_sha256": self.experiment.digest,
-            "opencode_version": OPENCODE_VERSION,
-            "proctor_model": self.experiment.proctor_model,
-            "routes": [self._redacted_route(route) for route in self.routes.values()],
-            "model_configs": self._model_configs(),
-            "images": images,
-            "cells": [asdict(cell) for cell in self.experiment.expand()],
-        }
         self.lock_path.write_text(json.dumps(lock, indent=2, sort_keys=True) + "\n")
         return lock
 
-    def run(self) -> dict:
+    def run(self, cell_id: str | None = None) -> dict:
         if os.environ.get("CAE_ALLOW_CANDIDATE_RUN") != "1":
             raise MatrixError(
                 "matrix candidate runs are gated; set CAE_ALLOW_CANDIDATE_RUN=1 explicitly"
             )
-        lock = self.prepare_lock()
+        cells = self.experiment.expand()
+        selected = list(cells)
+        if cell_id is not None:
+            selected = [cell for cell in cells if cell.cell_id == cell_id]
+            if not selected:
+                raise MatrixError(f"unknown matrix cell {cell_id!r}")
+        lock = self.prepare_lock(task_ids={cell.task_id for cell in selected})
         self.results.mkdir(parents=True, exist_ok=True)
-        for index, cell in enumerate(self.experiment.expand(), start=1):
+        positions = {cell.cell_id: index for index, cell in enumerate(cells, start=1)}
+        for cell in selected:
+            index = positions[cell.cell_id]
             path = self.results / f"{cell.cell_id}.json"
             existing = json.loads(path.read_text()) if path.exists() else None
             if existing and existing.get("state") in {"completed", "infrastructure_error"}:

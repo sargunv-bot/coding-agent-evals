@@ -71,6 +71,17 @@ class VerificationResult:
     command_stderr: str
 
 
+@dataclass(frozen=True)
+class EnvironmentAuditResult:
+    task_id: str
+    image_id: str
+    exit_code: int
+    passed: bool
+    duration_seconds: float
+    stdout: str
+    stderr: str
+
+
 class PodmanEngine:
     def __init__(
         self,
@@ -140,6 +151,50 @@ class PodmanEngine:
         )
         inspected = self.runner.run(["podman", "image", "inspect", image, "--format", "{{.Id}}"])
         return inspected.stdout.strip()
+
+    def audit_environment(self, task: TaskSpec) -> EnvironmentAuditResult:
+        """Run the task's normal development checks as the offline candidate user."""
+        image_id = self.build(task)
+        started = time.monotonic()
+        result = self.runner.run(
+            [
+                "podman",
+                "run",
+                "--rm",
+                "--user",
+                "agent",
+                "--network",
+                "none",
+                "--cap-drop",
+                "all",
+                "--security-opt",
+                "no-new-privileges",
+                "--pids-limit",
+                "1024",
+                "--cpus",
+                str(task.resources.cpus),
+                "--memory",
+                f"{task.resources.memory_mb}m",
+                "--env",
+                "HOME=/home/agent",
+                "--volume",
+                f"{task.dev_check}:/tmp/cae-dev-check.sh:ro",
+                self.image_name(task),
+                "bash",
+                "/tmp/cae-dev-check.sh",
+            ],
+            check=False,
+            timeout=task.verifier_timeout,
+        )
+        return EnvironmentAuditResult(
+            task_id=task.task_id,
+            image_id=image_id,
+            exit_code=result.returncode,
+            passed=result.returncode == 0,
+            duration_seconds=time.monotonic() - started,
+            stdout=result.stdout,
+            stderr=result.stderr,
+        )
 
     def verify(
         self,
