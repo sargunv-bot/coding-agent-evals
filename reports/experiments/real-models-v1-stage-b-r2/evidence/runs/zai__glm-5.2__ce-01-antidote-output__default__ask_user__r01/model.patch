@@ -1,0 +1,63 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..2efa9846fb7b9726f98568ca03e552cd480cce69 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >&2
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_bundle.md b/tests/test_cmd_bundle.md
+index d856469f27702ebc82ccf2355d1e55b9eedc7706..1bfbd148d34060441fb053f7d122cf1ce38667dd 100644
+--- a/tests/test_cmd_bundle.md
++++ b/tests/test_cmd_bundle.md
+@@ -41,6 +41,21 @@ Test \|piping, \<redirection, and --args
+ %
+ ```
+ 
++### Noisy git wrapper must not leak into the script
++
++A git wrapper on PATH may ignore `--quiet` and write clone progress to stdout.
++That output must not end up in the generated static load script. stderr is
++discarded here so only the script (stdout) is compared.
++
++```zsh
++% function git { [[ "$1" == clone ]] && print "NOISY-GIT: clone progress on stdout"; mockgit "$@" }
++% antidote bundle fakeuser/fakerepo 2>/dev/null | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++% function git { mockgit "$@" }
++%
++```
++
+ ### Do the same thing, but with antibody mode this time
+ 
+ Test \|piping, \<redirection, and --args
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..d63e06c58d750ac792035a5300a0d3bab077e993 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -95,6 +95,19 @@ Clone a missing plugin.
+ %
+ ```
+ 
++Clone stdout must not leak into the generated script.
++
++A git wrapper on PATH may ignore `--quiet` and write progress to stdout. Since
++antidote-script emits the load script on stdout, that text must be routed to
++stderr so it can't pollute the script. Diagnostics remain visible on stderr.
++
++```zsh
++% function git { [[ "$1" == clone ]] && print "NOISY-GIT: clone progress on stdout"; mockgit "$@" }
++% antidote-script --kind clone bar/foo 2>/dev/null
++% function git { mockgit "$@" }
++%
++```
++
+ ### kind:zsh
+ 
+ ```zsh

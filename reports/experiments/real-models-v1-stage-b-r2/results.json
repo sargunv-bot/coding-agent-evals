@@ -1,0 +1,49 @@
+{
+  "experiment_id": "real-models-v1-stage-b-r2",
+  "manifest_sha256": "c265ae4dcc1589d4332df29d2f61a9e6f30918d69412b17c3346c67adb12ac64",
+  "rows": [
+    {
+      "agent_completion_status": "completed",
+      "agent_exit_code": 0,
+      "agent_exit_discrepancy": false,
+      "answers": 0,
+      "attempts": 1,
+      "cached_input_tokens": 1938432,
+      "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
+      "deterministic_pass": false,
+      "duration_seconds": 943.631349,
+      "estimated_cost": null,
+      "input_tokens": 55877,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "model_config_sha256": "ee7c2148bd52a51f1eac52051ca8f86e9665a6cd8d33d6b5489b0f0d1f5f80dc",
+      "output_tokens": 5013,
+      "pricing_basis": "",
+      "pricing_currency": "",
+      "provider": "zai",
+      "provider_reported_cost": 0.0,
+      "questions": 0,
+      "reasoning_tokens": 16612,
+      "repeat": 1,
+      "run_id": "20260717T071531Z-ce-01-antidote-output-3726935-1784272531111477272",
+      "scenario": "",
+      "state": "completed",
+      "task_id": "ce-01-antidote-output",
+      "verification_outcome": "failed"
+    }
+  ],
+  "schema_version": 1,
+  "totals": {
+    "cached_input_tokens": 1938432,
+    "cells": 1,
+    "completed": 1,
+    "deterministic_passes": 0,
+    "estimated_cost": null,
+    "infrastructure_errors": 0,
+    "input_tokens": 55877,
+    "output_tokens": 5013,
+    "provider_reported_cost": 0.0,
+    "questions": 0,
+    "reasoning_tokens": 16612
+  }
+}
