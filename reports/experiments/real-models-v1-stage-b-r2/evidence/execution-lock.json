@@ -422,6 +422,12 @@
       "agent_image_id": "c010900bdd4854cb7b9f89633f32dfee2c80cd3dd38e933f6d850e2379f7e31d",
       "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
       "task_image_id": "4375ae367cdb7b607a039304084026baf48015480f0f82c34ad5d9aa89febad0"
+    },
+    "ce-04-maplibre-source-location": {
+      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
+      "agent_image_id": "91c1d39741bcca7e1ef8120f03d0fe99d863c10374373adf3af0479055b7a225",
+      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
+      "task_image_id": "5a60abb8b8fce769a8f84846aab240911b8499861652a3bdd7a9c4ee6f3ffe98"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r2.toml",
