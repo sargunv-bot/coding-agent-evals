@@ -10,7 +10,7 @@ set +e
   for compiler in g++ clang++; do
     for standard in c++17 c++20; do
       output="/tmp/ce04/${compiler//+/x}-${standard}"
-      "$compiler" -std="$standard" -Wall -Wextra -Werror -I/app \
+      "$compiler" -std="$standard" -Wall -Wextra -Werror -I/app/include -I/app/src -I/app \
         /tests/source_location_behavior.cpp -o "$output"
       "$output"
     done
