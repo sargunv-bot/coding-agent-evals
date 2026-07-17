@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import RunHeader from '../../../../components/RunHeader.astro';
+import { loadSiteData } from '../../../../lib/data';
+
+export async function getStaticPaths() {
+  const data = await loadSiteData();
+  return data.runs.map((run) => ({ params: { experiment: run.experimentId, cell: run.cellId }, props: { run } }));
+}
+const { run } = Astro.props;
+const raw = run.artifacts.find((artifact: { path: string }) => artifact.path === 'verifier/stdout.txt');
+---
+<BaseLayout title={`Checks · ${run.taskTitle}`}>
+  <RunHeader run={run} active="Checks"/>
+  <section class="run-content">
+    <div class="check-summary"><p>{run.observed.phase || 'Verifier'}</p><h2>{run.observed.summary}</h2></div>
+    {run.observed.checks.length > 0 && <table class="checks-table"><thead><tr><th>Observed check</th><th>Status</th><th>Detail</th></tr></thead><tbody>{run.observed.checks.map((check: { name: string; status: string; detail?: string }) => <tr><td>{check.name}</td><td><span class={`result-pill ${check.status}`}>{check.status}</span></td><td>{check.detail || '—'}</td></tr>)}</tbody></table>}
+    <details class="content-section verifier-details">
+      <summary><span>Raw verifier output</span></summary>
+      {raw && <p class="raw-download"><a href={raw.url} download>Download output</a></p>}
+      {run.verifierOutput ? <pre class="verifier-output">{run.verifierOutput}</pre> : <p class="empty-state">No verifier output was committed.</p>}
+    </details>
+  </section>
+</BaseLayout>

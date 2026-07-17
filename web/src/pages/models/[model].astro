@@ -1,6 +1,5 @@
 ---
-import BaseLayout from '../../layouts/BaseLayout.astro'; import RunTable from '../../components/RunTable.astro'; import { loadSiteData } from '../../lib/data';
-export async function getStaticPaths() { const data = await loadSiteData(); return data.models.map((model) => ({ params: { model: model.slug }, props: { model } })); }
-const { model } = Astro.props;
+import BaseLayout from '../../layouts/BaseLayout.astro'; import RunsExplorer from '../../components/RunsExplorer.astro'; import {loadSiteData} from '../../lib/data';
+export async function getStaticPaths(){const d=await loadSiteData();return d.models.map(model=>({params:{model:model.slug},props:{model}}))} const {model}=Astro.props; const tasks=new Set(model.runs.map(r=>r.taskId)).size;
 ---
-<BaseLayout title={model.name}><p class="eyebrow">Model</p><h1 class="text-4xl font-black">{model.name}</h1><p class="mt-3"><strong>Provider:</strong> {model.provider}. A provider is the service or endpoint that supplied access to this model.</p><section class="mt-10"><h2 class="mb-4 text-2xl font-bold">Runs by task</h2><RunTable runs={model.runs} caption={`Runs for ${model.key}`}/></section></BaseLayout>
+<BaseLayout title={model.name}><div class="page-title"><div><p class="utility-kicker">Model report · {model.provider}</p><h1>{model.name}</h1></div></div><div class="summary-strip"><span>{tasks} tasks covered</span><span>{model.runs.length} runs</span><span>{model.runs.filter(r=>r.reviewState.kind==='reviewed').length}/{model.runs.length} reviewed</span><span>{model.runs.filter(r=>r.infrastructureError).length} infrastructure errors</span></div><RunsExplorer runs={model.runs} heading="Runs by task" showModel={false}/></BaseLayout>

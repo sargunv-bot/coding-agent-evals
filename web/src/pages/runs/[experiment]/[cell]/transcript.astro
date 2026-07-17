@@ -1,0 +1,5 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro'; import RunHeader from '../../../../components/RunHeader.astro'; import {TranscriptViewer} from '../../../../components/TranscriptViewer'; import {loadSiteData} from '../../../../lib/data';
+export async function getStaticPaths(){const d=await loadSiteData();return d.runs.map(run=>({params:{experiment:run.experimentId,cell:run.cellId},props:{run}}))} const {run}=Astro.props; const raw=run.artifacts.find((a:any)=>a.path==='transcript.jsonl');
+---
+<BaseLayout title={`Transcript · ${run.taskTitle}`}><RunHeader run={run} active="Transcript"/><section class="run-content"><TranscriptViewer events={run.transcript} instruction={run.instruction} truncated={run.transcriptTruncated} warnings={run.transcriptWarnings} rawUrl={raw?.url} client:load/><noscript><p class="notice">Filters and event expansion require JavaScript. <a href={raw?.url}>Download the complete transcript</a>.</p></noscript></section></BaseLayout>
