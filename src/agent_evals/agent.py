@@ -111,6 +111,28 @@ class AgentRunner:
         config = cls.opencode_config_text(route, instruction_mode).encode()
         return hashlib.sha256(config).hexdigest()
 
+    @staticmethod
+    def _agent_shell(
+        model_arg: str,
+        *,
+        instruction_path: str = "/run/cae/instruction.txt",
+        log_dir: str = "/logs/agent",
+    ) -> str:
+        instruction = shlex.quote(instruction_path)
+        transcript = shlex.quote(f"{log_dir}/opencode.jsonl")
+        patch = shlex.quote(f"{log_dir}/model.patch")
+        return (
+            "set -o pipefail; "
+            "base=$(git rev-parse HEAD); "
+            f"opencode run --model={model_arg} --format=json --thinking --auto "
+            f'-- "$(cat {instruction})" '
+            f"2>&1 </dev/null | stdbuf -oL tee {transcript}; "
+            "agent_status=${PIPESTATUS[0]}; "
+            "git add --all; "
+            f'git diff --cached --binary --full-index "$base" -- > {patch}; '
+            "exit $agent_status"
+        )
+
     def build_tools(self) -> dict[str, str]:
         self.engine.ensure_space()
         self.build_dir.mkdir(parents=True, exist_ok=True)
@@ -303,17 +325,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                     "-e",
                     "CAE_PROCTOR_QUEUE=/proctor",
                 ]
-            shell = (
-                "set -o pipefail; "
-                f"opencode run --model={model_arg} --format=json --thinking --auto "
-                '-- "$(cat /run/cae/instruction.txt)" '
-                "2>&1 </dev/null | stdbuf -oL tee /logs/agent/opencode.jsonl; "
-                "agent_status=${PIPESTATUS[0]}; "
-                "base=$(git rev-list --max-parents=0 HEAD); "
-                "git add --all; "
-                'git diff --cached --binary --full-index "$base" -- > /logs/agent/model.patch; '
-                "exit $agent_status"
-            )
+            shell = self._agent_shell(model_arg)
             command = [
                 "podman",
                 "run",
