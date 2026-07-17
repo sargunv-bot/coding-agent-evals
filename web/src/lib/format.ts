@@ -19,3 +19,10 @@ export function runHref(run: { experimentId: string; cellId: string }): string {
   return basePath(`runs/${encodeURIComponent(run.experimentId)}/${encodeURIComponent(run.cellId)}/`);
 }
 export const number = (value: number | undefined) => new Intl.NumberFormat('en-US').format(value || 0);
+export function duration(seconds: number | undefined): string {
+  if (seconds === undefined) return '—';
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainder = Math.round(seconds % 60);
+  return `${minutes}m ${remainder}s`;
+}

@@ -1,0 +1,5 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro'; import RunHeader from '../../../../components/RunHeader.astro'; import {PatchViewer} from '../../../../components/PatchViewer'; import {loadSiteData} from '../../../../lib/data';
+export async function getStaticPaths(){const d=await loadSiteData();return d.runs.map(run=>({params:{experiment:run.experimentId,cell:run.cellId},props:{run}}))} const {run}=Astro.props;const raw=run.artifacts.find((a:any)=>a.path==='model.patch');
+---
+<BaseLayout title={`Changes · ${run.taskTitle}`}><RunHeader run={run} active="Changes"/><section class="run-content">{run.patch?<><PatchViewer patch={run.patch} rawUrl={raw?.url} client:load/><noscript><p><a href={raw?.url}>Download raw patch</a>.</p></noscript></>:<p class="empty-state">No candidate patch was committed.</p>}</section></BaseLayout>

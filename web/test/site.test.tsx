@@ -4,12 +4,13 @@ import os from 'node:os'; import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { loadSiteData } from '../src/lib/data';
-import { humanizeEnum, modelSlug } from '../src/lib/format';
+import { duration, humanizeEnum, modelSlug } from '../src/lib/format';
 import { reviewState } from '../src/lib/review';
 import { containedFile, safeRelativePath, validateHttpUrl } from '../src/lib/safety';
 import { parseTranscript } from '../src/lib/transcript';
-import { summarizeTranscript, TranscriptViewer } from '../src/components/TranscriptViewer';
+import { groupTranscriptSteps, summarizeTranscript, TranscriptViewer } from '../src/components/TranscriptViewer';
 import { patchFileSummary, splitPatchByFile } from '../src/components/PatchViewer';
+import { extractObservedChecks } from '../src/lib/observed';
 
 async function fixture() {
   const root = await mkdtemp(path.join(os.tmpdir(), 'eval-site-'));
@@ -21,7 +22,7 @@ async function fixture() {
 }
 
 describe('labels and review semantics', () => {
-  it('humanizes enums and stable model slugs', () => { expect(humanizeEnum('ask_user')).toBe('Ask user'); expect(humanizeEnum('validation-fail-fast')).toBe('Validation fail-fast'); expect(modelSlug('OpenCode Go','Kimi/K2')).toBe('opencode-go--kimi-k2'); });
+  it('humanizes enums and stable model slugs', () => { expect(humanizeEnum('ask_user')).toBe('Ask user'); expect(humanizeEnum('validation-fail-fast')).toBe('Validation fail-fast'); expect(modelSlug('OpenCode Go','Kimi/K2')).toBe('opencode-go--kimi-k2'); expect(duration(2564.3)).toBe('42m 44s'); });
   it('uses pending, not-ready, and reviewed states without overriding verification', () => { expect(reviewState('completed').kind).toBe('pending'); expect(reviewState('partial').label).toBe('Not ready'); const state=reviewState('completed',{score:5}); expect(state.kind).toBe('reviewed'); expect(state.explanation).toContain('cannot override'); });
 });
 describe('path and provenance safety', () => {
@@ -45,7 +46,44 @@ describe('transcript parsing and XSS', () => {
     expect(summary.clarifications).toHaveLength(1);
     expect(summary.finalMessages[0].text).toBe('Done');
   });
+  it('groups reasoning, tools, and usage into one canonical agent step', () => {
+    const events = parseTranscript([
+      JSON.stringify({type:'step_start',timestamp:1000}),
+      JSON.stringify({type:'reasoning',timestamp:1100,part:{text:'Inspect first'}}),
+      JSON.stringify({type:'tool_use',timestamp:1200,part:{tool:'read',state:{status:'completed',input:{path:'x'},output:'ok'}}}),
+      JSON.stringify({type:'step_finish',timestamp:1500,part:{tokens:{input:100,output:20,cache:{read:40}}}}),
+    ].join('\n')).events;
+    const steps = groupTranscriptSteps(events);
+    expect(steps).toHaveLength(1);
+    expect(steps[0].reasoning).toHaveLength(1);
+    expect(steps[0].tools).toHaveLength(1);
+    expect(steps[0].finish?.usage).toMatchObject({ input: 100, output: 20 });
+    expect(steps[0].durationMs).toBe(500);
+  });
 });
+describe('task-specific observed verifier summaries', () => {
+  it.each([
+    ['ce-01-antidote-output', 'PASS: stdout isolated\nFAIL: diagnostic preserved', '1/2 observed tests · 1 failed'],
+    ['ce-02-horologia-overdue', '--- PASS: TestDue\n--- FAIL: TestOverdue', '1/2 observed tests · 1 failed'],
+    ['ce-03-jvl-completions', 'running 2 tests\ntest composed ... ok\ntest nested ... FAILED\ntest result: FAILED. 1 passed; 1 failed', '1/2 observed tests · 1 failed'],
+    ['ce-04-maplibre-source-location', 'PASS: structure\nFAIL: runtime', '1/2 observed tests · 1 failed'],
+    ['ce-05-mise-slsa-archive', 'error[E0433]: missing\nerror[E0425]: absent', 'Compilation failed · 2 errors'],
+    ['ce-06-maplibre-ffi-ci', 'PASS: workflow pins generated artifact', '1/1 observed tests'],
+    ['ce-07-mobility-result', 'e: unresolved reference\ne: type inference failed', 'Compilation failed · 2 errors'],
+  ])('extracts honest evidence for %s', (task, output, expected) => {
+    expect(extractObservedChecks(task, output, false).summary).toBe(expected);
+  });
+  it('separates passing CE-07 behavior from a failing ABI check', () => {
+    const observed = extractObservedChecks('ce-07-mobility-result', '3 tests completed, 0 failed\n> Task :gbfs-v1:checkKotlinAbi FAILED\nABI has changed', false);
+    expect(observed.summary).toBe('3/3 observed tests · ABI compatibility failed');
+    expect(observed.phase).toBe('ABI compatibility');
+    expect(observed.checks).toContainEqual(expect.objectContaining({ name: 'Kotlin/JVM ABI compatibility', status: 'fail' }));
+  });
+  it('uses the Rust compiler summary instead of counting its trailing aggregate as another error', () => {
+    expect(extractObservedChecks('ce-05-mise-slsa-archive', 'error[E1]: one\nerror[E2]: two\nerror: could not compile due to 12 previous errors', false).summary).toBe('Compilation failed · 12 errors');
+  });
+});
+
 describe('diff rendering', () => {
   it('splits multi-file git patches for Pierre PatchDiff', () => {
     const patch = 'diff --git a/one b/one\n--- a/one\n+++ b/one\n@@ -1 +1 @@\n-a\n+b\n' +

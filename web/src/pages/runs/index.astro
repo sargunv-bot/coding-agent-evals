@@ -1,0 +1,5 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro'; import RunsExplorer from '../../components/RunsExplorer.astro'; import {loadSiteData} from '../../lib/data';
+const data=await loadSiteData();
+---
+<BaseLayout title="Runs"><div class="page-title"><div><h1>Runs</h1><p>{data.runs.length} committed evaluation runs</p></div></div><RunsExplorer runs={data.runs} heading="All runs"/></BaseLayout>

@@ -7,6 +7,7 @@ import { basePath, modelSlug } from './format';
 import { reviewState } from './review';
 import { containedFile, safeRelativePath, validateHttpUrl } from './safety';
 import { parseTranscript } from './transcript';
+import { extractObservedChecks } from './observed';
 import type { Artifact, Experiment, Model, Run, SiteData, Task, TaskMetadata, Warning } from './types';
 
 const ALLOWED_ARTIFACTS = new Set(['instruction.txt','matrix-record.json','model.patch','opencode.json','transcript.jsonl','verifier/stdout.txt','proctor-review.json','artifacts.json']);
@@ -84,8 +85,9 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
         } catch (e: any) { rw.push({ scope: cellId, message: e.message }); }
       }
       const review = await optionalJson(path.join(runDir, 'proctor-review.json'), rw, cellId);
-      const patchArtifact = artifacts.find((a) => a.path === 'model.patch'); const transcriptArtifact = artifacts.find((a) => a.path === 'transcript.jsonl');
-      let patch: string | undefined; let transcriptSource = '';
+      const instructionArtifact = artifacts.find((a) => a.path === 'instruction.txt'); const patchArtifact = artifacts.find((a) => a.path === 'model.patch'); const transcriptArtifact = artifacts.find((a) => a.path === 'transcript.jsonl');
+      let instruction: string | undefined; let patch: string | undefined; let transcriptSource = '';
+      try { if (instructionArtifact) instruction = await utf8(await containedFile(runDir, instructionArtifact.path)); } catch (e: any) { rw.push({ scope: cellId, message: e.message }); }
       try { if (patchArtifact) patch = await utf8(await containedFile(runDir, patchArtifact.path)); } catch (e: any) { rw.push({ scope: cellId, message: e.message }); }
       try { if (transcriptArtifact) transcriptSource = await utf8(await containedFile(runDir, transcriptArtifact.path)); } catch (e: any) { rw.push({ scope: cellId, message: e.message }); }
       const parsed = parseTranscript(transcriptSource);
@@ -96,7 +98,9 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
         deterministicPass: typeof row.deterministic_pass === 'boolean' ? row.deterministic_pass : typeof verification.expectation_met === 'boolean' ? verification.expectation_met : undefined,
         verificationOutcome: row.verification_outcome || verification.outcome, infrastructureError: state === 'infrastructure_error' || attempts.at(-1)?.kind === 'infrastructure_error', durationSeconds: Number(row.duration_seconds || latest.duration_seconds) || undefined,
         tokens: { input: Number(row.input_tokens ?? usage.input_tokens) || 0, cachedInput: Number(row.cached_input_tokens ?? usage.cached_input_tokens) || 0, output: Number(row.output_tokens ?? usage.output_tokens) || 0, reasoning: Number(row.reasoning_tokens ?? usage.reasoning_tokens) || 0 },
-        artifacts, patch, transcript: parsed.events, transcriptTruncated: parsed.truncated, transcriptWarnings: parsed.warnings, verifierOutput, reviewState: reviewState(state, asRecord(review)), warnings: rw };
+        artifacts, instruction, patch, transcript: parsed.events, transcriptTruncated: parsed.truncated, transcriptWarnings: parsed.warnings, verifierOutput,
+        observed: extractObservedChecks(String(row.task_id || 'unknown-task'), verifierOutput, typeof row.deterministic_pass === 'boolean' ? row.deterministic_pass : undefined),
+        reviewState: reviewState(state, asRecord(review)), warnings: rw };
       runs.push(run); allRuns.push(run); ew.push(...rw);
     }
     const exp = asRecord(manifest?.experiment); const plannedCells = (Array.isArray(manifest?.models) ? manifest.models.length : 0) * (Array.isArray(manifest?.cells) ? manifest.cells.length : 0) * Number(exp.repeats || 1);

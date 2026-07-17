@@ -1,6 +1,6 @@
 import { PatchDiff } from '@pierre/diffs/react';
 
-interface Props { patch: string; rawUrl?: string; sha256?: string }
+interface Props { patch: string; rawUrl?: string }
 
 /** PatchDiff intentionally accepts one file per component. Keep mail headers with the first file. */
 export function splitPatchByFile(patch: string): string[] {
@@ -22,11 +22,11 @@ export function patchFileSummary(filePatch: string) {
   return { name, additions, deletions };
 }
 
-export function PatchViewer({ patch, rawUrl, sha256 }: Props) {
+export function PatchViewer({ patch, rawUrl }: Props) {
   const files = splitPatchByFile(patch).map((filePatch) => ({ patch: filePatch, ...patchFileSummary(filePatch) }));
   return <section className="diff-shell" aria-labelledby="candidate-patch-heading">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 id="candidate-patch-heading" className="text-xl font-bold">Candidate patch</h2><p className="text-sm opacity-70">{files.length} changed {files.length === 1 ? 'file' : 'files'} · expand a file to review it</p></div>{rawUrl && <a className="btn btn-sm btn-outline" href={rawUrl} download>Download raw patch</a>}</div>
-    {sha256 && <details className="hash-disclosure"><summary>Artifact hash</summary><code className="mt-2 block break-all">{sha256}</code></details>}
+
     <p className="sr-only">Diff follows. Added and removed lines are distinguished by symbols, line numbers, and color.</p>
     {files.length > 0 ? <div className="mt-4 space-y-3">{files.map((file, index) =>
       <details className="evidence-file" key={file.name + index} open={files.length === 1 && patch.length < 8_000}>

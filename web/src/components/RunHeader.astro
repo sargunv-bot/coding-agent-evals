@@ -1,0 +1,12 @@
+---
+import type { Run } from '../lib/types';
+import { basePath, humanizeEnum, modelSlug, runHref } from '../lib/format';
+const { run, active } = Astro.props as { run: Run; active: string };
+const root = runHref(run); const tabs=[['Summary',''],['Transcript','transcript/'],['Changes','changes/'],['Checks','checks/'],['Artifacts','artifacts/']];
+---
+<header class="run-header">
+  <div class="run-title-row"><div><p class="utility-kicker">Run evidence</p><h1>{run.taskTitle || run.taskId}</h1><p><a href={basePath(`models/${modelSlug(run.provider,run.model)}/`)}>{run.provider} / {run.model}</a></p></div></div>
+  <div class="run-meta"><span>{humanizeEnum(run.mode)}</span>{run.scenario&&<span>{humanizeEnum(run.scenario)}</span>}<span>Repeat {run.repeat}</span><span>{run.experimentId}</span></div>
+  <div class="context-links"><a href={basePath(`?task=${encodeURIComponent(run.taskId)}#runs-explorer`)}>Filtered results</a><a href={basePath(`tasks/${run.taskId}/`)}>Task report</a><a href={basePath(`models/${modelSlug(run.provider,run.model)}/`)}>Model report</a></div>
+</header>
+<nav class="run-tabs" aria-label="Run evidence"><div>{tabs.map(([label,suffix])=><a aria-current={active===label?'page':undefined} href={`${root}${suffix}`}>{label}</a>)}</div></nav>
