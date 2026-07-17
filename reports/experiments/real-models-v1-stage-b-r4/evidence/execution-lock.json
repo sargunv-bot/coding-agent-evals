@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "f1f294d8f9dca2e2796fab0425a8d5d1d55c781d",
+  "benchmark_commit": "865d62417dab2b484cfc0f437c1fca645a97bf53",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -402,7 +402,7 @@
       "task_id": "ce-07-mobility-result"
     }
   ],
-  "created_at": "2026-07-17T18:31:29.551943+00:00",
+  "created_at": "2026-07-17T20:40:34.821833+00:00",
   "experiment_id": "real-models-v1-stage-b-r4",
   "images": {
     "ce-05-mise-slsa-archive": {

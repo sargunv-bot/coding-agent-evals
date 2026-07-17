@@ -33,6 +33,11 @@
     },
     {
       "artifacts": 7,
+      "cell_id": "zai__glm-5.2__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "run_id": "20260717T200759Z-ce-07-mobility-result-2264240-1784318879335111088"
+    },
+    {
+      "artifacts": 7,
       "cell_id": "zai__glm-5.2__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
       "run_id": "20260717T194139Z-ce-07-mobility-result-2131547-1784317299850593810"
     }
