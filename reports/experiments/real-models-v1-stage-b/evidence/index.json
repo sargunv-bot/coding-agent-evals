@@ -1,0 +1,11 @@
+{
+  "experiment_id": "real-models-v1-stage-b",
+  "runs": [
+    {
+      "artifacts": 7,
+      "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
+      "run_id": "20260717T050753Z-ce-01-antidote-output-3302403-1784264873797938840"
+    }
+  ],
+  "schema_version": 1
+}
