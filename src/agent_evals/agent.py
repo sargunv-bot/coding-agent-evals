@@ -75,6 +75,21 @@ class AgentRunner:
         return f"localhost/coding-agent-evals/{task.task_id}-opencode:dev"
 
     @staticmethod
+    def agent_shell(model_arg: str) -> str:
+        return (
+            "set -o pipefail; "
+            "base=$(git rev-parse HEAD) || exit 125; "
+            f"opencode run --model={model_arg} --format=json --thinking --auto "
+            '-- "$(cat /run/cae/instruction.txt)" '
+            "2>&1 </dev/null | stdbuf -oL tee /logs/agent/opencode.jsonl; "
+            "agent_status=${PIPESTATUS[0]}; "
+            "git add --all || exit 125; "
+            'git diff --cached --binary --full-index "$base" -- > /logs/agent/model.patch '
+            "|| exit 125; "
+            "exit $agent_status"
+        )
+
+    @staticmethod
     def opencode_config(route: ProviderRoute, instruction_mode: str) -> dict:
         if instruction_mode not in {"baseline", "ask_user", "full_info"}:
             raise ValueError(f"unknown instruction mode: {instruction_mode}")
@@ -303,17 +318,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                     "-e",
                     "CAE_PROCTOR_QUEUE=/proctor",
                 ]
-            shell = (
-                "set -o pipefail; "
-                f"opencode run --model={model_arg} --format=json --thinking --auto "
-                '-- "$(cat /run/cae/instruction.txt)" '
-                "2>&1 </dev/null | stdbuf -oL tee /logs/agent/opencode.jsonl; "
-                "agent_status=${PIPESTATUS[0]}; "
-                "base=$(git rev-list --max-parents=0 HEAD); "
-                "git add --all; "
-                'git diff --cached --binary --full-index "$base" -- > /logs/agent/model.patch; '
-                "exit $agent_status"
-            )
+            shell = self.agent_shell(model_arg)
             command = [
                 "podman",
                 "run",

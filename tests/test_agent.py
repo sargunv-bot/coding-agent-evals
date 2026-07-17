@@ -41,6 +41,13 @@ class AgentRunnerGateTests(unittest.TestCase):
         self.assertEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "baseline"))
         self.assertNotEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "ask_user"))
 
+    def test_patch_capture_uses_pre_agent_head_even_with_multiple_root_commits(self) -> None:
+        shell = AgentRunner.agent_shell("cae/model")
+        self.assertLess(shell.index("base=$(git rev-parse HEAD)"), shell.index("opencode run"))
+        self.assertIn('git diff --cached --binary --full-index "$base"', shell)
+        self.assertNotIn("rev-list --max-parents=0", shell)
+        self.assertIn("|| exit 125", shell)
+
     def test_completion_status_preserves_nonzero_exit_discrepancy_signal(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "events.jsonl"
