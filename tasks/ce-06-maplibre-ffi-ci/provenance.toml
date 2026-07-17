@@ -12,4 +12,4 @@ instruction_sha256 = "940433f6576a8283efc301efbe5ee04e98fbf1b0985b642d568963f3e1
 containerfile_sha256 = "031f9c850e91d69ee61e749a8fb98a39797d1c6fa94c81c9706322a64734323b"
 
 [mutants]
-"ignore-unknown-manifest-fields.patch" = "5119ef54ecfbf9a0a7e777d8dd27ffbc9049b8d11493be4e399325643dbe2cf8"
+"ignore-unknown-manifest-fields.patch" = "60199d7de0f5830320d52002e37bbd4fa50d9c66bc32966521b0853a01a87377"
