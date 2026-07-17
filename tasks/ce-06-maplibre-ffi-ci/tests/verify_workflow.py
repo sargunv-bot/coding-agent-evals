@@ -75,7 +75,8 @@ def find_generator(root: pathlib.Path) -> pathlib.Path:
                 text = path.read_text()
             except UnicodeDecodeError:
                 continue
-            if ".github" in text and "ci.yml" in text and "toml" in text.lower():
+            lowered = text.lower()
+            if ".github" in text and "ci.yml" in text and "manifest" in lowered:
                 candidates.append(path)
     if len(candidates) != 1:
         raise AssertionError(f"expected one discoverable workflow generator, got {candidates}")
@@ -87,7 +88,11 @@ def generator_commands(generator: pathlib.Path) -> tuple[list[str], list[str]]:
     base = [sys.executable, str(generator)]
     if 'add_parser("generate"' in text and 'add_parser("check"' in text:
         return base + ["generate"], base + ["check"]
-    return base, base + ["--check"]
+    if "--check" in text:
+        return base, base + ["--check"]
+    if "--validate" in text:
+        return base, base + ["--validate"]
+    raise AssertionError("generator has no discoverable non-mutating drift-check mode")
 
 
 def run(command: list[str], *, cwd: pathlib.Path, expect_success: bool) -> subprocess.CompletedProcess[str]:
@@ -148,20 +153,55 @@ def workflow_policy(document: dict[str, object]) -> dict[str, tuple[str, set[str
             policy[variant] = (runner, commands)
         return policy
 
-    policy = {}
-    for variant in VARIANTS:
-        job = jobs.get(f"variant-{variant}")
-        assert isinstance(job, dict), f"missing generated job for {variant}"
-        runner = job["runs-on"]
-        assert isinstance(runner, str)
+    if all(f"variant-{variant}" in jobs for variant in VARIANTS):
+        policy = {}
+        for variant in VARIANTS:
+            job = jobs[f"variant-{variant}"]
+            assert isinstance(job, dict)
+            runner = job["runs-on"]
+            assert isinstance(runner, str)
+            commands = {
+                command
+                for step in job["steps"]
+                if isinstance(step, dict)
+                if isinstance(command := step.get("run"), str)
+            }
+            policy[variant] = (runner, commands)
+        return policy
+
+    # A generator may organize equivalent policy by feature rather than by
+    # target. Aggregate every matrix row back into its target's command set.
+    aggregate: dict[str, tuple[str, set[str]]] = {}
+    for job in jobs.values():
+        if not isinstance(job, dict):
+            continue
+        strategy = job.get("strategy")
+        if not isinstance(strategy, dict):
+            continue
+        matrix = strategy.get("matrix")
+        if not isinstance(matrix, dict):
+            continue
+        rows = matrix.get("include")
+        if not isinstance(rows, list):
+            continue
         commands = {
             command
-            for step in job["steps"]
+            for step in job.get("steps", [])
             if isinstance(step, dict)
             if isinstance(command := step.get("run"), str)
         }
-        policy[variant] = (runner, commands)
-    return policy
+        for row in rows:
+            assert isinstance(row, dict)
+            variant = row.get("mise_env")
+            runner = row.get("runner")
+            assert isinstance(variant, str) and isinstance(runner, str)
+            if variant in aggregate:
+                previous_runner, previous_commands = aggregate[variant]
+                assert previous_runner == runner, (variant, previous_runner, runner)
+                previous_commands.update(commands)
+            else:
+                aggregate[variant] = (runner, set(commands))
+    return aggregate
 
 
 def validate_workflow(root: pathlib.Path) -> None:
