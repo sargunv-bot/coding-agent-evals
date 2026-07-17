@@ -411,6 +411,12 @@
       "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
       "task_image_id": "8d427090549e41afdbc1fb6765a60d99607d8c1d43a477722675858f73671f01"
     },
+    "ce-02-horologia-overdue": {
+      "agent_image": "localhost/coding-agent-evals/ce-02-horologia-overdue-opencode:dev",
+      "agent_image_id": "65e79eb0c2aecdb73a568c8dd2f46ffdf4fad53846dc69aecbd742c585f06d58",
+      "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
+      "task_image_id": "cbbf7bc46769d6295060e52b376c1d6ff0e82be9571b700cbf9060148d554217"
+    },
     "ce-05-mise-slsa-archive": {
       "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
       "agent_image_id": "793a7ea5e30b18e51c6207d0758364b9675ab7012ad54f2944796a3ee42c7d7b",
