@@ -19,7 +19,7 @@ class ResultErrorHandlingTest {
   @Test
   fun invalidWaitTimesArgumentsReturnFailureWithoutNetwork() = runTest {
     val client = GofsV1Client(MockEngine { error("unexpected network call") })
-    context(Service()) {
+    context(Service(FeedType.WaitTimes to "https://example.com/wait-times.json")) {
       val result = client.getWaitTimes(
         pickupLat = 41.8781,
         pickupLon = -87.6298,
@@ -33,7 +33,9 @@ class ResultErrorHandlingTest {
   @Test
   fun invalidRealtimeBookingsArgumentsReturnFailureWithoutNetwork() = runTest {
     val client = GofsV1Client(MockEngine { error("unexpected network call") })
-    context(Service()) {
+    context(
+      Service(FeedType.RealtimeBookings to "https://example.com/realtime-bookings.json")
+    ) {
       val result = client.getRealtimeBookings(
         pickupLat = 41.8781,
         pickupLon = -87.6298,
