@@ -1,0 +1,1 @@
+alternative archive verifier rejected: archive extraction errors are downgraded to NoAttestations
