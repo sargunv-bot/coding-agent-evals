@@ -1,5 +1,5 @@
 diff --git a/functions/antidote-script b/functions/antidote-script
-index d9e0cb4..2efa984 100644
+index d9e0cb4..fd09f47 100644
 --- a/functions/antidote-script
 +++ b/functions/antidote-script
 @@ -87,7 +87,7 @@
@@ -7,7 +7,7 @@ index d9e0cb4..2efa984 100644
      local giturl=$(__antidote_tourl $bundle)
      print -ru2 "# antidote cloning $bundle_name..."
 -    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
-+    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >&2
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >/dev/null 2>&1
      [[ $? -eq 0 ]] || return 1
    fi
  
