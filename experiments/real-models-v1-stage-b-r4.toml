@@ -1,0 +1,62 @@
+[experiment]
+id = "real-models-v1-stage-b-r4"
+description = "Fresh five-model breadth pass after semantic CE-04 verification and robust candidate patch capture"
+stage = "breadth"
+repeats = 1
+concurrency = 1
+infrastructure_retries = 1
+proctor_model = "openai/gpt-5.6-sol"
+
+[[models]]
+provider = "zai"
+model = "glm-5.2"
+
+[[models]]
+provider = "neuralwatt"
+model = "qwen3.6-35b"
+
+[[models]]
+provider = "opencode-go"
+model = "kimi-k2.7-code"
+
+[[models]]
+provider = "opencode-go"
+model = "mimo-v2.5-pro"
+
+[[models]]
+provider = "opencode-go"
+model = "deepseek-v4-pro"
+
+[[cells]]
+task = "ce-01-antidote-output"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-02-horologia-overdue"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-03-jvl-completions"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-04-maplibre-source-location"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-05-mise-slsa-archive"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-06-maplibre-ffi-ci"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-07-mobility-result"
+scenario = "validation-fail-fast"
+mode = "ask_user"
+
+[[cells]]
+task = "ce-07-mobility-result"
+scenario = "all-errors-as-result"
+mode = "ask_user"
