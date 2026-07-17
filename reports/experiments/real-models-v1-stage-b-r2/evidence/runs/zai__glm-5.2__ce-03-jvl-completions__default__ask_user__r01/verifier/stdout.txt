@@ -1,0 +1,40 @@
+   Compiling jvl v0.0.0-dev (/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.33s
+     Running tests/composition_hidden.rs (target/debug/deps/composition_hidden-8b64fcf5741728be)
+
+running 6 tests
+test hidden_composed_values_are_deduplicated_deterministically ... ok
+test hidden_array_type_contributes_each_value_kind ... ok
+test hidden_allof_merges_object_properties ... ok
+test hidden_nested_anyof_and_null ... ok
+test hidden_oneof_merges_object_properties ... ok
+test hidden_ref_inside_allof_is_resolved ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/lsp_completion.rs (target/debug/deps/lsp_completion-b04ddfb15a6cd723)
+
+running 20 tests
+test completion_composed_schema_hover_preserved ... ok
+test completion_anyof_enum_values ... ok
+test completion_boolean_values ... ok
+test completion_allof_ref_merges_properties ... ok
+test completion_enum_values ... ok
+test completion_filters_existing_properties ... ok
+test completion_includes_documentation ... ok
+test completion_malformed_document_uses_stale_cache ... ok
+test completion_no_schema_returns_null ... ok
+test completion_nested_object_properties ... ok
+test completion_nested_nullable_value ... ok
+test completion_nullable_boolean_values ... ok
+test completion_nullable_string_value_is_null_only ... ok
+test completion_nullable_property_detail ... ok
+test completion_nullable_property_snippet_uses_concrete_type ... ok
+test completion_oneof_const_dedup_values ... ok
+test completion_ref_resolved_properties ... ok
+test completion_required_properties_sort_first ... ok
+test completion_property_names_in_empty_object ... ok
+test completion_text_edit_covers_auto_paired_quotes ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.13s
+
