@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "0d50bf3ddca6e0d2008fbb6ca72a7a74db12f008",
+  "benchmark_commit": "06fc5895c4177374d7abffe46e03fffc8b033ae8",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -402,26 +402,14 @@
       "task_id": "ce-07-mobility-result"
     }
   ],
-  "created_at": "2026-07-17T15:56:05.635134+00:00",
+  "created_at": "2026-07-17T17:17:40.171494+00:00",
   "experiment_id": "real-models-v1-stage-b-r4",
   "images": {
-    "ce-01-antidote-output": {
-      "agent_image": "localhost/coding-agent-evals/ce-01-antidote-output-opencode:dev",
-      "agent_image_id": "49b99ac2b144c6a04b8127b6876d913d30b22c63da6f8e73bef7180b15f07332",
-      "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
-      "task_image_id": "1f172f566c2d51ae8feca1b712ff6ec66f31f4cbee438d985efd005cdde5b7e6"
-    },
-    "ce-02-horologia-overdue": {
-      "agent_image": "localhost/coding-agent-evals/ce-02-horologia-overdue-opencode:dev",
-      "agent_image_id": "130f943100fd7645e6d5f7528b66f77d1f207daaf7003b391b4e43de8cb9fc4a",
-      "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
-      "task_image_id": "7e3b9619a1afa94200fe524d8ee9b335a5dd76a0886c28e9ed0b74f7adcde8be"
-    },
-    "ce-03-jvl-completions": {
-      "agent_image": "localhost/coding-agent-evals/ce-03-jvl-completions-opencode:dev",
-      "agent_image_id": "365e9cc4a3b78c0cfaf1316726e7c6e6c3a3c4648213f26778c3f018927b4431",
-      "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
-      "task_image_id": "b6ba6c2e9dea9bf3f1ed2fe86f81d08f98e0a2824c1aa519c86eeefe08252cee"
+    "ce-04-maplibre-source-location": {
+      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
+      "agent_image_id": "91c1d39741bcca7e1ef8120f03d0fe99d863c10374373adf3af0479055b7a225",
+      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
+      "task_image_id": "5a60abb8b8fce769a8f84846aab240911b8499861652a3bdd7a9c4ee6f3ffe98"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",

@@ -15,6 +15,11 @@
       "artifacts": 7,
       "cell_id": "zai__glm-5.2__ce-03-jvl-completions__default__ask_user__r01",
       "run_id": "20260717T163045Z-ce-03-jvl-completions-1523565-1784305845185403744"
+    },
+    {
+      "artifacts": 7,
+      "cell_id": "zai__glm-5.2__ce-04-maplibre-source-location__default__ask_user__r01",
+      "run_id": "20260717T165317Z-ce-04-maplibre-source-location-1623962-1784307197423393593"
     }
   ],
   "schema_version": 1
