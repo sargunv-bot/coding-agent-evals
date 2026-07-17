@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -40,6 +42,49 @@ class AgentRunnerGateTests(unittest.TestCase):
         baseline = AgentRunner.opencode_config_sha256(self.route, "baseline")
         self.assertEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "baseline"))
         self.assertNotEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "ask_user"))
+
+    def test_patch_capture_includes_changes_committed_by_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = root / "repo"
+            bin_dir = root / "bin"
+            logs = root / "logs"
+            repo.mkdir()
+            bin_dir.mkdir()
+            logs.mkdir()
+            instruction = root / "instruction.txt"
+            instruction.write_text("Commit the change.\n")
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            (repo / "tracked.txt").write_text("before\n")
+            subprocess.run(["git", "add", "tracked.txt"], cwd=repo, check=True)
+            git_env = os.environ | {
+                "GIT_AUTHOR_NAME": "Test",
+                "GIT_AUTHOR_EMAIL": "test@example.invalid",
+                "GIT_COMMITTER_NAME": "Test",
+                "GIT_COMMITTER_EMAIL": "test@example.invalid",
+            }
+            subprocess.run(["git", "commit", "-q", "-m", "base"], cwd=repo, env=git_env, check=True)
+            opencode = bin_dir / "opencode"
+            opencode.write_text(
+                "#!/bin/bash\n"
+                "printf 'after\\n' > tracked.txt\n"
+                "git add tracked.txt\n"
+                "git commit -q -m candidate\n"
+                "printf '{\"type\":\"step_finish\",\"part\":{\"reason\":\"stop\"}}\\n'\n"
+            )
+            opencode.chmod(0o755)
+            shell = AgentRunner._agent_shell(
+                "cae/test", instruction_path=str(instruction), log_dir=str(logs)
+            )
+            subprocess.run(
+                ["bash", "-c", shell],
+                cwd=repo,
+                env=git_env | {"PATH": f"{bin_dir}:{os.environ['PATH']}"},
+                check=True,
+            )
+            patch = (logs / "model.patch").read_text()
+            self.assertIn("-before", patch)
+            self.assertIn("+after", patch)
 
     def test_completion_status_preserves_nonzero_exit_discrepancy_signal(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
