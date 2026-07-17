@@ -431,9 +431,9 @@
     },
     "ce-05-mise-slsa-archive": {
       "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
-      "agent_image_id": "793a7ea5e30b18e51c6207d0758364b9675ab7012ad54f2944796a3ee42c7d7b",
+      "agent_image_id": "9b836d7085f2dd94f486f80f8de5562d09e9daf2680e753dd211b4989f84eab4",
       "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
-      "task_image_id": "a77371154cc1fd7e388e348ddbff12e60f08e96d230a101ab9e3f0e55136e904"
+      "task_image_id": "d970c33d122cb772380ee4e259ace51f129fc88bae7eb03ddd81fc78a6029516"
     },
     "ce-06-maplibre-ffi-ci": {
       "agent_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci-opencode:dev",
