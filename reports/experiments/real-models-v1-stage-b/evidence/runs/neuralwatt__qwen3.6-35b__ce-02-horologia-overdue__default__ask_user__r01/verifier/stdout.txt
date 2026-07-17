@@ -1,8 +1,0 @@
---- FAIL: TestHiddenOverdueActionBehaviorMatrix (0.00s)
-    --- FAIL: TestHiddenOverdueActionBehaviorMatrix/advance_one_off_rejected (0.00s)
-        overdue_action_hidden_test.go:51: expected error containing "only valid on recurring", got advance_recurrence overdue action is not valid on one_off tasks; only set_status and clear_due_date are supported
-    --- FAIL: TestHiddenOverdueActionBehaviorMatrix/advance_dependency_rejected (0.00s)
-        overdue_action_hidden_test.go:51: expected error containing "only valid on recurring", got advance_recurrence overdue action is not valid on on_dependency tasks; only set_status and clear_due_date are supported
-FAIL
-FAIL	github.com/sargunv/tend/server/internal/taskengine	0.003s
-FAIL
