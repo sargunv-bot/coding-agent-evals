@@ -9,7 +9,7 @@ import { reviewState } from '../src/lib/review';
 import { containedFile, safeRelativePath, validateHttpUrl } from '../src/lib/safety';
 import { parseTranscript } from '../src/lib/transcript';
 import { groupTranscriptSteps, summarizeTranscript, TranscriptViewer } from '../src/components/TranscriptViewer';
-import { patchFileSummary, splitPatchByFile } from '../src/components/PatchViewer';
+import { PatchViewer, patchFileSummary, splitPatchByFile } from '../src/components/PatchViewer';
 import { extractObservedChecks } from '../src/lib/observed';
 
 async function fixture() {
@@ -94,5 +94,12 @@ describe('diff rendering', () => {
     expect(files[0]).not.toContain('a/two');
     expect(files[1]).toContain('a/two');
     expect(patchFileSummary(files[0])).toMatchObject({ name: 'one', additions: 1, deletions: 1 });
+  });
+  it('renders every file expanded without duplicating an outer path disclosure', () => {
+    const patch = 'diff --git a/one b/one\n--- a/one\n+++ b/one\n@@ -1 +1 @@\n-a\n+b\n';
+    const html = renderToStaticMarkup(<PatchViewer patch={patch}/>);
+    expect(html).not.toContain('<details');
+    expect(html).not.toContain('expand a file');
+    expect(html).toContain('diff-viewport');
   });
 });

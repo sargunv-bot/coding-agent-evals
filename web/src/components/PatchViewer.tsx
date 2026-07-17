@@ -25,14 +25,13 @@ export function patchFileSummary(filePatch: string) {
 export function PatchViewer({ patch, rawUrl }: Props) {
   const files = splitPatchByFile(patch).map((filePatch) => ({ patch: filePatch, ...patchFileSummary(filePatch) }));
   return <section className="diff-shell" aria-labelledby="candidate-patch-heading">
-    <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 id="candidate-patch-heading" className="text-xl font-bold">Candidate patch</h2><p className="text-sm opacity-70">{files.length} changed {files.length === 1 ? 'file' : 'files'} · expand a file to review it</p></div>{rawUrl && <a className="btn btn-sm btn-outline" href={rawUrl} download>Download raw patch</a>}</div>
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h2 id="candidate-patch-heading" className="text-xl font-bold">Candidate patch</h2><p className="text-sm opacity-70">{files.length} changed {files.length === 1 ? 'file' : 'files'}</p></div>{rawUrl && <a className="btn btn-sm btn-outline" href={rawUrl} download>Download raw patch</a>}</div>
 
     <p className="sr-only">Diff follows. Added and removed lines are distinguished by symbols, line numbers, and color.</p>
     {files.length > 0 ? <div className="mt-4 space-y-3">{files.map((file, index) =>
-      <details className="evidence-file" key={file.name + index} open={files.length === 1 && patch.length < 8_000}>
-        <summary><span className="file-name">{file.name}</span><span className="diff-counts"><span className="text-success">+{file.additions}</span> <span className="text-error">−{file.deletions}</span></span></summary>
+      <div className="evidence-file expanded" key={file.name + index}>
         <div className="diff-viewport"><PatchDiff patch={file.patch} disableWorkerPool /></div>
-      </details>)}
+      </div>)}
     </div> : <p className="alert mt-4">The candidate produced an empty patch.</p>}
   </section>;
 }
