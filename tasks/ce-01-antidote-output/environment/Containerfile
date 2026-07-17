@@ -2,8 +2,14 @@ FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c0
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git zsh gawk python3 \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends ca-certificates clitest git gawk make man-db python3 ripgrep ruby zsh \
+    && rm /usr/bin/man \
+    && dpkg-divert --rename --remove /usr/bin/man \
+    && rm -rf /var/lib/apt/lists/* \
+    && gem install asciidoctor --version 2.0.26 --no-document \
+    && asciidoctor --version | grep -F 'Asciidoctor 2.0.26'
+
+ENV SOURCE_DATE_EPOCH=1769431828
 
 RUN useradd --create-home --shell /bin/zsh agent
 RUN git init --quiet /app \
@@ -18,6 +24,29 @@ RUN git init --quiet /app \
     && git -C /app commit --quiet -m 'benchmark base' \
     && chown -R agent:agent /app
 
-WORKDIR /app
+RUN mkdir -p /opt/github-mirror \
+    && { \
+         awk '!/^#/ && NF && $1 !~ /^\$/ { print $1 }' \
+           /app/tests/testdata/real/.zsh_plugins.txt \
+           /app/tests/testdata/real/.zsh_plugins.crlf.txt; \
+         echo romkatv/zsh-defer; \
+       } \
+       | tr -d '\r' \
+       | sed -e 's#^https://github.com/##' -e 's#\.git$##' \
+       | sort -u \
+       | while read -r repository; do \
+           mkdir -p "/opt/github-mirror/$(dirname "$repository")"; \
+           git clone --quiet --mirror "https://github.com/${repository}.git" "/opt/github-mirror/${repository}.git"; \
+         done \
+    && chown -R agent:agent /opt/github-mirror \
+    && git config --system url."file:///opt/github-mirror/".insteadOf https://github.com/
+
 USER agent
 ENV HOME=/home/agent
+WORKDIR /app
+RUN make buildman \
+    && git -C /app diff --exit-code \
+    && test_root="$(mktemp -d)" \
+    && cp -a /app/. "$test_root/" \
+    && (cd "$test_root" && make test && make unittest) \
+    && rm -rf "$test_root"

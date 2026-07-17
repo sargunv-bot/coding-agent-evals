@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -euo pipefail
+command -v rg >/dev/null
+
+cd /app/server
+test -z "$(gofmt -l internal/taskengine)"
+go vet ./...
+go test ./...
+go build ./cmd/server
+
+cd /app/api
+go vet ./...
+go test ./...
+go build ./...
+
+cd /app/cli
+go vet ./...
+dbus-run-session -- bash -c 'eval "$(printf benchmark-keyring | gnome-keyring-daemon --unlock --components=secrets)"; go test ./...'
+go build -o /tmp/tend .

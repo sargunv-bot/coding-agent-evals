@@ -1,5 +1,8 @@
 FROM docker.io/library/golang@sha256:09fb8a652cf7a990b714c46a9f0f5fd2d5bc2222d995166b91907c1c05b7d0e8
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends dbus-x11 gnome-keyring ripgrep \
+    && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --shell /bin/bash agent
 RUN git init --quiet /app \
     && git -C /app remote add origin https://github.com/sargunv/horologia.git \
@@ -15,8 +18,19 @@ RUN git init --quiet /app \
 WORKDIR /app/server
 RUN go mod download \
     && go test ./internal/taskengine -run '^TestValidateOverdueActionRule$' -count=1 \
+    && cd /app/api \
+    && go mod download \
+    && cd /app/cli \
+    && go mod download \
     && chown -R agent:agent /app /go
 
-WORKDIR /app
+ENV HOME=/home/agent
 USER agent
-ENV HOME=/home/agent GOTOOLCHAIN=local GOPROXY=off
+RUN cd /app/server \
+    && go test ./... \
+    && cd /app/api \
+    && go test ./... \
+    && dbus-run-session -- bash -c 'eval "$(printf benchmark-keyring | gnome-keyring-daemon --unlock --components=secrets)"; cd /app/cli; go test ./...'
+
+WORKDIR /app
+ENV GOTOOLCHAIN=local GOPROXY=off

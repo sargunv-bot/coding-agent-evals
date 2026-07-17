@@ -1,5 +1,9 @@
 FROM docker.io/library/rust@sha256:7274e0edb5b47eda8053b350ebf3d489f7e0f65d2d7e77b16076299c7c047c28
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ripgrep \
+    && rm -rf /var/lib/apt/lists/* \
+    && rustup component add clippy rustfmt
 RUN useradd --create-home --shell /bin/bash agent
 RUN git init --quiet /app \
     && git -C /app remote add origin https://github.com/sargunv/jvl.git \
@@ -14,7 +18,10 @@ RUN git init --quiet /app \
 
 WORKDIR /app
 RUN cargo fetch --locked \
-    && cargo test --locked --test lsp_completion --no-run \
+    && cargo fmt --check \
+    && cargo clippy --locked --all-targets -- -D warnings \
+    && cargo build --locked \
+    && cargo test --no-run --locked \
     && chown -R agent:agent /app /usr/local/cargo
 
 USER agent

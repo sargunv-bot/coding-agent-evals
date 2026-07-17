@@ -1,34 +1,30 @@
 FROM docker.io/library/eclipse-temurin@sha256:03d8df1b21de34fd980bd121631ca969b30ba65978d5f47f3797d6da8a3fd9fd
 
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git \
+    && apt-get install -y --no-install-recommends ca-certificates git git-lfs libatomic1 ripgrep \
+    && git lfs install --system \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --shell /bin/bash agent
 RUN git init --quiet /app \
     && git -C /app remote add origin https://github.com/sargunv/mobility-data-kt.git \
-    && git -C /app fetch --quiet --depth=1 --filter=blob:none origin 541fc977a939501693a195057d0d1ce39188b522 \
-    && git -C /app checkout --quiet --detach FETCH_HEAD \
+    && git -C /app fetch --quiet --depth=4 --filter=blob:none origin refs/pull/53/head \
+    && git -C /app checkout --quiet --detach 541fc977a939501693a195057d0d1ce39188b522 \
+    && git -C /app lfs pull \
+    && git -C /app lfs fsck \
     && git -C /app remote remove origin \
     && git -C /app config user.name benchmark-base \
     && git -C /app config user.email benchmark@invalid \
-    && git -C /app reflog expire --expire=now --all \
-    && git -C /app gc --prune=now
+    && mkdir -p /opt/gradle-cache /opt/konan-cache \
+    && chown -R agent:agent /app /opt/gradle-cache /opt/konan-cache
 
-ENV GRADLE_USER_HOME=/opt/gradle-cache
 WORKDIR /app
-RUN ./gradlew --no-daemon \
-      :gbfs-v1:jvmTest --tests '*VersionManifestTest*' \
-      :gbfs-v2:jvmTest --tests '*VersionManifestTest*' \
-      :gbfs-v3:jvmTest --tests '*VersionManifestTest*' \
-      :gofs-v1:jvmTest --tests '*VersionManifestTest*' \
-    && ./gradlew --no-daemon \
-      :gbfs-v1:checkKotlinAbi :gbfs-v1:checkLegacyAbi \
-      :gbfs-v2:checkKotlinAbi :gbfs-v2:checkLegacyAbi \
-      :gbfs-v3:checkKotlinAbi :gbfs-v3:checkLegacyAbi \
-      :gofs-v1:checkKotlinAbi :gofs-v1:checkLegacyAbi \
-      :gbfs-v1:compileTestKotlinJvm :gbfs-v2:compileTestKotlinJvm \
-      :gbfs-v3:compileTestKotlinJvm :gofs-v1:compileTestKotlinJvm \
-    && chown -R agent:agent /app /opt/gradle-cache
-
+ENV HOME=/home/agent GRADLE_USER_HOME=/opt/gradle-cache KONAN_DATA_DIR=/opt/konan-cache
 USER agent
-ENV HOME=/home/agent
+RUN ./gradlew --no-daemon --stacktrace updateKotlinAbi updateLegacyAbi \
+    && git diff --exit-code \
+    && ./gradlew --no-daemon --stacktrace \
+        jvmTest jsNodeTest wasmJsNodeTest linuxX64Test detekt checkKotlinAbi checkLegacyAbi \
+    && test -z "$(git status --porcelain)"
+
+ENV GRADLE_OPTS=-Dorg.gradle.daemon=false
