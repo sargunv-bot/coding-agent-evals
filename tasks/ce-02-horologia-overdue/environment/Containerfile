@@ -17,6 +17,9 @@ RUN git init --quiet /app \
 
 WORKDIR /app/server
 RUN go mod download \
+    && GOBIN=/usr/local/bin go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0 \
+    && go run github.com/sqlc-dev/sqlc/cmd/sqlc generate \
+    && git -C /app diff --exit-code -- server/internal/database/gen \
     && go test ./internal/taskengine -run '^TestValidateOverdueActionRule$' -count=1 \
     && cd /app/api \
     && go mod download \
@@ -27,6 +30,8 @@ RUN go mod download \
 ENV HOME=/home/agent
 USER agent
 RUN cd /app/server \
+    && go run github.com/sqlc-dev/sqlc/cmd/sqlc generate \
+    && git -C /app diff --exit-code -- server/internal/database/gen \
     && go test ./... \
     && cd /app/api \
     && go test ./... \
