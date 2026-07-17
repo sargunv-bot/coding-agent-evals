@@ -8,25 +8,52 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import tomllib
 
 import yaml
 
 
-def run(generator: pathlib.Path, *args: str, cwd: pathlib.Path, expect: int = 0) -> subprocess.CompletedProcess[str]:
-    result = subprocess.run(
-        [sys.executable, str(generator), *args],
-        cwd=cwd,
-        text=True,
-        capture_output=True,
-        env=os.environ | {"PYTHONDONTWRITEBYTECODE": "1"},
-    )
-    if (result.returncode == 0) != (expect == 0):
-        raise AssertionError(
-            f"generator {' '.join(args)} returned {result.returncode}; "
-            f"stdout={result.stdout!r} stderr={result.stderr!r}"
-        )
-    return result
+VARIANTS = {
+    "linux-arm64-egl": "ubuntu-24.04-arm",
+    "linux-arm64-vulkan": "ubuntu-24.04-arm",
+    "linux-x64-egl": "ubuntu-latest",
+    "linux-x64-vulkan": "ubuntu-latest",
+    "macos-arm64-metal": "macos-latest",
+    "macos-arm64-vulkan": "macos-latest",
+    "macos-arm64-egl": "macos-latest",
+    "ios-arm64-metal": "macos-latest",
+    "ios-simulator-arm64-metal": "macos-latest",
+    "windows-x64-vulkan": "windows-2022",
+    "windows-x64-wgl": "windows-2022",
+}
+
+
+def expected_commands(variant: str) -> set[str]:
+    ios = variant.startswith("ios-")
+    macos_egl = variant == "macos-arm64-egl"
+    commands = {"mise run configure", "mise run build" if ios else "mise run test"}
+    if not ios and not macos_egl:
+        commands |= {
+            "mise run //bindings/java-ffm:build",
+            "mise run //bindings/java-jni:build",
+            "mise run //bindings/dotnet:test",
+            "mise run //bindings/rust:ci",
+            "mise run //examples/rust-map:ci",
+            "mise run //examples/zig-map:build",
+        }
+    if not ios:
+        commands |= {
+            "mise run //bindings/zig:ci",
+            "mise run //examples/zig-readback:run",
+        }
+    if variant in {"linux-x64-egl", "linux-x64-vulkan", "macos-arm64-metal", "macos-arm64-vulkan"}:
+        commands.add("mise run //bindings/kotlin-native:build")
+    if variant in {"macos-arm64-metal", "macos-arm64-vulkan"}:
+        commands.add("mise run //bindings/swift:test")
+    if "vulkan" in variant:
+        commands.add("mise run //examples/lwjgl-map:build")
+    if variant == "macos-arm64-metal":
+        commands.add("mise run //examples/swift-map:build")
+    return commands
 
 
 def digest(path: pathlib.Path) -> str:
@@ -37,24 +64,112 @@ def find_generator(root: pathlib.Path) -> pathlib.Path:
     preferred = root / ".mise/tasks/ci/generate-workflow"
     if preferred.is_file():
         return preferred
-    candidates = [
-        path
-        for base in (root / ".mise/tasks", root / "scripts", root / "ci")
-        if base.is_dir()
-        for path in base.rglob("*")
-        if path.is_file() and "workflow" in path.name.lower()
-    ]
+    candidates = []
+    for base in (root / ".mise/tasks", root / "scripts", root / "ci"):
+        if not base.is_dir():
+            continue
+        for path in base.rglob("*"):
+            if not path.is_file() or path.name.startswith("test_"):
+                continue
+            try:
+                text = path.read_text()
+            except UnicodeDecodeError:
+                continue
+            if ".github" in text and "ci.yml" in text and "toml" in text.lower():
+                candidates.append(path)
     if len(candidates) != 1:
         raise AssertionError(f"expected one discoverable workflow generator, got {candidates}")
     return candidates[0]
 
 
+def generator_commands(generator: pathlib.Path) -> tuple[list[str], list[str]]:
+    text = generator.read_text()
+    base = [sys.executable, str(generator)]
+    if 'add_parser("generate"' in text and 'add_parser("check"' in text:
+        return base + ["generate"], base + ["check"]
+    return base, base + ["--check"]
+
+
+def run(command: list[str], *, cwd: pathlib.Path, expect_success: bool) -> subprocess.CompletedProcess[str]:
+    result = subprocess.run(
+        command,
+        cwd=cwd,
+        text=True,
+        capture_output=True,
+        env=os.environ | {"PYTHONDONTWRITEBYTECODE": "1"},
+    )
+    if (result.returncode == 0) != expect_success:
+        raise AssertionError(
+            f"generator {command[2:]} returned {result.returncode}; "
+            f"stdout={result.stdout!r} stderr={result.stderr!r}"
+        )
+    return result
+
+
+def enabled(step: dict[str, object], matrix: dict[str, object]) -> bool:
+    condition = step.get("if")
+    if condition is None:
+        return True
+    if not isinstance(condition, str):
+        raise AssertionError(f"unsupported step condition: {condition!r}")
+    prefix = "${{ matrix."
+    if condition.startswith(prefix) and condition.endswith(" }}"):
+        key = condition[len(prefix) : -3].strip()
+        value = matrix.get(key)
+        assert isinstance(value, bool), (key, value)
+        return value
+    raise AssertionError(f"generated variant step retains procedural condition: {condition}")
+
+
+def workflow_policy(document: dict[str, object]) -> dict[str, tuple[str, set[str]]]:
+    jobs = document["jobs"]
+    assert isinstance(jobs, dict)
+    if "variants" in jobs:
+        job = jobs["variants"]
+        assert isinstance(job, dict)
+        strategy = job["strategy"]
+        assert isinstance(strategy, dict)
+        matrix = strategy["matrix"]
+        assert isinstance(matrix, dict)
+        rows = matrix["include"]
+        assert isinstance(rows, list)
+        policy = {}
+        for row in rows:
+            assert isinstance(row, dict)
+            variant = row["mise_env"]
+            runner = row["runner"]
+            assert isinstance(variant, str) and isinstance(runner, str)
+            commands = {
+                command
+                for step in job["steps"]
+                if isinstance(step, dict) and enabled(step, row)
+                if isinstance(command := step.get("run"), str)
+            }
+            policy[variant] = (runner, commands)
+        return policy
+
+    policy = {}
+    for variant in VARIANTS:
+        job = jobs.get(f"variant-{variant}")
+        assert isinstance(job, dict), f"missing generated job for {variant}"
+        runner = job["runs-on"]
+        assert isinstance(runner, str)
+        commands = {
+            command
+            for step in job["steps"]
+            if isinstance(step, dict)
+            if isinstance(command := step.get("run"), str)
+        }
+        policy[variant] = (runner, commands)
+    return policy
+
+
 def validate_workflow(root: pathlib.Path) -> None:
-    workflow = yaml.safe_load((root / ".github/workflows/ci.yml").read_text())
-    assert workflow["name"] == "CI"
-    assert workflow["permissions"] == {"contents": "read"}
-    assert "concurrency" in workflow
-    jobs = workflow["jobs"]
+    document = yaml.safe_load((root / ".github/workflows/ci.yml").read_text())
+    assert document["name"] == "CI"
+    assert document["permissions"] == {"contents": "read"}
+    assert "concurrency" in document
+    jobs = document["jobs"]
     required = jobs["required"]
     assert required["if"] == "${{ always() }}"
     assert set(required["needs"]) == set(jobs) - {"required"}
@@ -65,53 +180,46 @@ def validate_workflow(root: pathlib.Path) -> None:
             if action and action.startswith("actions/"):
                 version = action.rsplit("@", 1)[-1]
                 assert len(version) == 40 and all(char in "0123456789abcdef" for char in version), action
-    variants = tomllib.loads((root / "ci/variants.toml").read_text())["variants"]
-    assert {f"variant-{name}" for name in variants} <= set(jobs)
+
+    policy = workflow_policy(document)
+    assert set(policy) == set(VARIANTS), policy.keys()
+    for variant, runner in VARIANTS.items():
+        actual_runner, commands = policy[variant]
+        assert actual_runner == runner, (variant, actual_runner, runner)
+        assert commands == expected_commands(variant), (
+            variant,
+            sorted(commands - expected_commands(variant)),
+            sorted(expected_commands(variant) - commands),
+        )
 
 
 def main() -> None:
     source = pathlib.Path("/app")
-    generator = find_generator(source)
-    workflow = source / ".github/workflows/ci.yml"
-    before = digest(workflow)
-    run(generator, "--check", cwd=source)
-    assert digest(workflow) == before, "--check modified the checked-in workflow"
-    run(generator, cwd=source)
-    assert digest(workflow) == before, "checked-in workflow is not canonical"
-    run(generator, cwd=source)
-    assert digest(workflow) == before, "generation is nondeterministic"
-    validate_workflow(source)
-
     with tempfile.TemporaryDirectory() as directory:
         fixture = pathlib.Path(directory) / "repo"
         shutil.copytree(source, fixture, symlinks=True, ignore=shutil.ignore_patterns(".git"))
-        fixture_generator = fixture / generator.relative_to(source)
-        fixture_workflow = fixture / ".github/workflows/ci.yml"
-        original = digest(fixture_workflow)
-        extra = fixture / "ci/subprojects/hidden-probe.toml"
-        extra.write_text(
-            '[requires]\nos = ["linux"]\narch = ["x64"]\nbackend = ["vulkan"]\n\n'
-            '[ci]\nbuild = "//hidden/probe:build"\n'
-        )
-        run(fixture_generator, "--check", cwd=fixture, expect=1)
-        assert digest(fixture_workflow) == original, "failed --check mutated workflow"
-        run(fixture_generator, cwd=fixture)
-        changed = fixture_workflow.read_text()
-        assert "mise run //hidden/probe:build" in changed
-        parsed = yaml.safe_load(changed)
-        containing = [
-            job_id
-            for job_id, job in parsed["jobs"].items()
-            if any(step.get("run") == "mise run //hidden/probe:build" for step in job.get("steps", []))
-        ]
-        assert containing == ["variant-linux-x64-vulkan"], containing
-        stable = digest(fixture_workflow)
-        run(fixture_generator, cwd=fixture)
-        assert digest(fixture_workflow) == stable
+        generator = find_generator(fixture)
+        generate, check = generator_commands(generator)
+        workflow = fixture / ".github/workflows/ci.yml"
 
-        extra.write_text(extra.read_text() + 'unknown_field = "rejected"\n')
-        failure = run(fixture_generator, cwd=fixture, expect=1)
-        assert "unknown_field" in failure.stderr or "unknown_field" in failure.stdout
+        before = digest(workflow)
+        run(check, cwd=fixture, expect_success=True)
+        assert digest(workflow) == before, "check modified the checked-in workflow"
+        run(generate, cwd=fixture, expect_success=True)
+        assert digest(workflow) == before, "checked-in workflow is not canonical"
+        run(generate, cwd=fixture, expect_success=True)
+        assert digest(workflow) == before, "generation is nondeterministic"
+        validate_workflow(fixture)
+
+        text = workflow.read_text()
+        assert "mise run test" in text
+        workflow.write_text(text.replace("mise run test", "mise run test-drift", 1))
+        drifted = digest(workflow)
+        run(check, cwd=fixture, expect_success=False)
+        assert digest(workflow) == drifted, "failed check mutated the workflow"
+        run(generate, cwd=fixture, expect_success=True)
+        assert digest(workflow) == before, "generation did not repair workflow drift"
+        validate_workflow(fixture)
 
 
 if __name__ == "__main__":
