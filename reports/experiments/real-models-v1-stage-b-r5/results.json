@@ -1,0 +1,49 @@
+{
+  "experiment_id": "real-models-v1-stage-b-r5",
+  "manifest_sha256": "15c5647e04889bb9ac11de27ea84820bb7156affe335768bf153619a70c69efe",
+  "rows": [
+    {
+      "agent_completion_status": "completed",
+      "agent_exit_code": 0,
+      "agent_exit_discrepancy": false,
+      "answers": 0,
+      "attempts": 1,
+      "cached_input_tokens": 695040,
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-01-antidote-output__default__ask_user__r01",
+      "deterministic_pass": false,
+      "duration_seconds": 273.962281,
+      "estimated_cost": null,
+      "input_tokens": 171682,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "model_config_sha256": "8ac3ea805e0bbf8649f1a5b59f30060b9d909e2872b7fbd3579014d365bdceae",
+      "output_tokens": 7592,
+      "pricing_basis": "",
+      "pricing_currency": "",
+      "provider": "opencode-go",
+      "provider_reported_cost": 0.0,
+      "questions": 0,
+      "reasoning_tokens": 0,
+      "repeat": 1,
+      "run_id": "20260718T050903Z-ce-01-antidote-output-215989-1784351343009011295",
+      "scenario": "",
+      "state": "completed",
+      "task_id": "ce-01-antidote-output",
+      "verification_outcome": "failed"
+    }
+  ],
+  "schema_version": 1,
+  "totals": {
+    "cached_input_tokens": 695040,
+    "cells": 1,
+    "completed": 1,
+    "deterministic_passes": 0,
+    "estimated_cost": null,
+    "infrastructure_errors": 0,
+    "input_tokens": 171682,
+    "output_tokens": 7592,
+    "provider_reported_cost": 0.0,
+    "questions": 0,
+    "reasoning_tokens": 0
+  }
+}
