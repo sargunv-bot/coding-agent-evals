@@ -33,6 +33,11 @@
     },
     {
       "artifacts": 7,
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "run_id": "20260718T003639Z-ce-07-mobility-result-3291040-1784334999555903780"
+    },
+    {
+      "artifacts": 7,
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
       "run_id": "20260717T153919Z-ce-01-antidote-output-1273157-1784302759238741353"
     },
