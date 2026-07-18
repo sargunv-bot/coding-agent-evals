@@ -67,6 +67,21 @@ class ExperimentReportTest(unittest.TestCase):
                 ],
             }
             (results / f"{cell.cell_id}.json").write_text(json.dumps(record))
+            infrastructure_record = {
+                "cell": {**cell.__dict__, "cell_id": "infrastructure-cell"},
+                "state": "infrastructure_error",
+                "attempts": [
+                    {
+                        "attempt": 1,
+                        "kind": "infrastructure_error",
+                        "error_type": "RuntimeError",
+                        "error": "provider unavailable",
+                    }
+                ],
+            }
+            (results / "infrastructure-cell.json").write_text(
+                json.dumps(infrastructure_record)
+            )
             questions = root / ".runs" / "run-1" / "proctor" / "questions"
             questions.mkdir(parents=True)
             (questions / "q1.json").write_text("{}")
@@ -77,6 +92,11 @@ class ExperimentReportTest(unittest.TestCase):
             self.assertEqual(20, payload["totals"]["output_tokens"])
             self.assertEqual(1, payload["totals"]["questions"])
             self.assertEqual(1, payload["totals"]["deterministic_passes"])
+            self.assertEqual(1, payload["totals"]["infrastructure_errors"])
+            infrastructure_row = next(
+                row for row in payload["rows"] if row["cell_id"] == "infrastructure-cell"
+            )
+            self.assertIsNone(infrastructure_row["deterministic_pass"])
             self.assertEqual(0.000179, payload["totals"]["estimated_cost"])
             self.assertEqual("operator-test-rates", payload["rows"][0]["pricing_basis"])
             self.assertNotIn(b"\r\n", (output / "results.csv").read_bytes())
@@ -84,6 +104,10 @@ class ExperimentReportTest(unittest.TestCase):
             self.assertNotIn(directory, report)
             self.assertTrue((output / "results.csv").is_file())
             self.assertTrue((output / "summary.md").is_file())
+            self.assertIn(
+                "| chosen | model | task | — | ask_user | — |",
+                (output / "summary.md").read_text(),
+            )
 
 
 if __name__ == "__main__":
