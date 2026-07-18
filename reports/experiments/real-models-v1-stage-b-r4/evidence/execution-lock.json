@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "5493121063a977cd351e579c0a6c9c37d48ce5bf",
+  "benchmark_commit": "eff7859ff59ce22707b4be7721658497a4745a97",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -402,32 +402,14 @@
       "task_id": "ce-07-mobility-result"
     }
   ],
-  "created_at": "2026-07-18T01:07:22.491670+00:00",
+  "created_at": "2026-07-18T03:38:12.768863+00:00",
   "experiment_id": "real-models-v1-stage-b-r4",
   "images": {
-    "ce-01-antidote-output": {
-      "agent_image": "localhost/coding-agent-evals/ce-01-antidote-output-opencode:dev",
-      "agent_image_id": "c360f668a0097f549caae28b12a03d42d35cafa78ceb713242b63b0e3cf83d7e",
-      "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
-      "task_image_id": "8d427090549e41afdbc1fb6765a60d99607d8c1d43a477722675858f73671f01"
-    },
-    "ce-02-horologia-overdue": {
-      "agent_image": "localhost/coding-agent-evals/ce-02-horologia-overdue-opencode:dev",
-      "agent_image_id": "11f2bad5113354f4638ec8a8f6c3c54cfbf1a4be305caffe103c490aa80ec0c6",
-      "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
-      "task_image_id": "e15d194d768f89882add0346f79f0c81c0be4dbaeee231ca1ac5a4a15a698c9e"
-    },
-    "ce-03-jvl-completions": {
-      "agent_image": "localhost/coding-agent-evals/ce-03-jvl-completions-opencode:dev",
-      "agent_image_id": "b51ebd5272267759602df0bc1273ffe2ca38e23a01f883f2e15d9509d8fd4d73",
-      "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
-      "task_image_id": "c855ce35e304da57fc00e1a682f30718405a3ff9af6a31f708deef8b931d62cc"
-    },
-    "ce-07-mobility-result": {
-      "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
-      "agent_image_id": "1052b531fca33d1df0ec39ed980700f2f4a031e8d3d1f81021f9f545a757d3e8",
-      "task_image": "localhost/coding-agent-evals/ce-07-mobility-result:dev",
-      "task_image_id": "a3ea6ca3df371c312768e73286ab1fb7a88144adac5d5639f2d226aaac1a8a7a"
+    "ce-04-maplibre-source-location": {
+      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
+      "agent_image_id": "c6fa85bf3baa4c517ead039a2bbf5b21c37ba8fb220e25d00fcc7246511f0b7f",
+      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
+      "task_image_id": "35641ce29c64973f1415b2f6ae5e19e469254c25bcbab3cb21f8aa8c176e2ad9"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",
