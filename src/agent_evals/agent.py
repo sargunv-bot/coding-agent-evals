@@ -19,6 +19,7 @@ NODE_IMAGE = (
     "docker.io/library/node@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3"
 )
 OPENCODE_VERSION = "1.18.2"
+PROCTOR_TIMEOUT_MS = 30 * 60 * 1000
 LABEL = "io.sargunv.coding-agent-evals=true"
 
 
@@ -121,6 +122,7 @@ class AgentRunner:
                     "type": "local",
                     "command": ["/opt/cae/proctor-mcp"],
                     "enabled": True,
+                    "timeout": PROCTOR_TIMEOUT_MS,
                 }
             }
         return config
@@ -133,7 +135,6 @@ class AgentRunner:
     def opencode_config_sha256(cls, route: ProviderRoute, instruction_mode: str) -> str:
         config = cls.opencode_config_text(route, instruction_mode).encode()
         return hashlib.sha256(config).hexdigest()
-
 
     def build_tools(self) -> dict[str, str]:
         self.engine.ensure_space()
@@ -448,11 +449,24 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
             return "timeout"
         if not source.exists():
             return "incomplete"
-        for line in reversed(source.read_text(errors="replace").splitlines()):
+        events: list[dict] = []
+        for line in source.read_text(errors="replace").splitlines():
             try:
                 event = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            events.append(event)
+            part = event.get("part")
+            if event.get("type") != "tool_use" or not isinstance(part, dict):
+                continue
+            state = part.get("state")
+            if (
+                part.get("tool") == "proctor_ask_user"
+                and isinstance(state, dict)
+                and state.get("status") == "error"
+            ):
+                return "proctor_error"
+        for event in reversed(events):
             if event.get("type") == "error":
                 return "error"
             if event.get("type") == "step_finish":

@@ -92,6 +92,41 @@ class MatrixRunnerTest(unittest.TestCase):
         self.assertIn('"input_tokens": 10', record)
 
     @patch.dict("os.environ", {"CAE_ALLOW_CANDIDATE_RUN": "1"}, clear=False)
+    def test_incomplete_agent_turn_is_retried_and_quarantined_as_infrastructure(self) -> None:
+        cell = self.experiment.expand()[0]
+        result = AgentRunResult(
+            run_id="run-incomplete",
+            task_id=cell.task_id,
+            scenario=None,
+            provider=cell.provider,
+            model=cell.model,
+            endpoint_host="chosen.invalid",
+            instruction_mode=cell.mode,
+            started_at="2026-01-01T00:00:00+00:00",
+            finished_at="2026-01-01T00:00:01+00:00",
+            duration_seconds=1.0,
+            agent_exit_code=0,
+            agent_completion_status="incomplete",
+            agent_exit_discrepancy=True,
+            model_config_sha256="abc",
+            patch_path="patch",
+            trajectory_path="trajectory",
+            usage=AgentUsage(input_tokens=10, output_tokens=2),
+            verification={"outcome": "passed", "reward": {"reward": 1}},
+        )
+        lock = {"cells": self.runner.plan()["cells"]}
+        with (
+            patch.object(self.runner, "prepare_lock", return_value=lock),
+            patch("agent_evals.matrix.AgentRunner.run", return_value=result) as run,
+        ):
+            status = self.runner.run()
+        self.assertEqual(2, run.call_count)
+        self.assertEqual(1, status["infrastructure_error"])
+        record = next(self.runner.results.glob("*.json")).read_text()
+        self.assertIn('"state": "infrastructure_error"', record)
+        self.assertEqual(2, record.count('"kind": "infrastructure_error"'))
+
+    @patch.dict("os.environ", {"CAE_ALLOW_CANDIDATE_RUN": "1"}, clear=False)
     def test_exact_cell_selection_runs_only_selected_task(self) -> None:
         experiment = replace(
             self.experiment,
