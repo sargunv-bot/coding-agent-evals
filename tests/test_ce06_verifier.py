@@ -20,8 +20,8 @@ SPEC.loader.exec_module(VERIFIER)
 
 
 def test_discovers_json_manifest_generator_and_validate_mode(tmp_path: Path) -> None:
-    generator = tmp_path / "scripts" / "generate-ci-workflow.py"
-    generator.parent.mkdir()
+    generator = tmp_path / ".github" / "tools" / "generate-ci-workflow.py"
+    generator.parent.mkdir(parents=True)
     generator.write_text(
         "# Generate .github/workflows/ci.yml from the JSON manifest.\n"
         "parser.add_argument('--validate')\n"
