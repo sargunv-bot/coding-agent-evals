@@ -65,19 +65,19 @@ def find_generator(root: pathlib.Path) -> pathlib.Path:
     if preferred.is_file():
         return preferred
     candidates = []
-    for base in (root / ".mise/tasks", root / "scripts", root / "ci"):
-        if not base.is_dir():
+    for path in root.rglob("*"):
+        if not path.is_file() or path.name.startswith("test_"):
             continue
-        for path in base.rglob("*"):
-            if not path.is_file() or path.name.startswith("test_"):
-                continue
-            try:
-                text = path.read_text()
-            except UnicodeDecodeError:
-                continue
-            lowered = text.lower()
-            if ".github" in text and "ci.yml" in text and "manifest" in lowered:
-                candidates.append(path)
+        relative = path.relative_to(root)
+        if path.suffix not in {"", ".py", ".sh"} or ".git" in relative.parts:
+            continue
+        try:
+            text = path.read_text()
+        except UnicodeDecodeError:
+            continue
+        lowered = text.lower()
+        if ".github" in text and "ci.yml" in text and "manifest" in lowered:
+            candidates.append(path)
     if len(candidates) != 1:
         raise AssertionError(f"expected one discoverable workflow generator, got {candidates}")
     return candidates[0]
