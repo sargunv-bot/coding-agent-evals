@@ -8,7 +8,7 @@ set +e
   python3 /tests/check_alternative.py
   alternative_status=$?
   if [[ $alternative_status -eq 0 ]]; then
-    cargo test --locked --bin mise github::sigstore:: -- --nocapture
+    cargo test --locked --bin mise github:: -- --nocapture
     status=$?
   elif [[ $alternative_status -eq 1 ]]; then
     # The candidate chose the independently supported bridge design, but its
