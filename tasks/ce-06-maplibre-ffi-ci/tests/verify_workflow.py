@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -123,6 +124,18 @@ def enabled(step: dict[str, object], matrix: dict[str, object]) -> bool:
         value = matrix.get(key)
         assert isinstance(value, bool), (key, value)
         return value
+    membership = re.fullmatch(
+        r"\$\{\{\s*contains\(matrix\.([A-Za-z_][A-Za-z0-9_]*),\s*(['\"])([^'\"]+)\2\)\s*}}",
+        condition,
+    )
+    if membership:
+        key, _, item = membership.groups()
+        value = matrix.get(key)
+        assert isinstance(value, list) and all(isinstance(entry, str) for entry in value), (
+            key,
+            value,
+        )
+        return item in value
     raise AssertionError(f"generated variant step retains procedural condition: {condition}")
 
 

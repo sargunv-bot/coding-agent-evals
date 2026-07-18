@@ -65,3 +65,26 @@ def test_aggregates_feature_matrices_into_target_policy() -> None:
             {"mise run configure", "mise run test", "mise run //bindings/rust:ci"},
         )
     }
+
+
+def test_enables_steps_from_declarative_matrix_membership() -> None:
+    row = {"steps": ["test_native", "rust_binding"]}
+
+    assert VERIFIER.enabled(
+        {"if": "${{ contains(matrix.steps, 'test_native') }}"}, row
+    )
+    assert not VERIFIER.enabled(
+        {"if": '${{ contains(matrix.steps, "swift_binding") }}'}, row
+    )
+
+
+def test_rejects_procedural_matrix_condition() -> None:
+    try:
+        VERIFIER.enabled(
+            {"if": "${{ startsWith(matrix.mise_env, 'ios-') }}"},
+            {"mise_env": "ios-arm64-metal"},
+        )
+    except AssertionError as error:
+        assert "retains procedural condition" in str(error)
+    else:
+        raise AssertionError("procedural matrix condition was accepted")
