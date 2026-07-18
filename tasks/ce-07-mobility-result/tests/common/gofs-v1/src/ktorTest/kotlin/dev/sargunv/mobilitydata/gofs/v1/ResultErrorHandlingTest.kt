@@ -22,7 +22,7 @@ class ResultErrorHandlingTest {
   @Test
   fun waitTimesStillThrowOnInvalidArguments() = runTest {
     val client = GofsV1Client(MockEngine { error("unexpected network call") })
-    val service = Service()
+    val service = Service(FeedType.WaitTimes to "https://example.com/wait-times.json")
 
     context(service) {
       assertFailsWith<IllegalArgumentException> {
@@ -34,7 +34,8 @@ class ResultErrorHandlingTest {
   @Test
   fun realtimeBookingsStillThrowOnInvalidArguments() = runTest {
     val client = GofsV1Client(MockEngine { error("unexpected network call") })
-    val service = Service()
+    val service =
+      Service(FeedType.RealtimeBookings to "https://example.com/realtime-bookings.json")
 
     context(service) {
       assertFailsWith<IllegalArgumentException> {
