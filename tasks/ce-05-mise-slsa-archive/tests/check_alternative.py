@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path("/app")
 BRIDGE = ROOT / "src/github/sigstore.rs"
 BACKEND = ROOT / "src/backend/github.rs"
+FILE = ROOT / "src/file.rs"
 
 
 def fail(message: str, *, unsupported: bool = False) -> None:
@@ -17,11 +18,12 @@ def fail(message: str, *, unsupported: bool = False) -> None:
     raise SystemExit(2 if unsupported else 1)
 
 
-if not BRIDGE.is_file() or not BACKEND.is_file():
-    fail("GitHub attestation bridge or backend is missing", unsupported=True)
+if not BRIDGE.is_file() or not BACKEND.is_file() or not FILE.is_file():
+    fail("GitHub attestation bridge, backend, or file module is missing", unsupported=True)
 
 bridge = BRIDGE.read_text()
 backend = BACKEND.read_text()
+file_module = FILE.read_text()
 
 
 def without_comments(source: str) -> str:
@@ -31,6 +33,7 @@ def without_comments(source: str) -> str:
 
 bridge_code = without_comments(bridge)
 backend_code = without_comments(backend)
+file_code = without_comments(file_module)
 implementation = ""
 
 # An alternative design must actually connect archive-aware verification to the
@@ -50,10 +53,19 @@ backend_wrapper = (
     and re.search(r"untar|ZipArchive|Archive::new|entries\s*\(|WalkDir::new", backend)
     and len(re.findall(r"verify_github_attestations_for_path\s*\(", backend)) >= 3
 )
+per_digest_backend_wrapper = (
+    re.search(r"sigstore::verify_attestation\s*\(", backend)
+    and re.search(r"verify_attestation_for_digest\s*\(", backend)
+    and re.search(r"pub\s+async\s+fn\s+verify_attestation_for_digest\s*\(", bridge)
+    and re.search(r"extract_archive_files\s*\(", backend)
+    and re.search(r"pub\s+fn\s+extract_archive_files\s*\(", file_module)
+)
 if dedicated_entrypoint or existing_chokepoint:
     implementation = bridge_code
 elif backend_wrapper:
     implementation = backend_code
+elif per_digest_backend_wrapper:
+    implementation = "\n".join((backend_code, bridge_code, file_code))
 else:
     fail("the GitHub backend does not reach an archive-aware verifier", unsupported=True)
 normalized = re.sub(r"\s+", " ", implementation)
