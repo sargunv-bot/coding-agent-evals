@@ -1,0 +1,52 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..e69261537b724c5c6a48a8c994d0a9a0428945dd 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >/dev/null
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..bbdb9b1e1a70627047077d52655c757fe9346e20 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -380,6 +380,34 @@ FAIL: Empty
+ %
+ ```
+ 
++## Git wrapper that ignores --quiet
++
++Ensure a git wrapper that writes progress to stdout (ignoring --quiet)
++does not leak noise into generated plugin scripts.
++
++Override git with a noisy wrapper:
++
++```zsh
++% function git { local -a args=("$@"); if [[ "$args[1]" == "clone" ]]; then echo "STDOUT NOISE FROM GIT WRAPPER"; mockgit "$@" 2>/dev/null; else mockgit "$@"; fi }
++%
++```
++
++Clone only (--kind clone) must not leak stdout noise:
++
++```zsh
++% antidote-script --kind clone testy/mctestface 2>/dev/null
++%
++```
++
++Full script generation must not leak stdout noise:
++
++```zsh
++% antidote-script --kind zsh fakeuser/fakerepo 2>/dev/null | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++%
++```
++
+ ## Teardown
+ 
+ ```zsh
