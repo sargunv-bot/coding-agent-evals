@@ -154,9 +154,13 @@ class MatrixRunner:
                 )
                 result_data = asdict(result)
                 verification = result_data.get("verification")
-                infrastructure = bool(
-                    isinstance(verification, dict)
-                    and verification.get("outcome") == "infrastructure_error"
+                completion_status = result_data.get("agent_completion_status")
+                infrastructure = (
+                    bool(
+                        isinstance(verification, dict)
+                        and verification.get("outcome") == "infrastructure_error"
+                    )
+                    or completion_status != "completed"
                 )
                 attempts.append(
                     {

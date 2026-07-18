@@ -31,6 +31,7 @@ class AgentRunnerGateTests(unittest.TestCase):
         self.assertNotIn("mcp", AgentRunner.opencode_config(self.route, "full_info"))
         ask_config = AgentRunner.opencode_config(self.route, "ask_user")
         self.assertEqual(ask_config["mcp"]["proctor"]["command"], ["/opt/cae/proctor-mcp"])
+        self.assertEqual(ask_config["mcp"]["proctor"]["timeout"], 30 * 60 * 1000)
 
     def test_custom_provider_uses_environment_interpolation(self) -> None:
         config = AgentRunner.opencode_config(self.route, "baseline")
@@ -77,7 +78,7 @@ class AgentRunnerGateTests(unittest.TestCase):
                 "printf 'after\\n' > tracked.txt\n"
                 "git add tracked.txt\n"
                 "git commit -q -m candidate\n"
-                "printf '{\"type\":\"step_finish\",\"part\":{\"reason\":\"stop\"}}\\n'\n"
+                'printf \'{"type":"step_finish","part":{"reason":"stop"}}\\n\'\n'
             )
             opencode.chmod(0o755)
             shell = AgentRunner.agent_shell(
@@ -99,6 +100,25 @@ class AgentRunnerGateTests(unittest.TestCase):
             path.write_text(json.dumps({"type": "step_finish", "part": {"reason": "stop"}}))
             self.assertEqual("completed", AgentRunner._completion_status(path, 1))
             self.assertEqual("timeout", AgentRunner._completion_status(path, 124))
+
+    def test_completion_status_uses_terminal_step_and_rejects_proctor_transport_error(self) -> None:
+        tool_calls = {"type": "step_finish", "part": {"reason": "tool-calls"}}
+        stop = {"type": "step_finish", "part": {"reason": "stop"}}
+        proctor_error = {
+            "type": "tool_use",
+            "part": {
+                "tool": "proctor_ask_user",
+                "state": {"status": "error", "error": "MCP error -32001: Request timed out"},
+            },
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "events.jsonl"
+            path.write_text("\n".join(json.dumps(event) for event in (tool_calls, stop)))
+            self.assertEqual("completed", AgentRunner._completion_status(path, 0))
+            path.write_text(json.dumps(tool_calls))
+            self.assertEqual("incomplete", AgentRunner._completion_status(path, 0))
+            path.write_text("\n".join(json.dumps(event) for event in (proctor_error, stop)))
+            self.assertEqual("proctor_error", AgentRunner._completion_status(path, 0))
 
     def test_extracts_step_usage_without_double_counting_other_events(self) -> None:
         events = [
