@@ -48,6 +48,11 @@
     },
     {
       "artifacts": 7,
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-02-horologia-overdue__default__ask_user__r01",
+      "run_id": "20260718T015143Z-ce-02-horologia-overdue-3514764-1784339503840878645"
+    },
+    {
+      "artifacts": 7,
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
       "run_id": "20260717T153919Z-ce-01-antidote-output-1273157-1784302759238741353"
     },
