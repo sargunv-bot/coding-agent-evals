@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "865d62417dab2b484cfc0f437c1fca645a97bf53",
+  "benchmark_commit": "3747916421bf3c4a5183e9ef2ebcd971f2216001",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -402,50 +402,14 @@
       "task_id": "ce-07-mobility-result"
     }
   ],
-  "created_at": "2026-07-17T20:40:34.821833+00:00",
+  "created_at": "2026-07-18T00:13:57.598037+00:00",
   "experiment_id": "real-models-v1-stage-b-r4",
   "images": {
-    "ce-01-antidote-output": {
-      "agent_image": "localhost/coding-agent-evals/ce-01-antidote-output-opencode:dev",
-      "agent_image_id": "c360f668a0097f549caae28b12a03d42d35cafa78ceb713242b63b0e3cf83d7e",
-      "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
-      "task_image_id": "8d427090549e41afdbc1fb6765a60d99607d8c1d43a477722675858f73671f01"
-    },
-    "ce-02-horologia-overdue": {
-      "agent_image": "localhost/coding-agent-evals/ce-02-horologia-overdue-opencode:dev",
-      "agent_image_id": "65e79eb0c2aecdb73a568c8dd2f46ffdf4fad53846dc69aecbd742c585f06d58",
-      "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
-      "task_image_id": "cbbf7bc46769d6295060e52b376c1d6ff0e82be9571b700cbf9060148d554217"
-    },
-    "ce-03-jvl-completions": {
-      "agent_image": "localhost/coding-agent-evals/ce-03-jvl-completions-opencode:dev",
-      "agent_image_id": "0e187da8e27d297ea814d31285285542870c83d883ab4b6e43b9d133fb4acd1d",
-      "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
-      "task_image_id": "ed943b51a7ce420266e7aa1e57fbd3d41a38efb574eaf65a5a9b6db1daa8f6aa"
-    },
-    "ce-04-maplibre-source-location": {
-      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
-      "agent_image_id": "081a7c623d7a5470ccc2dbaad688fc09a4c8be41a47f650200c8a3eb24b2c947",
-      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
-      "task_image_id": "ea6993a2ec6f7e45c422e09a0e1f7b9face4319cd1820a9601d51b468c2dcee7"
-    },
-    "ce-05-mise-slsa-archive": {
-      "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
-      "agent_image_id": "9b836d7085f2dd94f486f80f8de5562d09e9daf2680e753dd211b4989f84eab4",
-      "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
-      "task_image_id": "d970c33d122cb772380ee4e259ace51f129fc88bae7eb03ddd81fc78a6029516"
-    },
     "ce-06-maplibre-ffi-ci": {
       "agent_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci-opencode:dev",
-      "agent_image_id": "8c80b8111066135c567e1f3eaa91e4059e84ec2eff4d28d50dcbd18feee9d371",
+      "agent_image_id": "3f563f6a96e8e47707d7e7fb7ba7c4f46925550ecb57734e256684226ef6bac3",
       "task_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci:dev",
-      "task_image_id": "e3ea0ecd3129fcc60ca43be66da8696b2b0a06bc4541c276843b3f736ff78cbf"
-    },
-    "ce-07-mobility-result": {
-      "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
-      "agent_image_id": "1052b531fca33d1df0ec39ed980700f2f4a031e8d3d1f81021f9f545a757d3e8",
-      "task_image": "localhost/coding-agent-evals/ce-07-mobility-result:dev",
-      "task_image_id": "a3ea6ca3df371c312768e73286ab1fb7a88144adac5d5639f2d226aaac1a8a7a"
+      "task_image_id": "f13cd369cda1d2e26e674c6177eee58dc3d29b887fe4c81b31a52753ab3a50ed"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",
