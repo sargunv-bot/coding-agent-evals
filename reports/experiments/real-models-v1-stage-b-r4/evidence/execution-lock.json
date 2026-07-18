@@ -405,6 +405,12 @@
   "created_at": "2026-07-18T01:07:22.491670+00:00",
   "experiment_id": "real-models-v1-stage-b-r4",
   "images": {
+    "ce-01-antidote-output": {
+      "agent_image": "localhost/coding-agent-evals/ce-01-antidote-output-opencode:dev",
+      "agent_image_id": "c360f668a0097f549caae28b12a03d42d35cafa78ceb713242b63b0e3cf83d7e",
+      "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
+      "task_image_id": "8d427090549e41afdbc1fb6765a60d99607d8c1d43a477722675858f73671f01"
+    },
     "ce-07-mobility-result": {
       "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
       "agent_image_id": "1052b531fca33d1df0ec39ed980700f2f4a031e8d3d1f81021f9f545a757d3e8",
