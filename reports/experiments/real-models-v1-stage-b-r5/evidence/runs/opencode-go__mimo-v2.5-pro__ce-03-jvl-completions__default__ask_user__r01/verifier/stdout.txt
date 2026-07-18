@@ -1,0 +1,27 @@
+   Compiling jvl v0.0.0-dev (/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.16s
+     Running tests/composition_hidden.rs (target/debug/deps/composition_hidden-8b64fcf5741728be)
+
+running 6 tests
+test hidden_array_type_contributes_each_value_kind ... FAILED
+test hidden_nested_anyof_and_null ... ok
+test hidden_allof_merges_object_properties ... ok
+test hidden_composed_values_are_deduplicated_deterministically ... ok
+test hidden_oneof_merges_object_properties ... ok
+test hidden_ref_inside_allof_is_resolved ... ok
+
+failures:
+
+---- hidden_array_type_contributes_each_value_kind stdout ----
+
+thread 'hidden_array_type_contributes_each_value_kind' (795) panicked at tests/composition_hidden.rs:88:9:
+missing true: ["null"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    hidden_array_type_contributes_each_value_kind
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+error: test failed, to rerun pass `--test composition_hidden`
