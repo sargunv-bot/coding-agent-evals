@@ -1,0 +1,551 @@
+diff --git a/src/schema.rs b/src/schema.rs
+index e442a5cbeae896dee573cd757e9864662654b8ff..dea99b5e81b2b8d4b77ec0d50789a7b01fbe99b1 100644
+--- a/src/schema.rs
++++ b/src/schema.rs
+@@ -852,7 +852,8 @@ fn format_annotation(schema: &serde_json::Value) -> Option<String> {
+ /// Collect possible value suggestions for a property at the given pointer path.
+ ///
+ /// Navigates to the subschema at `pointer` + `property_name`, then inspects
+-/// `enum`, `const`, and `type` to generate value suggestions.
++/// `enum`, `const`, `type`, and `oneOf`/`anyOf` branches to generate value
++/// suggestions. Duplicates across composed branches are collapsed.
+ pub fn collect_values(
+     root: &serde_json::Value,
+     pointer: &[String],
+@@ -866,31 +867,120 @@ pub fn collect_values(
+     };
+ 
+     let mut suggestions = Vec::new();
++    let mut seen = HashSet::new();
++    collect_value_suggestions(root, subschema, &mut suggestions, &mut seen, 0);
++    suggestions
++}
++
++/// Deduplication key for a `ValueSuggestion`, used to prevent duplicate
++/// items when merging oneOf / anyOf branches.
++fn suggestion_key(s: &ValueSuggestion) -> String {
++    match s {
++        ValueSuggestion::Enum(v) => format!("E:{}", serde_json::to_string(v).unwrap_or_default()),
++        ValueSuggestion::Const(v) => format!("C:{}", serde_json::to_string(v).unwrap_or_default()),
++        ValueSuggestion::Boolean => "B:boolean".to_string(),
++        ValueSuggestion::Null => "N:null".to_string(),
++    }
++}
++
++/// Recursively collect value suggestions from a schema, following oneOf / anyOf
++/// branches and `$ref`.  `const` and `enum` clauses short-circuit recursion for
++/// that sub-tree (they are definitive).  Type-based suggestions (`boolean`,
++/// `null`) do *not* short-circuit, so that composed branches can contribute
++/// additional values.
++fn collect_value_suggestions(
++    root: &serde_json::Value,
++    schema: &serde_json::Value,
++    suggestions: &mut Vec<ValueSuggestion>,
++    seen: &mut HashSet<String>,
++    depth: usize,
++) {
++    if depth > MAX_SCHEMA_DEPTH {
++        return;
++    }
++
++    let mut visited = HashSet::new();
++    let Some(schema) = follow_ref(root, schema, &mut visited) else {
++        return;
++    };
+ 
+     // Check for const.
+-    if let Some(const_val) = subschema.get("const") {
+-        suggestions.push(ValueSuggestion::Const(const_val.clone()));
+-        return suggestions;
++    if let Some(const_val) = schema.get("const") {
++        let s = ValueSuggestion::Const(const_val.clone());
++        let key = suggestion_key(&s);
++        if seen.insert(key) {
++            suggestions.push(s);
++        }
++        return;
+     }
+ 
+     // Check for enum.
+-    if let Some(enum_vals) = subschema.get("enum").and_then(|v| v.as_array()) {
++    if let Some(enum_vals) = schema.get("enum").and_then(|v| v.as_array()) {
+         for val in enum_vals {
+-            suggestions.push(ValueSuggestion::Enum(val.clone()));
++            let s = ValueSuggestion::Enum(val.clone());
++            let key = suggestion_key(&s);
++            if seen.insert(key) {
++                suggestions.push(s);
++            }
+         }
+-        return suggestions;
++        return;
+     }
+ 
+-    // Check for type-based suggestions.
+-    if let Some(type_str) = subschema.get("type").and_then(|v| v.as_str()) {
++    // Check for type-based suggestions (single string).
++    if let Some(type_str) = schema.get("type").and_then(|v| v.as_str()) {
+         match type_str {
+-            "boolean" => suggestions.push(ValueSuggestion::Boolean),
+-            "null" => suggestions.push(ValueSuggestion::Null),
++            "boolean" => {
++                let key = suggestion_key(&ValueSuggestion::Boolean);
++                if seen.insert(key) {
++                    suggestions.push(ValueSuggestion::Boolean);
++                }
++            }
++            "null" => {
++                let key = suggestion_key(&ValueSuggestion::Null);
++                if seen.insert(key) {
++                    suggestions.push(ValueSuggestion::Null);
++                }
++            }
+             _ => {}
+         }
+     }
+ 
+-    suggestions
++    // Check for type-based suggestions (array – nullable types).
++    if let Some(type_arr) = schema.get("type").and_then(|v| v.as_array()) {
++        for t in type_arr {
++            if let Some(t_str) = t.as_str() {
++                match t_str {
++                    "boolean" => {
++                        let key = suggestion_key(&ValueSuggestion::Boolean);
++                        if seen.insert(key) {
++                            suggestions.push(ValueSuggestion::Boolean);
++                        }
++                    }
++                    "null" => {
++                        let key = suggestion_key(&ValueSuggestion::Null);
++                        if seen.insert(key) {
++                            suggestions.push(ValueSuggestion::Null);
++                        }
++                    }
++                    _ => {}
++                }
++            }
++        }
++    }
++
++    // Recurse into oneOf branches.
++    if let Some(one_of) = schema.get("oneOf").and_then(|v| v.as_array()) {
++        for branch in one_of {
++            collect_value_suggestions(root, branch, suggestions, seen, depth + 1);
++        }
++    }
++
++    // Recurse into anyOf branches.
++    if let Some(any_of) = schema.get("anyOf").and_then(|v| v.as_array()) {
++        for branch in any_of {
++            collect_value_suggestions(root, branch, suggestions, seen, depth + 1);
++        }
++    }
+ }
+ 
+ /// Resolve the subschema at a given JSON pointer path within a schema.
+@@ -1399,6 +1489,188 @@ mod tests {
+         assert!(values.is_empty());
+     }
+ 
++    #[test]
++    fn collect_values_oneof_const() {
++        let schema = serde_json::json!({
++            "properties": {
++                "color": {
++                    "oneOf": [
++                        { "const": "red" },
++                        { "const": "green" },
++                        { "const": "blue" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "color");
++        assert_eq!(values.len(), 3);
++        let labels: Vec<String> = values
++            .iter()
++            .map(|v| match v {
++                ValueSuggestion::Const(v) => v.as_str().unwrap().to_string(),
++                _ => unreachable!(),
++            })
++            .collect();
++        assert!(labels.contains(&"red".to_string()));
++        assert!(labels.contains(&"green".to_string()));
++        assert!(labels.contains(&"blue".to_string()));
++    }
++
++    #[test]
++    fn collect_values_oneof_enum() {
++        let schema = serde_json::json!({
++            "properties": {
++                "mode": {
++                    "oneOf": [
++                        { "enum": ["dark", "light"] },
++                        { "enum": ["auto", "dark"] }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "mode");
++        let labels: Vec<String> = values
++            .iter()
++            .map(|v| match v {
++                ValueSuggestion::Enum(v) => v.as_str().unwrap().to_string(),
++                _ => unreachable!(),
++            })
++            .collect();
++        // "dark" appears in both branches but should be deduplicated.
++        assert_eq!(labels.len(), 3);
++        assert!(labels.contains(&"dark".to_string()));
++        assert!(labels.contains(&"light".to_string()));
++        assert!(labels.contains(&"auto".to_string()));
++    }
++
++    #[test]
++    fn collect_values_anyof_enum() {
++        let schema = serde_json::json!({
++            "properties": {
++                "status": {
++                    "anyOf": [
++                        { "enum": ["active", "paused"] },
++                        { "enum": ["inactive", "paused"] }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "status");
++        let labels: Vec<String> = values
++            .iter()
++            .map(|v| match v {
++                ValueSuggestion::Enum(v) => v.as_str().unwrap().to_string(),
++                _ => unreachable!(),
++            })
++            .collect();
++        assert_eq!(labels.len(), 3);
++        assert!(labels.contains(&"active".to_string()));
++        assert!(labels.contains(&"paused".to_string()));
++        assert!(labels.contains(&"inactive".to_string()));
++    }
++
++    #[test]
++    fn collect_values_type_array_nullable() {
++        let schema = serde_json::json!({
++            "properties": {
++                "name": { "type": ["string", "null"] }
++            }
++        });
++        let values = collect_values(&schema, &[], "name");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Null));
++    }
++
++    #[test]
++    fn collect_values_type_array_boolean_nullable() {
++        let schema = serde_json::json!({
++            "properties": {
++                "flag": { "type": ["boolean", "null"] }
++            }
++        });
++        let values = collect_values(&schema, &[], "flag");
++        assert_eq!(values.len(), 2);
++        assert!(values.iter().any(|v| matches!(v, ValueSuggestion::Boolean)));
++        assert!(values.iter().any(|v| matches!(v, ValueSuggestion::Null)));
++    }
++
++    #[test]
++    fn collect_values_oneof_type_boolean() {
++        let schema = serde_json::json!({
++            "properties": {
++                "flag": {
++                    "oneOf": [
++                        { "type": "boolean" },
++                        { "type": "string" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "flag");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Boolean));
++    }
++
++    #[test]
++    fn collect_values_oneof_null() {
++        let schema = serde_json::json!({
++            "properties": {
++                "value": {
++                    "oneOf": [
++                        { "type": "null" },
++                        { "type": "string" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "value");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Null));
++    }
++
++    #[test]
++    fn collect_values_oneof_mixed_const_and_type() {
++        let schema = serde_json::json!({
++            "properties": {
++                "flag": {
++                    "oneOf": [
++                        { "type": "boolean" },
++                        { "const": 42 }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "flag");
++        assert_eq!(values.len(), 2);
++        assert!(values.iter().any(|v| matches!(v, ValueSuggestion::Boolean)));
++        assert!(
++            values
++                .iter()
++                .any(|v| matches!(v, ValueSuggestion::Const(val) if val == &serde_json::json!(42)))
++        );
++    }
++
++    #[test]
++    fn collect_values_oneof_nested() {
++        let schema = serde_json::json!({
++            "properties": {
++                "kind": {
++                    "oneOf": [
++                        {
++                            "oneOf": [
++                                { "const": "a" },
++                                { "const": "b" }
++                            ]
++                        },
++                        { "const": "c" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "kind");
++        assert_eq!(values.len(), 3);
++    }
++
+     #[test]
+     fn hover_truncate_multibyte_boundary() {
+         // Place a 4-byte emoji (U+1F600) right at the 10,000-byte boundary.
+diff --git a/tests/fixtures/completion-composed-schema.json b/tests/fixtures/completion-composed-schema.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..266b6bb2be6d7a2f7bf93c7d84b0281f903093d7
+--- /dev/null
++++ b/tests/fixtures/completion-composed-schema.json
+@@ -0,0 +1,36 @@
++{
++  "type": "object",
++  "properties": {
++    "color": {
++      "oneOf": [
++        { "const": "red" },
++        { "const": "green" },
++        { "const": "blue" }
++      ]
++    },
++    "mode": {
++      "oneOf": [
++        { "enum": ["dark", "light"] },
++        { "enum": ["auto", "dark"] }
++      ]
++    },
++    "status": {
++      "anyOf": [
++        { "const": "active" },
++        { "const": "inactive" }
++      ]
++    },
++    "flag": {
++      "oneOf": [
++        { "type": "boolean" },
++        { "const": 42 }
++      ]
++    },
++    "optional_name": {
++      "type": ["string", "null"]
++    },
++    "optional_enabled": {
++      "type": ["boolean", "null"]
++    }
++  }
++}
+diff --git a/tests/lsp_completion.rs b/tests/lsp_completion.rs
+index 60753f1e8032edd548eecfa5a6b40a3bdca65569..78749fa2a2e251f89982d90f4fef7bdd790d594c 100644
+--- a/tests/lsp_completion.rs
++++ b/tests/lsp_completion.rs
+@@ -383,6 +383,169 @@ async fn completion_text_edit_covers_auto_paired_quotes() {
+     );
+ }
+ 
++/// Shortcut for composed completion schema path.
++fn composed_schema_path() -> String {
++    format!(
++        "{}/tests/fixtures/completion-composed-schema.json",
++        env!("CARGO_MANIFEST_DIR")
++    )
++}
++
++/// Build a document with the composed schema and a property value position,
++/// returning the cursor column and the full content.
++///
++/// `property` is the key name and `placeholder` is the dummy value that
++/// follows the colon (e.g. `"null"`).  The cursor is placed right after the
++/// `": "` separator.
++fn composed_value_doc(property: &str, placeholder: &str) -> (u32, String) {
++    let schema = composed_schema_path();
++    let content = format!(r#"{{"$schema": "{schema}", "{property}": {placeholder}}}"#);
++    let needle = format!(r#""{property}": "#);
++    let cursor_col = content.find(&needle).unwrap() + needle.len();
++    (cursor_col as u32, content)
++}
++
++/// OneOf const value completion.
++#[tokio::test]
++async fn completion_oneof_const_values() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let (cursor_col, content) = composed_value_doc("color", "null");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let result = client.completion(&uri, 0, cursor_col).await;
++    let names = labels(&result);
++    assert!(
++        names.contains(&r#""red""#.to_string()),
++        "expected '\"red\"' in oneOf const completions, got: {names:?}"
++    );
++    assert!(
++        names.contains(&r#""green""#.to_string()),
++        "expected '\"green\"' in oneOf const completions, got: {names:?}"
++    );
++    assert!(
++        names.contains(&r#""blue""#.to_string()),
++        "expected '\"blue\"' in oneOf const completions, got: {names:?}"
++    );
++}
++
++/// OneOf enum value completion with deduplication.
++#[tokio::test]
++async fn completion_oneof_enum_values() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let (cursor_col, content) = composed_value_doc("mode", "null");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let result = client.completion(&uri, 0, cursor_col).await;
++    let names = labels(&result);
++    assert_eq!(
++        names.len(),
++        3,
++        "expected 3 deduplicated items, got {}: {names:?}",
++        names.len()
++    );
++    assert!(names.contains(&r#""dark""#.to_string()));
++    assert!(names.contains(&r#""light""#.to_string()));
++    assert!(names.contains(&r#""auto""#.to_string()));
++}
++
++/// AnyOf const value completion.
++#[tokio::test]
++async fn completion_anyof_const_values() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let (cursor_col, content) = composed_value_doc("status", "null");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let result = client.completion(&uri, 0, cursor_col).await;
++    let names = labels(&result);
++    assert!(
++        names.contains(&r#""active""#.to_string()),
++        "expected '\"active\"' in anyOf const completions, got: {names:?}"
++    );
++    assert!(
++        names.contains(&r#""inactive""#.to_string()),
++        "expected '\"inactive\"' in anyOf const completions, got: {names:?}"
++    );
++}
++
++/// OneOf with mixed type and const branches.
++#[tokio::test]
++async fn completion_oneof_mixed_type_and_const() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let (cursor_col, content) = composed_value_doc("flag", "null");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let result = client.completion(&uri, 0, cursor_col).await;
++    let names = labels(&result);
++    assert!(
++        names.contains(&"true".to_string()),
++        "expected 'true' in oneOf mixed, got: {names:?}"
++    );
++    assert!(
++        names.contains(&"false".to_string()),
++        "expected 'false' in oneOf mixed, got: {names:?}"
++    );
++    assert!(
++        names.contains(&"42".to_string()),
++        "expected '42' const in oneOf mixed, got: {names:?}"
++    );
++}
++
++/// Nullable string type gives null suggestion.
++#[tokio::test]
++async fn completion_nullable_type_null_suggestion() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let (cursor_col, content) = composed_value_doc("optional_name", "null");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let result = client.completion(&uri, 0, cursor_col).await;
++    let names = labels(&result);
++    assert!(
++        names.contains(&"null".to_string()),
++        "expected 'null' in nullable type completions, got: {names:?}"
++    );
++}
++
++/// Nullable boolean + null type gives both suggestions.
++#[tokio::test]
++async fn completion_nullable_boolean_null_suggestions() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let (cursor_col, content) = composed_value_doc("optional_enabled", "null");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let result = client.completion(&uri, 0, cursor_col).await;
++    let names = labels(&result);
++    assert!(
++        names.contains(&"true".to_string()),
++        "expected 'true' in nullable boolean completions, got: {names:?}"
++    );
++    assert!(
++        names.contains(&"false".to_string()),
++        "expected 'false' in nullable boolean completions, got: {names:?}"
++    );
++    assert!(
++        names.contains(&"null".to_string()),
++        "expected 'null' in nullable boolean completions, got: {names:?}"
++    );
++}
++
+ /// Completion includes documentation from schema description.
+ #[tokio::test]
+ async fn completion_includes_documentation() {
