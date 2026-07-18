@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 697.598146,
+        "endpoint_host": "opencode.ai",
+        "finished_at": "2026-07-18T07:57:03.481796+00:00",
+        "instruction_mode": "ask_user",
+        "model": "mimo-v2.5-pro",
+        "model_config_sha256": "8ac3ea805e0bbf8649f1a5b59f30060b9d909e2872b7fbd3579014d365bdceae",
+        "patch_path": "model.patch",
+        "provider": "opencode-go",
+        "run_id": "20260718T074538Z-ce-04-maplibre-source-location-718144-1784360738687259943",
+        "scenario": null,
+        "started_at": "2026-07-18T07:45:25.883661+00:00",
+        "task_id": "ce-04-maplibre-source-location",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 2646400,
+          "input_tokens": 196021,
+          "output_tokens": 11968,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 0
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 0.18706389400176704,
+          "exit_code": 1,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "fallback": 0,
+            "manifests": 0,
+            "native": 0,
+            "reward": 0
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-04-maplibre-source-location"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "opencode-go__mimo-v2.5-pro__ce-04-maplibre-source-location__default__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "mimo-v2.5-pro",
+    "provider": "opencode-go",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-04-maplibre-source-location"
+  },
+  "experiment_id": "real-models-v1-stage-b-r5",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-18T07:57:03.924212+00:00"
+}
