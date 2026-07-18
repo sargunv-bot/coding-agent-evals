@@ -417,6 +417,12 @@
       "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
       "task_image_id": "e15d194d768f89882add0346f79f0c81c0be4dbaeee231ca1ac5a4a15a698c9e"
     },
+    "ce-03-jvl-completions": {
+      "agent_image": "localhost/coding-agent-evals/ce-03-jvl-completions-opencode:dev",
+      "agent_image_id": "b51ebd5272267759602df0bc1273ffe2ca38e23a01f883f2e15d9509d8fd4d73",
+      "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
+      "task_image_id": "c855ce35e304da57fc00e1a682f30718405a3ff9af6a31f708deef8b931d62cc"
+    },
     "ce-07-mobility-result": {
       "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
       "agent_image_id": "1052b531fca33d1df0ec39ed980700f2f4a031e8d3d1f81021f9f545a757d3e8",
