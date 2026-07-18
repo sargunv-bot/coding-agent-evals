@@ -33,6 +33,11 @@
     },
     {
       "artifacts": 7,
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "run_id": "20260718T011120Z-ce-07-mobility-result-3398564-1784337080034926953"
+    },
+    {
+      "artifacts": 7,
       "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
       "run_id": "20260718T003639Z-ce-07-mobility-result-3291040-1784334999555903780"
     },
