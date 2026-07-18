@@ -15,6 +15,11 @@
       "artifacts": 7,
       "cell_id": "opencode-go__mimo-v2.5-pro__ce-05-mise-slsa-archive__default__ask_user__r01",
       "run_id": "20260718T185753Z-ce-05-mise-slsa-archive-2728706-1784401073092535685"
+    },
+    {
+      "artifacts": 7,
+      "cell_id": "zai__glm-5.2__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "run_id": "20260718T201055Z-ce-06-maplibre-ffi-ci-2966960-1784405455452871721"
     }
   ],
   "schema_version": 1
