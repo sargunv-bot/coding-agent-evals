@@ -1,0 +1,48 @@
+semantic alternative archive verifier checks passed
+   Compiling mise v2026.5.10 (/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 53.71s
+     Running unittests src/main.rs (target/debug/deps/mise-05fb42054097f6bb)
+
+running 39 tests
+test github::sigstore::tests::aggregate_all_failed_is_hard_failure ... ok
+test github::sigstore::tests::aggregate_all_no_attestation_returns_no_attestations ... ok
+test github::sigstore::tests::aggregate_all_verified_returns_ok_true ... ok
+test github::sigstore::tests::aggregate_empty_returns_verification_error ... ok
+test github::sigstore::tests::aggregate_failure_message_lists_every_unverified_member ... ok
+test github::sigstore::tests::aggregate_mixed_verified_and_failed_is_hard_failure ... ok
+test github::sigstore::tests::aggregate_mixed_verified_and_no_attestation_is_hard_failure ... ok
+test github::sigstore::tests::aggregate_single_verified_member_returns_ok_true ... ok
+test github::sigstore::tests::archive_format_detects_supported_multi_file_archives ... ok
+test github::sigstore::tests::archive_format_handles_paths_with_parent_directories ... ok
+test github::sigstore::tests::archive_format_is_case_insensitive_on_extension ... ok
+test github::sigstore::tests::archive_format_rejects_non_archive_paths ... ok
+test github::sigstore::tests::extract_empty_archive_yields_empty_member_list ... ok
+test github::sigstore::tests::extract_errors_on_garbage_with_archive_extension ... ok
+test github::sigstore::tests::extract_extracts_tar_gz_and_lists_every_regular_member ... ok
+test github::sigstore::tests::extract_handles_zip_archives ... ok
+test github::sigstore::tests::extract_preserves_nested_layout_without_stripping ... ok
+test github::sigstore::tests::extract_returns_not_an_archive_for_plain_binary ... ok
+test github::sigstore::tests::extract_returns_not_an_archive_for_single_file_gzip ... ok
+test github::sigstore::tests::list_regular_files_does_not_recurse_through_symlinked_directory ... ok
+test github::sigstore::tests::list_regular_files_empty_dir_returns_empty ... ok
+test github::sigstore::tests::list_regular_files_excludes_directories_from_result ... ok
+test github::sigstore::tests::list_regular_files_includes_hidden_files ... ok
+test github::sigstore::tests::list_regular_files_returns_sorted_output ... ok
+test github::sigstore::tests::list_regular_files_skips_symlink_to_regular_file ... ok
+test github::sigstore::tests::list_regular_files_terminates_on_symlink_loop ... ok
+test github::sigstore::tests::list_regular_files_walks_nested_subdirectories ... ok
+test github::sigstore::tests::relative_display_name_falls_back_when_not_under_root ... ok
+test github::sigstore::tests::relative_display_name_strips_root_prefix ... ok
+test github::sigstore::tests::result_to_outcome_maps_api_error_to_failed ... ok
+test github::sigstore::tests::result_to_outcome_maps_no_attestations_to_no_attestation ... ok
+test github::sigstore::tests::result_to_outcome_maps_ok_false_to_failed ... ok
+test github::sigstore::tests::result_to_outcome_maps_ok_true_to_verified ... ok
+test github::sigstore::tests::result_to_outcome_maps_verification_error_to_failed ... ok
+test github::sigstore::tests::result_to_outcome_preserves_error_message ... ok
+test github::sigstore::tests::test_resolve_token_wrapper_respects_enterprise_api_url ... ok
+test github::sigstore::tests::test_resolve_token_wrapper_uses_env_var_with_default_url ... ok
+test github::sigstore::tests::test_resolve_token_wrapper_uses_env_var_with_explicit_api_url ... ok
+test github::sigstore::tests::test_resolve_token_wrapper_uses_github_tokens_toml_source ... ok
+
+test result: ok. 39 passed; 0 failed; 0 ignored; 0 measured; 930 filtered out; finished in 0.01s
+

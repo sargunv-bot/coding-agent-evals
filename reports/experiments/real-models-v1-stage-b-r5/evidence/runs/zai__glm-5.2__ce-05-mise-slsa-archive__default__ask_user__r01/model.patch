@@ -1,0 +1,1118 @@
+diff --git a/docs/dev-tools/mise-lock.md b/docs/dev-tools/mise-lock.md
+index 8051abc3edbf14a1c1a406d72526c0c9144d9e8f..e48e45fabb6ff58b1959de15a53d54eaf0114e48 100644
+--- a/docs/dev-tools/mise-lock.md
++++ b/docs/dev-tools/mise-lock.md
+@@ -331,6 +331,10 @@ If GitHub Artifact Attestations are enabled but the GitHub API confirms none exi
+ 
+ GitHub's docs show binary attestations generated from an existing artifact path with [`actions/attest`](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations#generating-build-provenance-for-binaries), and the REST API lists attestations by [subject digest](https://docs.github.com/en/rest/orgs/attestations#list-attestations). That means an attestation can appear after the release asset was uploaded. A later `mise lock` run or `MISE_LOCKED_VERIFY_PROVENANCE=1 mise install` can discover attestations added after the lockfile recorded them as unavailable.
+ 
++### Per-file archive attestation fallback
++
++Some release pipelines sign each file *inside* a release archive rather than the archive blob itself. When GitHub artifact attestation verification is enabled and the archive's own digest has no attestation, mise transparently extracts the archive to a temporary directory and verifies each inner file's digest against the GitHub attestations API. The fallback is **fail-closed**: every regular file inside the archive must carry a valid attestation. A single unattested file (README, LICENSE, or anything else) rejects the whole archive. This is the only policy with no smuggling surface; an attacker who can substitute archive contents but not the signing key cannot slip an unattested file past verification. The fallback only triggers when the archive itself has no attestation — an archive that *does* have an attestation which fails cryptographically is rejected without retrying against inner files. Non-archive artifacts (raw binaries, single-file `.gz`/`.xz` compressions) are unaffected.
++
+ For additional security, you can force provenance re-verification at install time on every install:
+ 
+ ```toml
+diff --git a/src/github/sigstore.rs b/src/github/sigstore.rs
+index dfeeec8fddb905edb11edf280bee3818f1f2543d..b8bcff568b23d2d0314519660750dcada8b26ac1 100644
+--- a/src/github/sigstore.rs
++++ b/src/github/sigstore.rs
+@@ -23,14 +23,33 @@
+ //! (`"https://api.github.com"`) when `None` is passed. The default must be a full URL so
+ //! [`crate::github::resolve_token_for_api_url`] can parse the host correctly; a bare hostname
+ //! would be silently misrouted for GitHub Enterprise Server tenants.
++//!
++//! ## Per-file archive fallback
++//!
++//! [`verify_attestation`] first attempts archive-level (blob digest) verification, which is
++//! what most release pipelines produce. When the GitHub attestations API has *no* attestation
++//! for the archive's digest, some release pipelines — which sign each file *inside* the
++//! archive rather than the archive blob itself — can still be verified by extracting the
++//! archive and checking each inner file's digest. [`verify_attestation`] falls back to that
++//! per-file verification automatically.
++//!
++//! The fallback is fail-closed: every regular file inside the archive must carry a valid
++//! attestation. A single unattested file (README, LICENSE, smuggled binary, …) rejects the
++//! whole archive. This is the only policy with no smuggling vector — see the design note on
++//! `aggregate_archive_member_outcomes`. The fallback is only attempted when the archive
++//! itself has no attestation; an archive that *does* have an attestation which fails
++//! cryptographically is reported as a hard error without falling back, since retrying member
++//! files after a real verification failure would be guessing toward permissiveness.
+ 
+-use std::path::Path;
++use std::path::{Path, PathBuf};
+ 
+ use mise_sigstore::sources::github::GitHubSource;
+ use mise_sigstore::{ArtifactRef, AttestationSource};
+ 
+ pub use mise_sigstore::AttestationError;
+ 
++use crate::file::{TarFormat, TarOptions};
++
+ /// Result alias that matches `mise_sigstore`'s internal convention.
+ type AttestationResult<T> = std::result::Result<T, AttestationError>;
+ 
+@@ -42,8 +61,29 @@ fn resolve_token_for_wrapper(api_url: Option<&str>) -> Option<String> {
+ 
+ /// Verify a GitHub artifact attestation for a file on disk.
+ ///
+-/// Dispatches to [`mise_sigstore::verify_github_attestation_with_base_url`] when
+-/// `api_url` is `Some` (to support GitHub Enterprise) and to
++/// This is the canonical entry point for GitHub artifact attestation verification in mise.
++/// All callers — install-time, lock-time, and aqua — go through here, which lets the
++/// per-file archive fallback be applied uniformly.
++///
++/// Verification proceeds in two stages:
++///
++/// 1. **Archive-level (blob digest) verification** via [`verify_attestation_blob`].
++///    This is what most release pipelines produce and what mise has always done; it is
++///    preserved unchanged.
++/// 2. **Per-file archive fallback.** Only if stage 1 reports that *no* attestation
++///    exists for the artifact's digest ([`AttestationError::NoAttestations`]) and the
++///    artifact is a supported archive format. The archive is extracted to a temporary
++///    directory and each regular file inside is verified individually via
++///    [`verify_attestation_blob`]. Every regular file must verify, otherwise the
++///    archive is rejected. See [`aggregate_archive_member_outcomes`] for the policy.
++///
++/// Stage 2 is **fail-closed**: a single unattested inner file fails the whole archive,
++/// and any error other than `NoAttestations` from stage 1 (network failure, malformed
++/// bundle, cryptographic mismatch) is propagated without attempting a fallback —
++/// retrying after a real failure would be guessing toward permissiveness.
++///
++/// `api_url` dispatches to [`mise_sigstore::verify_github_attestation_with_base_url`]
++/// when `Some` (to support GitHub Enterprise) and to
+ /// [`mise_sigstore::verify_github_attestation`] otherwise.
+ pub async fn verify_attestation(
+     artifact_path: &Path,
+@@ -51,6 +91,43 @@ pub async fn verify_attestation(
+     repo: &str,
+     expected_workflow: Option<&str>,
+     api_url: Option<&str>,
++) -> AttestationResult<bool> {
++    match verify_attestation_blob(artifact_path, owner, repo, expected_workflow, api_url).await {
++        // The archive blob has no attestation. The publisher may have attested each
++        // inner file instead — try the per-file fallback. If the artifact isn't an
++        // archive, the fallback returns NoAttestations unchanged so callers can fall
++        // through to other mechanisms (SLSA, checksums).
++        Err(AttestationError::NoAttestations) => {
++            verify_attestation_via_archive_contents(
++                artifact_path,
++                owner,
++                repo,
++                expected_workflow,
++                api_url,
++            )
++            .await
++        }
++        // Archive-level verification succeeded OR failed cryptographically OR hit a real
++        // error. In every one of those cases the result is final — falling back after a
++        // real verification failure would let a tampered archive pass by retrying against
++        // inner files. Propagate verbatim.
++        other => other,
++    }
++}
++
++/// Archive-level (blob digest) verification against the GitHub attestations API.
++///
++/// This is the historical verification path: compute the SHA-256 of the file on disk,
++/// ask GitHub for attestations under that digest, and cryptographically verify any that
++/// come back. It has no knowledge of archive contents — the caller's `artifact_path` is
++/// treated as an opaque blob. The per-file archive fallback lives one level up in
++/// [`verify_attestation`].
++async fn verify_attestation_blob(
++    artifact_path: &Path,
++    owner: &str,
++    repo: &str,
++    expected_workflow: Option<&str>,
++    api_url: Option<&str>,
+ ) -> AttestationResult<bool> {
+     let token = resolve_token_for_wrapper(api_url);
+     match api_url {
+@@ -78,6 +155,286 @@ pub async fn verify_attestation(
+     }
+ }
+ 
++// =============================================================================
++// Per-file archive fallback
++// =============================================================================
++
++/// Outcome of running [`verify_attestation_blob`] against one regular file inside an
++/// extracted archive. Captured so [`aggregate_archive_member_outcomes`] can apply the
++/// "every member must verify" policy in a separately-testable pure function.
++#[derive(Debug, Clone, PartialEq, Eq)]
++enum ArchiveMemberOutcome {
++    /// The file had at least one attestation and it cryptographically verified.
++    Verified,
++    /// The file had at least one attestation but verification failed (signature,
++    /// certificate chain, workflow mismatch, etc.). Hard failure.
++    Failed(String),
++    /// The GitHub API returned no attestations for this file's digest.
++    NoAttestation,
++}
++
++/// Verify a GitHub artifact attestation against each regular file inside an archive.
++///
++/// Triggered only by [`verify_attestation`] after archive-level verification reports
++/// [`AttestationError::NoAttestations`]. Extraction uses mise's standard
++/// [`crate::file::untar`] so the supported formats and decompression logic match the
++/// install path exactly.
++///
++/// Returns:
++/// - `Ok(true)` when every regular file inside the archive verifies.
++/// - [`AttestationError::NoAttestations`] when no inner file has any attestation at all
++///   (so callers can fall through to SLSA / checksum verification, exactly as they
++///   would have without the fallback).
++/// - A `Verification` error in every other case — including partial coverage, where
++///   some members verified but others did not. Partial coverage is the smuggling signal
++///   and must fail closed.
++/// - [`AttestationError::NoAttestations`] when `artifact_path` isn't a recognized
++///   archive format. The fallback simply doesn't apply.
++async fn verify_attestation_via_archive_contents(
++    artifact_path: &Path,
++    owner: &str,
++    repo: &str,
++    expected_workflow: Option<&str>,
++    api_url: Option<&str>,
++) -> AttestationResult<bool> {
++    let (tmp, members) = match extract_archive_members(artifact_path)? {
++        ExtractResult::NotAnArchive => {
++            debug!(
++                "attestation fallback skipped: {} is not a recognized archive format",
++                artifact_path.display()
++            );
++            // Not an archive — the fallback does not apply. Surface NoAttestations so the
++            // caller's existing fall-through (to SLSA, checksums, etc.) still works.
++            return Err(AttestationError::NoAttestations);
++        }
++        ExtractResult::Extracted { tmp, members } => (tmp, members),
++    };
++
++    debug!(
++        "attestation fallback: verifying {} regular file(s) extracted from {}",
++        members.len(),
++        artifact_path.display()
++    );
++
++    let root = tmp.path();
++    let mut outcomes: Vec<(String, ArchiveMemberOutcome)> = Vec::with_capacity(members.len());
++    for member in &members {
++        let display = relative_display_name(member, root);
++        let result = verify_attestation_blob(member, owner, repo, expected_workflow, api_url).await;
++        outcomes.push((display, result_to_outcome(result)));
++    }
++
++    let result = aggregate_archive_member_outcomes(outcomes);
++    match &result {
++        Ok(true) => debug!(
++            "attestation fallback succeeded: every member of {} verified",
++            artifact_path.display()
++        ),
++        Ok(false) => debug!(
++            "attestation fallback reported verification false for {}",
++            artifact_path.display()
++        ),
++        Err(AttestationError::NoAttestations) => debug!(
++            "attestation fallback found no attestations for any member of {}",
++            artifact_path.display()
++        ),
++        Err(e) => debug!(
++            "attestation fallback failed for {}: {e}",
++            artifact_path.display()
++        ),
++    }
++    result
++}
++
++/// Result of [`extract_archive_members`]: either a real archive was extracted (with the
++/// temp dir held alive for the caller), or the path wasn't an archive at all.
++#[derive(Debug)]
++enum ExtractResult {
++    /// `artifact_path` was not a recognized multi-file archive. The caller should
++    /// skip the fallback.
++    NotAnArchive,
++    /// The archive was extracted. `tmp` must outlive the use of `members` — once it
++    /// drops, the extracted files disappear.
++    Extracted {
++        tmp: tempfile::TempDir,
++        members: Vec<PathBuf>,
++    },
++}
++
++/// Extract every regular file from `archive_path` into a fresh temp directory.
++///
++/// Pure helper used by [`verify_attestation_via_archive_contents`] — factored out so the
++/// extraction + enumeration logic is testable without making any GitHub API calls.
++/// `strip_components` is always 0: the verbatim archive layout is what the publisher
++/// signed over, and stripping would silently change member digests.
++///
++/// Returns [`ExtractResult::NotAnArchive`] when `archive_path` doesn't look like a
++/// supported multi-file archive (raw binary, single-file `.gz`/`.xz`, unknown
++/// extension). This is distinct from a successful extraction that yields zero members,
++/// which is reported as `Verification` error by the caller's policy.
++fn extract_archive_members(archive_path: &Path) -> AttestationResult<ExtractResult> {
++    let Some(format) = archive_format_for_path(archive_path) else {
++        return Ok(ExtractResult::NotAnArchive);
++    };
++    let tmp = tempfile::tempdir().map_err(AttestationError::Io)?;
++    let opts = TarOptions {
++        strip_components: 0,
++        ..TarOptions::new(format)
++    };
++    crate::file::untar(archive_path, tmp.path(), &opts).map_err(|e| {
++        // Preserve the underlying eyre message verbatim — extraction failures are the
++        // kind of thing users will paste into issues, and the default `Report` Display
++        // is more informative than "Io error: …".
++        AttestationError::UnsupportedFormat(format!(
++            "attestation fallback failed to extract archive {}: {e}",
++            archive_path.display()
++        ))
++    })?;
++    let members = list_regular_files(tmp.path()).map_err(AttestationError::Io)?;
++    Ok(ExtractResult::Extracted { tmp, members })
++}
++
++/// Map a per-member verification result into the policy-level outcome.
++///
++/// Factored out of [`verify_attestation_via_archive_contents`] so the mapping is
++/// pinnable by tests without exercising the GitHub API. The mapping is what gives
++/// [`aggregate_archive_member_outcomes`] its inputs — getting it wrong silently
++/// weakens the policy (e.g. treating a verification failure as "no attestation").
++fn result_to_outcome(result: AttestationResult<bool>) -> ArchiveMemberOutcome {
++    match result {
++        Ok(true) => ArchiveMemberOutcome::Verified,
++        Ok(false) => ArchiveMemberOutcome::Failed(
++            "attestation existed but verification returned false".to_string(),
++        ),
++        Err(AttestationError::NoAttestations) => ArchiveMemberOutcome::NoAttestation,
++        Err(e) => ArchiveMemberOutcome::Failed(e.to_string()),
++    }
++}
++
++/// Format a member path for diagnostic output, relative to the extraction root.
++///
++/// Falls back to the absolute display when `strip_prefix` fails (e.g. if a future
++/// caller passes a `root` that doesn't prefix `member`). Never panics.
++fn relative_display_name(member: &Path, root: &Path) -> String {
++    member
++        .strip_prefix(root)
++        .map(|p| p.display().to_string())
++        .unwrap_or_else(|_| member.display().to_string())
++}
++
++/// Apply the per-file fallback's verification policy to the outcomes collected for each
++/// archive member.
++///
++/// **Policy (fail-closed):**
++/// - If every member verified → [`Ok`]`(true)`.
++/// - If no member had any attestation → [`AttestationError::NoAttestations`]. This lets
++///   callers fall through to other mechanisms (SLSA, checksums).
++/// - Otherwise → [`AttestationError::Verification`]. Partial coverage — some members
++///   verified but others had no attestation or failed verification — is treated as a
++///   hard failure. The publisher either forgot to attest one of their files (in which
++///   case failing surfaces the gap) or an attacker is smuggling an unattested file in
++///   alongside attested ones. There is no third option, and we cannot tell them apart
++///   at verification time, so we reject.
++///
++/// Factored out of [`verify_attestation_via_archive_contents`] so the policy is unit-
++/// testable without touching the filesystem or the GitHub API. Any change to the policy
++/// here changes the security boundary of the fallback — the tests below pin it.
++fn aggregate_archive_member_outcomes(
++    outcomes: Vec<(String, ArchiveMemberOutcome)>,
++) -> AttestationResult<bool> {
++    if outcomes.is_empty() {
++        return Err(AttestationError::Verification(
++            "attestation fallback was given no archive members to evaluate".to_string(),
++        ));
++    }
++    if outcomes
++        .iter()
++        .all(|(_, o)| matches!(o, ArchiveMemberOutcome::Verified))
++    {
++        return Ok(true);
++    }
++    if outcomes
++        .iter()
++        .all(|(_, o)| matches!(o, ArchiveMemberOutcome::NoAttestation))
++    {
++        return Err(AttestationError::NoAttestations);
++    }
++    // Mixed: at least one member didn't verify. Build a detailed error naming every
++    // unverified member so users (and downstream tooling) can see exactly which file
++    // broke the chain.
++    let total = outcomes.len();
++    let mut failures: Vec<String> = Vec::new();
++    for (name, outcome) in &outcomes {
++        match outcome {
++            ArchiveMemberOutcome::Verified => {}
++            ArchiveMemberOutcome::NoAttestation => {
++                failures.push(format!("{name}: no GitHub attestation"));
++            }
++            ArchiveMemberOutcome::Failed(msg) => {
++                failures.push(format!("{name}: {msg}"));
++            }
++        }
++    }
++    Err(AttestationError::Verification(format!(
++        "per-file attestation verification failed for {}/{} archive member(s); \
++         every regular file inside the archive must carry a valid GitHub attestation: {}",
++        failures.len(),
++        total,
++        failures.join("; ")
++    )))
++}
++
++/// Determine the archive format for an arbitrary path, returning `None` for non-archives.
++///
++/// Wraps [`TarFormat::from_file_name`] with the [`TarFormat::is_archive`] check so the
++/// fallback can short-circuit cleanly on raw binaries, single-file `.gz`/`.xz`/etc.
++/// compressions, and unknown extensions.
++fn archive_format_for_path(path: &Path) -> Option<TarFormat> {
++    let file_name = path.file_name()?.to_string_lossy();
++    let format = TarFormat::from_file_name(&file_name);
++    if format.is_archive() {
++        Some(format)
++    } else {
++        None
++    }
++}
++
++/// List every regular file under `root`, returning absolute paths.
++///
++/// Uses [`std::fs::symlink_metadata`] at every step so symlinks are never followed — an
++/// archive that bundles a symlink pointing outside its tree (or into a loop) cannot
++/// trick this walk into reading foreign files or recursing forever. Symlinks, fifos,
++/// sockets, block/char devices, and directories are skipped; only regular files can
++/// carry attestations. Hidden files are *not* skipped — the "every regular file"
++/// policy is strict by design.
++fn list_regular_files(root: &Path) -> std::io::Result<Vec<PathBuf>> {
++    let mut out: Vec<PathBuf> = Vec::new();
++    let mut stack: Vec<PathBuf> = vec![root.to_path_buf()];
++    while let Some(dir) = stack.pop() {
++        let entries = match std::fs::read_dir(&dir) {
++            Ok(e) => e,
++            Err(e) if e.kind() == std::io::ErrorKind::NotFound => continue,
++            Err(e) => return Err(e),
++        };
++        for entry in entries {
++            let entry = entry?;
++            let path = entry.path();
++            // symlink_metadata: never follow symlinks. A symlink to /etc/passwd or to
++            // a sibling must not leak bytes from outside the archive into the digest
++            // check, nor cause infinite recursion on a loop.
++            let metadata = std::fs::symlink_metadata(&path)?;
++            if metadata.is_dir() {
++                stack.push(path);
++            } else if metadata.is_file() {
++                out.push(path);
++            }
++            // else: symlink / fifo / socket / device — skip.
++        }
++    }
++    out.sort();
++    Ok(out)
++}
++
+ /// Reason the pre-download attestation probe could not complete.
+ ///
+ /// Preserved as two variants so callers can log distinct warnings for a misconfigured
+@@ -299,4 +656,700 @@ mod tests {
+             "wrapper should resolve tokens from github_tokens.toml when env vars are empty"
+         );
+     }
++
++    // ==========================================================================
++    // Per-file archive fallback — policy aggregation
++    //
++    // These tests pin the security boundary of the fallback. The fallback's whole
++    // job is to reject archives that contain a single unattested file. Any change to
++    // `aggregate_archive_member_outcomes` that loosens one of these cases is a
++    // security regression and must be flagged for review.
++    // ==========================================================================
++
++    #[test]
++    fn aggregate_all_verified_returns_ok_true() {
++        let outcomes = vec![
++            ("bin/tool".to_string(), ArchiveMemberOutcome::Verified),
++            ("lib/libfoo.so".to_string(), ArchiveMemberOutcome::Verified),
++            ("LICENSE".to_string(), ArchiveMemberOutcome::Verified),
++        ];
++        assert!(
++            aggregate_archive_member_outcomes(outcomes).unwrap(),
++            "all-verified is the only case that should accept the archive"
++        );
++    }
++
++    #[test]
++    fn aggregate_single_verified_member_returns_ok_true() {
++        // Single-file archives still go through the fallback if the outer archive blob
++        // had no attestation. One verified member must pass.
++        let outcomes = vec![("bin/tool".to_string(), ArchiveMemberOutcome::Verified)];
++        assert!(aggregate_archive_member_outcomes(outcomes).unwrap());
++    }
++
++    #[test]
++    fn aggregate_empty_returns_verification_error() {
++        // Empty input means the orchestration loop never ran. Treat as a hard failure
++        // rather than vacuously Ok(true) — there is nothing to verify, so "every member
++        // verified" cannot be established.
++        let err = aggregate_archive_member_outcomes(vec![]).unwrap_err();
++        assert!(
++            matches!(err, AttestationError::Verification(_)),
++            "empty outcomes must hard-fail, got {err:?}"
++        );
++    }
++
++    #[test]
++    fn aggregate_all_no_attestation_returns_no_attestations() {
++        // No member had any attestation. This is the only "soft" path — surface
++        // NoAttestations so callers fall through to SLSA / checksums, exactly as they
++        // would have without the fallback. Anything stricter would mask legitimate
++        // "this release simply has no GitHub attestations" cases.
++        let outcomes = vec![
++            ("bin/tool".to_string(), ArchiveMemberOutcome::NoAttestation),
++            ("README".to_string(), ArchiveMemberOutcome::NoAttestation),
++        ];
++        let err = aggregate_archive_member_outcomes(outcomes).unwrap_err();
++        assert!(
++            matches!(err, AttestationError::NoAttestations),
++            "all-unattested must be NoAttestations for fall-through, got {err:?}"
++        );
++    }
++
++    #[test]
++    fn aggregate_mixed_verified_and_no_attestation_is_hard_failure() {
++        // The smuggling case. The publisher attested `bin/tool` but not `README` —
++        // either they forgot (gap) or an attacker slipped `README` past them. We can't
++        // tell which, so the archive must be rejected. This is the load-bearing test
++        // for "do not guess toward permissiveness".
++        let outcomes = vec![
++            ("bin/tool".to_string(), ArchiveMemberOutcome::Verified),
++            ("README".to_string(), ArchiveMemberOutcome::NoAttestation),
++        ];
++        let err = aggregate_archive_member_outcomes(outcomes).unwrap_err();
++        match err {
++            AttestationError::Verification(msg) => {
++                assert!(
++                    msg.contains("README"),
++                    "error must name the unverified member, got: {msg}"
++                );
++                assert!(
++                    msg.contains("1/2"),
++                    "error must report the failure count, got: {msg}"
++                );
++                assert!(
++                    msg.contains("no GitHub attestation"),
++                    "error must distinguish no-attestation from failed, got: {msg}"
++                );
++            }
++            other => panic!("mixed verified/unattested must be Verification, got {other:?}"),
++        }
++    }
++
++    #[test]
++    fn aggregate_mixed_verified_and_failed_is_hard_failure() {
++        // A member with an attestation that failed verification (signature mismatch,
++        // bad chain, etc.) alongside a verified member. Must reject.
++        let outcomes = vec![
++            ("bin/tool".to_string(), ArchiveMemberOutcome::Verified),
++            (
++                "lib/libevil.so".to_string(),
++                ArchiveMemberOutcome::Failed("signature mismatch".to_string()),
++            ),
++        ];
++        let err = aggregate_archive_member_outcomes(outcomes).unwrap_err();
++        match err {
++            AttestationError::Verification(msg) => {
++                assert!(
++                    msg.contains("lib/libevil.so"),
++                    "error must name the failed member, got: {msg}"
++                );
++                assert!(
++                    msg.contains("signature mismatch"),
++                    "error must preserve the underlying failure reason, got: {msg}"
++                );
++            }
++            other => panic!("mixed verified/failed must be Verification, got {other:?}"),
++        }
++    }
++
++    #[test]
++    fn aggregate_all_failed_is_hard_failure() {
++        let outcomes = vec![
++            (
++                "a".to_string(),
++                ArchiveMemberOutcome::Failed("boom".to_string()),
++            ),
++            (
++                "b".to_string(),
++                ArchiveMemberOutcome::Failed("crash".to_string()),
++            ),
++        ];
++        let err = aggregate_archive_member_outcomes(outcomes).unwrap_err();
++        assert!(
++            matches!(err, AttestationError::Verification(_)),
++            "all-failed must be Verification, got {err:?}"
++        );
++    }
++
++    #[test]
++    fn aggregate_failure_message_lists_every_unverified_member() {
++        // 3 members: one verified, two unverified. The error must enumerate both
++        // unverified ones (no truncation) so users can see exactly which files broke
++        // the chain. Hiding a member behind "and N more" would mask smuggling.
++        let outcomes = vec![
++            ("ok".to_string(), ArchiveMemberOutcome::Verified),
++            ("bad1".to_string(), ArchiveMemberOutcome::NoAttestation),
++            (
++                "bad2".to_string(),
++                ArchiveMemberOutcome::Failed("sig".to_string()),
++            ),
++        ];
++        let err = aggregate_archive_member_outcomes(outcomes).unwrap_err();
++        let msg = match err {
++            AttestationError::Verification(m) => m,
++            other => panic!("expected Verification, got {other:?}"),
++        };
++        assert!(msg.contains("bad1"), "missing bad1 in: {msg}");
++        assert!(msg.contains("bad2"), "missing bad2 in: {msg}");
++        assert!(
++            !msg.contains("ok"),
++            "verified member leaked into failure list: {msg}"
++        );
++        assert!(msg.contains("2/3"), "expected 2/3 failure count in: {msg}");
++    }
++
++    // ==========================================================================
++    // Per-file archive fallback — result → outcome mapping
++    //
++    // `result_to_outcome` is what translates raw `verify_attestation_blob` results into
++    // the policy inputs above. A wrong mapping here silently weakens the policy —
++    // e.g. mapping a real Verification error to NoAttestation would turn a hard
++    // failure into a soft fall-through.
++    // ==========================================================================
++
++    #[test]
++    fn result_to_outcome_maps_ok_true_to_verified() {
++        assert_eq!(result_to_outcome(Ok(true)), ArchiveMemberOutcome::Verified);
++    }
++
++    #[test]
++    fn result_to_outcome_maps_ok_false_to_failed() {
++        // `Ok(false)` means the API found an attestation but sigstore-verify declined
++        // to call it a success. That's a hard failure, not "no attestation" — the
++        // publisher DID sign something here, and we couldn't verify it.
++        match result_to_outcome(Ok(false)) {
++            ArchiveMemberOutcome::Failed(msg) => {
++                assert!(msg.contains("false"), "expected false-mention, got: {msg}")
++            }
++            other => panic!("Ok(false) must map to Failed, got {other:?}"),
++        }
++    }
++
++    #[test]
++    fn result_to_outcome_maps_no_attestations_to_no_attestation() {
++        assert_eq!(
++            result_to_outcome(Err(AttestationError::NoAttestations)),
++            ArchiveMemberOutcome::NoAttestation
++        );
++    }
++
++    #[test]
++    fn result_to_outcome_maps_verification_error_to_failed() {
++        // The fail-closed guarantee: every non-NoAttestations error becomes Failed,
++        // never NoAttestation. If this regresses, an attacker who causes a verify
++        // error (e.g. malformed bundle) would turn a hard failure into a soft
++        // fall-through.
++        let err = result_to_outcome(Err(AttestationError::Verification(
++            "sigstore verification returned false".to_string(),
++        )));
++        assert!(matches!(err, ArchiveMemberOutcome::Failed(_)));
++    }
++
++    #[test]
++    fn result_to_outcome_maps_api_error_to_failed() {
++        let err = result_to_outcome(Err(AttestationError::Api("403 rate limit".to_string())));
++        assert!(matches!(err, ArchiveMemberOutcome::Failed(_)));
++    }
++
++    #[test]
++    fn result_to_outcome_preserves_error_message() {
++        // The underlying message must survive the mapping so aggregate_* can include
++        // it in the user-facing error.
++        match result_to_outcome(Err(AttestationError::Api("rate limited".to_string()))) {
++            ArchiveMemberOutcome::Failed(msg) => {
++                assert!(msg.contains("rate limited"), "message dropped: {msg}")
++            }
++            other => panic!("expected Failed, got {other:?}"),
++        }
++    }
++
++    // ==========================================================================
++    // Per-file archive fallback — archive format detection
++    // ==========================================================================
++
++    #[test]
++    fn archive_format_detects_supported_multi_file_archives() {
++        use crate::file::TarFormat;
++        assert_eq!(
++            archive_format_for_path(Path::new("tool-1.0.tar.gz")),
++            Some(TarFormat::TarGz)
++        );
++        assert_eq!(
++            archive_format_for_path(Path::new("tool-1.0.tgz")),
++            Some(TarFormat::TarGz)
++        );
++        assert_eq!(
++            archive_format_for_path(Path::new("tool-1.0.tar")),
++            Some(TarFormat::Tar)
++        );
++        assert_eq!(
++            archive_format_for_path(Path::new("tool-1.0.zip")),
++            Some(TarFormat::Zip)
++        );
++        assert_eq!(
++            archive_format_for_path(Path::new("ext.vsix")),
++            Some(TarFormat::Zip)
++        );
++        assert_eq!(
++            archive_format_for_path(Path::new("tool.tar.zst")),
++            Some(TarFormat::TarZst)
++        );
++    }
++
++    #[test]
++    fn archive_format_rejects_non_archive_paths() {
++        // Raw binaries, single-file compressions, and unknown extensions are not
++        // multi-file archives — the fallback must not attempt extraction on them.
++        // Returning None here is what makes verify_attestation_via_archive_contents
++        // short-circuit cleanly and surface NoAttestations to the caller.
++        assert_eq!(archive_format_for_path(Path::new("tool-linux-amd64")), None);
++        assert_eq!(archive_format_for_path(Path::new("tool.exe")), None);
++        assert_eq!(archive_format_for_path(Path::new("binary.gz")), None);
++        assert_eq!(archive_format_for_path(Path::new("binary.xz")), None);
++        assert_eq!(archive_format_for_path(Path::new("file")), None);
++        assert_eq!(archive_format_for_path(Path::new("")), None);
++    }
++
++    #[test]
++    fn archive_format_handles_paths_with_parent_directories() {
++        // File names are pulled from the final component, so download paths like
++        // /tmp/mise/downloads/x.tar.gz still detect correctly.
++        use crate::file::TarFormat;
++        assert_eq!(
++            archive_format_for_path(Path::new("/tmp/mise/downloads/x.tar.gz")),
++            Some(TarFormat::TarGz)
++        );
++    }
++
++    #[test]
++    fn archive_format_is_case_insensitive_on_extension() {
++        // TarFormat::from_file_name lowercases internally. Verify we benefit from that
++        // so a .TAR.GZ download (rare but seen in the wild) still triggers fallback.
++        use crate::file::TarFormat;
++        assert_eq!(
++            archive_format_for_path(Path::new("X.TAR.GZ")),
++            Some(TarFormat::TarGz)
++        );
++    }
++
++    // ==========================================================================
++    // Per-file archive fallback — file enumeration
++    //
++    // `list_regular_files` is what stands between "the archive contains a malicious
++    // symlink to /etc/passwd" and "we accidentally verified the host's shadow file".
++    // The symlink-skip cases below are the security-pinned ones.
++    // ==========================================================================
++
++    fn write_regular(path: &Path, contents: &[u8]) {
++        if let Some(parent) = path.parent() {
++            std::fs::create_dir_all(parent).unwrap();
++        }
++        std::fs::write(path, contents).unwrap();
++    }
++
++    #[test]
++    fn list_regular_files_empty_dir_returns_empty() {
++        let tmp = tempfile::tempdir().unwrap();
++        let files = list_regular_files(tmp.path()).unwrap();
++        assert!(files.is_empty(), "expected empty, got {files:?}");
++    }
++
++    #[test]
++    fn list_regular_files_walks_nested_subdirectories() {
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        write_regular(&root.join("top.txt"), b"a");
++        write_regular(&root.join("dir/mid.bin"), b"b");
++        write_regular(&root.join("dir/sub/deep.txt"), b"c");
++
++        let files = list_regular_files(root).unwrap();
++        let relative: Vec<String> = files
++            .iter()
++            .map(|p| p.strip_prefix(root).unwrap().display().to_string())
++            .collect();
++        assert_eq!(
++            relative,
++            vec![
++                "dir/mid.bin".to_string(),
++                "dir/sub/deep.txt".to_string(),
++                "top.txt".to_string(),
++            ],
++            "all regular files in nested directories must be enumerated"
++        );
++    }
++
++    #[test]
++    fn list_regular_files_excludes_directories_from_result() {
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        std::fs::create_dir_all(root.join("empty_dir")).unwrap();
++        std::fs::create_dir_all(root.join("dir_with_file")).unwrap();
++        write_regular(&root.join("dir_with_file/file"), b"x");
++
++        let files = list_regular_files(root).unwrap();
++        assert_eq!(files.len(), 1, "directories must not appear, got {files:?}");
++    }
++
++    #[test]
++    fn list_regular_files_includes_hidden_files() {
++        // The "every regular file" policy is strict by design. Hidden files
++        // (dotfiles, .DS_Store, etc.) must be included — an attacker hiding a
++        // smuggled binary as `.tool` would otherwise escape verification.
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        write_regular(&root.join(".hidden"), b"x");
++        write_regular(&root.join("dir/.also_hidden"), b"y");
++
++        let files = list_regular_files(root).unwrap();
++        assert_eq!(
++            files.len(),
++            2,
++            "hidden files must be verified, got {files:?}"
++        );
++    }
++
++    #[test]
++    fn list_regular_files_returns_sorted_output() {
++        // Sorted output keeps error messages deterministic across platforms and
++        // readdir() orderings. A test asserting "the error names bad1 before bad2"
++        // should not be at the mercy of filesystem ordering.
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        write_regular(&root.join("zzz"), b"1");
++        write_regular(&root.join("aaa"), b"2");
++        write_regular(&root.join("mmm"), b"3");
++
++        let files = list_regular_files(root).unwrap();
++        let names: Vec<String> = files
++            .iter()
++            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
++            .collect();
++        assert_eq!(names, vec!["aaa", "mmm", "zzz"]);
++    }
++
++    #[cfg(unix)]
++    #[test]
++    fn list_regular_files_skips_symlink_to_regular_file() {
++        // A symlink inside the archive could point at anything — including a file the
++        // publisher never signed. Skip it entirely; only regular-file bytes are
++        // eligible for verification.
++        use std::os::unix::fs::symlink;
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        write_regular(&root.join("target"), b"real");
++        symlink("target", root.join("link")).unwrap();
++
++        let files = list_regular_files(root).unwrap();
++        let names: Vec<String> = files
++            .iter()
++            .map(|p| p.file_name().unwrap().to_string_lossy().into_owned())
++            .collect();
++        assert_eq!(names, vec!["target"], "symlink must not be listed");
++    }
++
++    #[cfg(unix)]
++    #[test]
++    fn list_regular_files_does_not_recurse_through_symlinked_directory() {
++        // Same defense at directory granularity: a symlinked dir must not be followed,
++        // or an attacker's symlink could pull arbitrary external files into the
++        // verification set (or into an infinite loop).
++        use std::os::unix::fs::symlink;
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        // Real directory with one file
++        write_regular(&root.join("real/file_in_real"), b"a");
++        // Symlink pointing at the real directory
++        symlink("real", root.join("link_to_real")).unwrap();
++
++        let files = list_regular_files(root).unwrap();
++        // Should find exactly one file — not two (which would happen if we recursed
++        // through both real/ and the symlink).
++        assert_eq!(files.len(), 1, "symlinked dirs must not be traversed");
++    }
++
++    #[cfg(unix)]
++    #[test]
++    fn list_regular_files_terminates_on_symlink_loop() {
++        // Defensive: if a symlink loop somehow makes it onto disk (broken extractor,
++        // adversarial archive), the walk must terminate rather than spin.
++        use std::os::unix::fs::symlink;
++        let tmp = tempfile::tempdir().unwrap();
++        let root = tmp.path();
++        std::fs::create_dir_all(root.join("a")).unwrap();
++        symlink("../a", root.join("a/loop")).unwrap();
++        write_regular(&root.join("a/real_file"), b"x");
++
++        // If the walk followed the symlink, this would either hang or overflow. The
++        // assert just confirms it terminates and finds the one real file.
++        let files = list_regular_files(root).unwrap();
++        assert_eq!(files.len(), 1);
++    }
++
++    // ==========================================================================
++    // Per-file archive fallback — end-to-end extraction (no network)
++    //
++    // These tests exercise `extract_archive_members` against real archive bytes built
++    // in-memory. They stop short of `verify_attestation_blob` (which would hit the
++    // GitHub API); the orchestration that wires members to that call is exercised by
++    // the policy/mapping tests above.
++    // ==========================================================================
++
++    /// Build an in-memory tar.gz at `dest` containing the given (path, contents) pairs.
++    /// Uses the same flate2 + tar stack as `crate::file::untar` expects to consume.
++    fn build_tar_gz(dest: &Path, entries: &[(&str, &[u8])]) {
++        use flate2::Compression;
++        use flate2::write::GzEncoder;
++        let file = std::fs::File::create(dest).unwrap();
++        let gz = GzEncoder::new(file, Compression::default());
++        let mut builder = tar::Builder::new(gz);
++        for (name, contents) in entries {
++            let mut header = tar::Header::new_gnu();
++            header.set_size(contents.len() as u64);
++            header.set_mode(0o644);
++            header.set_entry_type(tar::EntryType::Regular);
++            header.set_cksum();
++            builder
++                .append_data(&mut header, *name, std::io::Cursor::new(*contents))
++                .unwrap();
++        }
++        builder.finish().unwrap();
++        builder.into_inner().unwrap().finish().unwrap();
++    }
++
++    /// Build an in-memory zip at `dest` containing the given (path, contents) pairs.
++    fn build_zip(dest: &Path, entries: &[(&str, &[u8])]) {
++        use std::io::Write;
++        let file = std::fs::File::create(dest).unwrap();
++        let mut zip = zip::ZipWriter::new(file);
++        let opts = zip::write::SimpleFileOptions::default();
++        for (name, contents) in entries {
++            zip.start_file(*name, opts).unwrap();
++            zip.write_all(contents).unwrap();
++        }
++        zip.finish().unwrap();
++    }
++
++    #[test]
++    fn extract_returns_not_an_archive_for_plain_binary() {
++        let tmp = tempfile::tempdir().unwrap();
++        let path = tmp.path().join("tool-linux-amd64");
++        std::fs::write(&path, b"this is a raw binary").unwrap();
++
++        match extract_archive_members(&path).unwrap() {
++            ExtractResult::NotAnArchive => {} // expected
++            ExtractResult::Extracted { .. } => {
++                panic!("raw binary must not be treated as an archive")
++            }
++        }
++    }
++
++    #[test]
++    fn extract_returns_not_an_archive_for_single_file_gzip() {
++        // A `.gz` of a single binary is `TarFormat::Gz`, which `is_archive()` reports
++        // as false. The fallback must skip it — there are no inner files to verify.
++        let tmp = tempfile::tempdir().unwrap();
++        let path = tmp.path().join("tool.gz");
++        std::fs::write(&path, b"not actually gzip, but filename says so").unwrap();
++
++        match extract_archive_members(&path).unwrap() {
++            ExtractResult::NotAnArchive => {}
++            ExtractResult::Extracted { .. } => panic!(".gz must not trigger per-file fallback"),
++        }
++    }
++
++    #[test]
++    fn extract_extracts_tar_gz_and_lists_every_regular_member() {
++        let tmp = tempfile::tempdir().unwrap();
++        let archive = tmp.path().join("release.tar.gz");
++        build_tar_gz(
++            &archive,
++            &[
++                ("bin/tool", b"binary"),
++                ("lib/libfoo.so", b"shared"),
++                ("README.md", b"docs"),
++            ],
++        );
++
++        let extracted = extract_archive_members(&archive).unwrap();
++        let ExtractResult::Extracted {
++            tmp: extracted_tmp,
++            members,
++        } = extracted
++        else {
++            panic!("tar.gz must extract");
++        };
++        let extracted_root = extracted_tmp.path();
++
++        let relative: Vec<String> = members
++            .iter()
++            .map(|p| {
++                p.strip_prefix(extracted_root)
++                    .unwrap()
++                    .display()
++                    .to_string()
++            })
++            .collect();
++        assert_eq!(
++            relative,
++            vec![
++                "README.md".to_string(),
++                "bin/tool".to_string(),
++                "lib/libfoo.so".to_string(),
++            ],
++            "members must be sorted and complete"
++        );
++
++        // Sanity: extraction wrote real bytes that match the archive. This proves
++        // verify_attestation_blob would be called against the correct content.
++        let tool_bytes = std::fs::read(extracted_root.join("bin/tool")).unwrap();
++        assert_eq!(tool_bytes, b"binary");
++    }
++
++    #[test]
++    fn extract_preserves_nested_layout_without_stripping() {
++        // strip_components must be 0 — the publisher signed the verbatim member bytes
++        // and member paths. If a future change silently strips the top dir, the
++        // member digests would shift and verification would (correctly) fail; this
++        // test pins the no-strip behavior so such a regression shows up here rather
++        // than as a mysterious verification failure in the field.
++        let tmp = tempfile::tempdir().unwrap();
++        let archive = tmp.path().join("release.tar.gz");
++        build_tar_gz(
++            &archive,
++            &[("tool-1.0/bin/tool", b"x"), ("tool-1.0/README", b"y")],
++        );
++
++        let extracted = extract_archive_members(&archive).unwrap();
++        let ExtractResult::Extracted {
++            tmp: extracted_tmp,
++            members,
++        } = extracted
++        else {
++            panic!("must extract");
++        };
++        let root = extracted_tmp.path();
++
++        let relative: Vec<String> = members
++            .iter()
++            .map(|p| p.strip_prefix(root).unwrap().display().to_string())
++            .collect();
++        assert_eq!(
++            relative,
++            vec![
++                "tool-1.0/README".to_string(),
++                "tool-1.0/bin/tool".to_string(),
++            ],
++            "no stripping — top-level dir must remain in the relative path"
++        );
++    }
++
++    #[test]
++    fn extract_handles_zip_archives() {
++        let tmp = tempfile::tempdir().unwrap();
++        let archive = tmp.path().join("release.zip");
++        build_zip(&archive, &[("bin/tool", b"x"), ("LICENSE", b"y")]);
++
++        let members = match extract_archive_members(&archive).unwrap() {
++            ExtractResult::Extracted { members, .. } => members,
++            ExtractResult::NotAnArchive => panic!("zip must extract"),
++        };
++        assert_eq!(members.len(), 2, "zip members must be enumerated");
++    }
++
++    #[test]
++    fn extract_errors_on_garbage_with_archive_extension() {
++        // Defense-in-depth: if an attacker serves bytes that look like a tar.gz by
++        // name but aren't, the fallback must surface a hard error rather than
++        // silently skipping verification. A silent skip would let an attacker bypass
++        // the fallback by shipping a corrupt archive.
++        let tmp = tempfile::tempdir().unwrap();
++        let path = tmp.path().join("evil.tar.gz");
++        std::fs::write(&path, b"definitely not a tarball").unwrap();
++
++        let err = extract_archive_members(&path).unwrap_err();
++        assert!(
++            matches!(err, AttestationError::UnsupportedFormat(_)),
++            "corrupt archive must surface UnsupportedFormat, got {err:?}"
++        );
++        let msg = err.to_string();
++        assert!(
++            msg.contains("evil.tar.gz"),
++            "error must name the archive, got: {msg}"
++        );
++    }
++
++    #[test]
++    fn extract_empty_archive_yields_empty_member_list() {
++        // An archive with no regular files (only a directory entry) is degenerate.
++        // The policy in `aggregate_archive_member_outcomes` would reject it as a hard
++        // error if reached, but extract_archive_members itself just reports the
++        // (empty) member list and lets the caller decide.
++        let tmp = tempfile::tempdir().unwrap();
++        let archive = tmp.path().join("empty.tar.gz");
++        // Build a tar.gz whose only entry is a directory header.
++        let file = std::fs::File::create(&archive).unwrap();
++        let gz = flate2::write::GzEncoder::new(file, flate2::Compression::default());
++        let mut builder = tar::Builder::new(gz);
++        let mut header = tar::Header::new_gnu();
++        header.set_size(0);
++        header.set_mode(0o755);
++        header.set_entry_type(tar::EntryType::Directory);
++        header.set_cksum();
++        builder
++            .append_data(&mut header, "only_dir/", std::io::empty())
++            .unwrap();
++        builder.finish().unwrap();
++        builder.into_inner().unwrap().finish().unwrap();
++
++        let members = match extract_archive_members(&archive).unwrap() {
++            ExtractResult::Extracted { members, .. } => members,
++            ExtractResult::NotAnArchive => panic!("must extract"),
++        };
++        assert!(
++            members.is_empty(),
++            "directory-only archive has no regular files"
++        );
++    }
++
++    // ==========================================================================
++    // Per-file archive fallback — display helper
++    // ==========================================================================
++
++    #[test]
++    fn relative_display_name_strips_root_prefix() {
++        let root = Path::new("/tmp/abc");
++        let member = Path::new("/tmp/abc/dir/file");
++        assert_eq!(relative_display_name(member, root), "dir/file");
++    }
++
++    #[test]
++    fn relative_display_name_falls_back_when_not_under_root() {
++        // Defensive: if a member somehow lives outside the temp root (shouldn't
++        // happen, but file::untar is third-party code), don't panic — show the
++        // absolute path so the error is still informative.
++        let root = Path::new("/tmp/abc");
++        let member = Path::new("/etc/passwd");
++        assert_eq!(relative_display_name(member, root), "/etc/passwd");
++    }
+ }

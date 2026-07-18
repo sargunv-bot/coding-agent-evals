@@ -40,6 +40,11 @@
       "artifacts": 7,
       "cell_id": "opencode-go__mimo-v2.5-pro__ce-04-maplibre-source-location__default__ask_user__r01",
       "run_id": "20260718T074538Z-ce-04-maplibre-source-location-718144-1784360738687259943"
+    },
+    {
+      "artifacts": 7,
+      "cell_id": "zai__glm-5.2__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "run_id": "20260718T083453Z-ce-05-mise-slsa-archive-948751-1784363693187556077"
     }
   ],
   "schema_version": 1

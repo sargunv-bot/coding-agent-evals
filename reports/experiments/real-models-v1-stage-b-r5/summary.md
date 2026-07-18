@@ -4,7 +4,7 @@
 
 | Cells | Passes | Infra errors | Input | Cached input | Output | Questions |
 |---:|---:|---:|---:|---:|---:|---:|
-| 8 | 2 | 0 | 880519 | 13602560 | 85486 | 0 |
+| 9 | 3 | 0 | 1024290 | 23200832 | 107138 | 1 |
 
 Provider-reported cost is retained when supplied, but token counts are the primary usage record.
 
@@ -20,3 +20,4 @@ Provider-reported cost is retained when supplied, but token counts are the prima
 | opencode-go | mimo-v2.5-pro | ce-02-horologia-overdue | — | ask_user | yes | 154756 | 1304256 | 11389 | 20260718T055551Z-ce-02-horologia-overdue-379857-1784354151696913454 |
 | opencode-go | mimo-v2.5-pro | ce-03-jvl-completions | — | ask_user | no | 182693 | 2066624 | 17815 | 20260718T064258Z-ce-03-jvl-completions-557802-1784356978037807600 |
 | opencode-go | mimo-v2.5-pro | ce-04-maplibre-source-location | — | ask_user | no | 196021 | 2646400 | 11968 | 20260718T074538Z-ce-04-maplibre-source-location-718144-1784360738687259943 |
+| zai | glm-5.2 | ce-05-mise-slsa-archive | — | ask_user | yes | 143771 | 9598272 | 21652 | 20260718T083453Z-ce-05-mise-slsa-archive-948751-1784363693187556077 |

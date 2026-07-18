@@ -428,6 +428,12 @@
       "agent_image_id": "8bf9ca123bd4bab9bbef2610a65cea21592506b3cecf1913174b241bb5f95edc",
       "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
       "task_image_id": "1d2edf8cf8e26addbfe43a302e81c8f9158d1d4d13098aa2e55461fd44687df4"
+    },
+    "ce-05-mise-slsa-archive": {
+      "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
+      "agent_image_id": "b01be2b60f54338a25101de7443cebb93dc06ac342d218a9bd54dbd731d57d11",
+      "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
+      "task_image_id": "f18df076fe7615abad723c22f3274a14d6ba5659b788dd446c40c2f2b8881b3f"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r5.toml",
