@@ -19,13 +19,14 @@ symbol_text = symbol_header.read_text()
 def capture_macro(source: str):
     return next(
         (
-            (name, body)
-            for name, body in re.findall(
-                r"^\s*#\s*define\s+([A-Z][A-Z0-9_]*)\s+([^\\\n]+)",
+            (f"{name}()" if parameters else name, body)
+            for name, parameters, body in re.findall(
+                r"^\s*#\s*define[ \t]+([A-Z][A-Z0-9_]*)(\([ \t]*\))?[ \t]+([^\\\n]+)",
                 source,
                 re.MULTILINE,
             )
-            if "source_location" in body and ("current" in body or "__FILE__" in body)
+            if "sourcelocation" in body.lower().replace("_", "")
+            and ("current" in body or "__FILE__" in body)
         ),
         None,
     )
@@ -35,8 +36,8 @@ header_capture = capture_macro(text)
 capture = header_capture or capture_macro(symbol_text)
 if capture is None:
     raise SystemExit("missing call-site source-location capture abstraction")
-capture_name, capture_expression = capture
-capture_value = capture_name if header_capture else capture_expression
+capture_invocation, capture_expression = capture
+capture_value = capture_invocation if header_capture else capture_expression
 (Path("/tmp/ce04") / "current_macro.hpp").write_text(
     f"#define CAE_CURRENT_SOURCE_LOCATION {capture_value}\n"
 )
