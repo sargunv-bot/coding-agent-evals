@@ -1,0 +1,1 @@
+alternative archive verifier rejected: hard-link archive members are not explicitly rejected

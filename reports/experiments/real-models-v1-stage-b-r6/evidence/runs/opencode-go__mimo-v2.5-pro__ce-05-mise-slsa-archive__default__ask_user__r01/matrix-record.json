@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 1416.956967,
+        "endpoint_host": "opencode.ai",
+        "finished_at": "2026-07-18T19:21:20.599290+00:00",
+        "instruction_mode": "ask_user",
+        "model": "mimo-v2.5-pro",
+        "model_config_sha256": "8ac3ea805e0bbf8649f1a5b59f30060b9d909e2872b7fbd3579014d365bdceae",
+        "patch_path": "model.patch",
+        "provider": "opencode-go",
+        "run_id": "20260718T185753Z-ce-05-mise-slsa-archive-2728706-1784401073092535685",
+        "scenario": null,
+        "started_at": "2026-07-18T18:57:43.642335+00:00",
+        "task_id": "ce-05-mise-slsa-archive",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 5010496,
+          "input_tokens": 224435,
+          "output_tokens": 22351,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 0
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 0.18405498599167913,
+          "exit_code": 101,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "archive_safety": 0,
+            "fail_closed": 0,
+            "reward": 0,
+            "subject_coverage": 0
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-05-mise-slsa-archive"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "opencode-go__mimo-v2.5-pro__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "mimo-v2.5-pro",
+    "provider": "opencode-go",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  },
+  "experiment_id": "real-models-v1-stage-b-r6",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-18T19:21:20.850314+00:00"
+}
