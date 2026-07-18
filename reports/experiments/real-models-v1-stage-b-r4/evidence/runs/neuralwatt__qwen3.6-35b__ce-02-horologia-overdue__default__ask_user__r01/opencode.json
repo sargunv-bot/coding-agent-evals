@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "cae": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "neuralwatt",
+      "options": {
+        "baseURL": "https://api.neuralwatt.com/v1",
+        "apiKey": "{env:CAE_PROVIDER_API_KEY}"
+      },
+      "models": {
+        "qwen3.6-35b": {
+          "name": "qwen3.6-35b"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "proctor": {
+      "type": "local",
+      "command": [
+        "/opt/cae/proctor-mcp"
+      ],
+      "enabled": true
+    }
+  }
+}

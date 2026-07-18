@@ -1,0 +1,37 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..e69261537b724c5c6a48a8c994d0a9a0428945dd 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >/dev/null
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..e77e978d3bf8f6c76a36f6e37279bfb25b2b3e4c 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -95,6 +95,19 @@ Clone a missing plugin.
+ %
+ ```
+ 
++Regression: git wrapper stdout leak into generated plugin script.
++
++A git wrapper on PATH that writes progress to stdout even with
++`git --quiet` must not corrupt generated plugin scripts.
++
++```zsh
++% function git() { local a; for a in "$@"; do [[ "$a" = "clone" ]] && { mockgit "$@" && echo "LEAKED: progress"; return; }; done; mockgit "$@"; }
++% antidote-script --kind clone bar/foo 2>/dev/null
++%
++% function git { mockgit "$@" }
++%
++```
++
+ ### kind:zsh
+ 
+ ```zsh

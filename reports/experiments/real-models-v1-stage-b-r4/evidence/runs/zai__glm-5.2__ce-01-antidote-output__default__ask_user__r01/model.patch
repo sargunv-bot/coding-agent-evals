@@ -1,0 +1,42 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..2efa9846fb7b9726f98568ca03e552cd480cce69 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >&2
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..df624ba0944ff3b4410bbb32587e361cc573d6db 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -95,6 +95,24 @@ Clone a missing plugin.
+ %
+ ```
+ 
++### kind:clone with a noisy git wrapper
++
++A git wrapper on PATH may write progress to stdout even with `--quiet`. That
++output must not leak into the generated script, while real diagnostics must
++remain visible on stderr.
++
++```zsh
++% function git { [[ $1 == clone ]] && print "NOISY-GIT: progress leaked to stdout"; mockgit "$@" }
++% antidote-script fakeuser/fakerepo 2>/dev/null | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++% antidote-script --kind clone bar/zzz 2>&1 1>/dev/null
++# antidote cloning bar/zzz...
++NOISY-GIT: progress leaked to stdout
++% t_reset
++%
++```
++
+ ### kind:zsh
+ 
+ ```zsh

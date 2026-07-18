@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/tests/verify_workflow.py", line 266, in <module>
+    main()
+    ~~~~^^
+  File "/tests/verify_workflow.py", line 252, in main
+    validate_workflow(fixture)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/tests/verify_workflow.py", line 224, in validate_workflow
+    policy = workflow_policy(document)
+  File "/tests/verify_workflow.py", line 150, in workflow_policy
+    if isinstance(step, dict) and enabled(step, row)
+                                  ~~~~~~~^^^^^^^^^^^
+  File "/tests/verify_workflow.py", line 126, in enabled
+    raise AssertionError(f"generated variant step retains procedural condition: {condition}")
+AssertionError: generated variant step retains procedural condition: ${{ startsWith(matrix.mise_env, 'ios-') }}

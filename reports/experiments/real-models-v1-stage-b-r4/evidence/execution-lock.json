@@ -1,0 +1,620 @@
+{
+  "benchmark_commit": "eff7859ff59ce22707b4be7721658497a4745a97",
+  "cells": [
+    {
+      "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-02-horologia-overdue__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-03-jvl-completions__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-04-maplibre-source-location__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "zai__glm-5.2__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-01-antidote-output__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-02-horologia-overdue__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-03-jvl-completions__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-04-maplibre-source-location__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "neuralwatt__qwen3.6-35b__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-01-antidote-output__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-02-horologia-overdue__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-03-jvl-completions__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-04-maplibre-source-location__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-01-antidote-output__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-02-horologia-overdue__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-03-jvl-completions__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-04-maplibre-source-location__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-01-antidote-output__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-02-horologia-overdue__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-03-jvl-completions__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-04-maplibre-source-location__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-05-mise-slsa-archive__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "initial_clarification": null,
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    }
+  ],
+  "created_at": "2026-07-18T03:38:12.768863+00:00",
+  "experiment_id": "real-models-v1-stage-b-r4",
+  "images": {
+    "ce-04-maplibre-source-location": {
+      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
+      "agent_image_id": "c6fa85bf3baa4c517ead039a2bbf5b21c37ba8fb220e25d00fcc7246511f0b7f",
+      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
+      "task_image_id": "35641ce29c64973f1415b2f6ae5e19e469254c25bcbab3cb21f8aa8c176e2ad9"
+    }
+  },
+  "manifest_path": "experiments/real-models-v1-stage-b-r4.toml",
+  "manifest_sha256": "5fedf7fd69f08b92bc84e9054041689f7a11660d5bd6f87e6256c160e0c765c9",
+  "model_configs": [
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+          "proctor": {
+            "command": [
+              "/opt/cae/proctor-mcp"
+            ],
+            "enabled": true,
+            "type": "local"
+          }
+        },
+        "provider": {
+          "cae": {
+            "models": {
+              "glm-5.2": {
+                "name": "glm-5.2"
+              }
+            },
+            "name": "zai",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://api.z.ai/api/coding/paas/v4"
+            }
+          }
+        }
+      },
+      "mode": "ask_user",
+      "model": "glm-5.2",
+      "provider": "zai",
+      "sha256": "ee7c2148bd52a51f1eac52051ca8f86e9665a6cd8d33d6b5489b0f0d1f5f80dc"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+          "proctor": {
+            "command": [
+              "/opt/cae/proctor-mcp"
+            ],
+            "enabled": true,
+            "type": "local"
+          }
+        },
+        "provider": {
+          "cae": {
+            "models": {
+              "qwen3.6-35b": {
+                "name": "qwen3.6-35b"
+              }
+            },
+            "name": "neuralwatt",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://api.neuralwatt.com/v1"
+            }
+          }
+        }
+      },
+      "mode": "ask_user",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt",
+      "sha256": "595e70cd5ce37b64021c6e2dc0d072800e0d0c0b1ef35a413c8eaa6a8eeb9738"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+          "proctor": {
+            "command": [
+              "/opt/cae/proctor-mcp"
+            ],
+            "enabled": true,
+            "type": "local"
+          }
+        },
+        "provider": {
+          "cae": {
+            "models": {
+              "kimi-k2.7-code": {
+                "name": "kimi-k2.7-code"
+              }
+            },
+            "name": "opencode-go",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://opencode.ai/zen/go/v1"
+            }
+          }
+        }
+      },
+      "mode": "ask_user",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "sha256": "2a4aec7d83a5b80c127745ce1408bc5a46a87fd9af67ea2d9f0fa5faf36bac39"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+          "proctor": {
+            "command": [
+              "/opt/cae/proctor-mcp"
+            ],
+            "enabled": true,
+            "type": "local"
+          }
+        },
+        "provider": {
+          "cae": {
+            "models": {
+              "mimo-v2.5-pro": {
+                "name": "mimo-v2.5-pro"
+              }
+            },
+            "name": "opencode-go",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://opencode.ai/zen/go/v1"
+            }
+          }
+        }
+      },
+      "mode": "ask_user",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "sha256": "76c9d5b40b7e7cf1e4c798835a5ede6b0b28c617b22312d4abd48aafaa4329a9"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "mcp": {
+          "proctor": {
+            "command": [
+              "/opt/cae/proctor-mcp"
+            ],
+            "enabled": true,
+            "type": "local"
+          }
+        },
+        "provider": {
+          "cae": {
+            "models": {
+              "deepseek-v4-pro": {
+                "name": "deepseek-v4-pro"
+              }
+            },
+            "name": "opencode-go",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://opencode.ai/zen/go/v1"
+            }
+          }
+        }
+      },
+      "mode": "ask_user",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go",
+      "sha256": "c90b95c8f657306c7260036d1e74b230c86892822a441286a16e3405b7e76808"
+    }
+  ],
+  "opencode_version": "1.18.2",
+  "proctor_model": "openai/gpt-5.6-sol",
+  "routes": [
+    {
+      "api_key_env": "GLM_API_KEY",
+      "endpoint_host": "api.z.ai",
+      "model": "glm-5.2",
+      "provider": "zai"
+    },
+    {
+      "api_key_env": "NEURALWATT_API_KEY",
+      "endpoint_host": "api.neuralwatt.com",
+      "model": "qwen3.6-35b",
+      "provider": "neuralwatt"
+    },
+    {
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "endpoint_host": "opencode.ai",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go"
+    },
+    {
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "endpoint_host": "opencode.ai",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go"
+    },
+    {
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "endpoint_host": "opencode.ai",
+      "model": "deepseek-v4-pro",
+      "provider": "opencode-go"
+    }
+  ],
+  "schema_version": 1,
+  "stage": "breadth"
+}
