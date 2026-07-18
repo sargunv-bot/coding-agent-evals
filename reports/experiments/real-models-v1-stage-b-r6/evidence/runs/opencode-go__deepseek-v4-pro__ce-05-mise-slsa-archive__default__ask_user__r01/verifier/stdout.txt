@@ -1,0 +1,128 @@
+alternative archive verifier rejected: the GitHub backend does not reach an archive-aware verifier
+   Compiling futures-util v0.3.32
+   Compiling indexmap v2.14.0
+   Compiling tokio-util v0.7.18
+   Compiling regex-automata v0.4.14
+   Compiling zstd-sys v2.0.16+zstd.1.5.7
+   Compiling h2 v0.4.14
+   Compiling tower v0.5.3
+   Compiling hyper v1.9.0
+   Compiling tower-http v0.6.10
+   Compiling futures-executor v0.3.32
+   Compiling globset v0.4.18
+   Compiling futures v0.3.32
+   Compiling lzma-sys v0.1.20
+   Compiling hyper-util v0.1.20
+   Compiling zstd-safe v7.2.4
+   Compiling zlib-rs v0.6.3
+   Compiling regex v1.12.3
+   Compiling xattr v1.6.1
+   Compiling hyper-rustls v0.27.9
+   Compiling reqwest v0.13.3
+   Compiling reqwest v0.12.28
+   Compiling tough v0.22.0
+   Compiling sigstore-rekor v0.7.0
+   Compiling sigstore-tsa v0.7.0
+   Compiling flate2 v1.1.9
+   Compiling sigstore-bundle v0.7.0
+   Compiling assert-json-diff v2.0.2
+   Compiling filetime v0.2.28
+   Compiling similar v2.7.0
+   Compiling zip v8.6.0
+   Compiling sigstore-trust-root v0.7.0
+   Compiling mockito v1.7.2
+   Compiling sigstore-verify v0.7.0
+   Compiling tar v0.4.45
+   Compiling xz2 v0.1.7
+   Compiling zstd v0.13.3
+   Compiling mise-sigstore v0.1.0 (/app/crates/mise-sigstore)
+error[E0433]: failed to resolve: use of undeclared type `SlsaArtifact`
+    --> crates/mise-sigstore/src/lib.rs:1805:21
+     |
+1805 |         let first = SlsaArtifact::from_bytes("bin/tool".into(), b"tool");
+     |                     ^^^^^^^^^^^^ use of undeclared type `SlsaArtifact`
+
+error[E0433]: failed to resolve: use of undeclared type `SlsaArtifact`
+    --> crates/mise-sigstore/src/lib.rs:1806:22
+     |
+1806 |         let second = SlsaArtifact::from_bytes("README.md".into(), b"docs");
+     |                      ^^^^^^^^^^^^ use of undeclared type `SlsaArtifact`
+
+error[E0425]: cannot find function `verify_intoto_payload_subjects` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1811:9
+     |
+ 813 | fn verify_intoto_payload(payload: &[u8], artifact: &[u8], min_level: u8) -> Result<()> {
+     | -------------------------------------------------------------------------------------- similarly named function `verify_intoto_payload` defined here
+...
+1811 |         verify_intoto_payload_subjects(&complete, &[first.clone(), second.clone()], 1).unwrap();
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `verify_intoto_payload`
+
+error[E0425]: cannot find function `verify_intoto_payload_subjects` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1816:21
+     |
+ 813 | fn verify_intoto_payload(payload: &[u8], artifact: &[u8], min_level: u8) -> Result<()> {
+     | -------------------------------------------------------------------------------------- similarly named function `verify_intoto_payload` defined here
+...
+1816 |         let error = verify_intoto_payload_subjects(&partial, &[first.clone(), second.clone()], 1)
+     |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `verify_intoto_payload`
+
+error[E0425]: cannot find function `is_slsa_subject_mismatch` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1818:17
+     |
+1818 |         assert!(is_slsa_subject_mismatch(&error));
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function `verify_intoto_payload_subjects` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1825:17
+     |
+ 813 | fn verify_intoto_payload(payload: &[u8], artifact: &[u8], min_level: u8) -> Result<()> {
+     | -------------------------------------------------------------------------------------- similarly named function `verify_intoto_payload` defined here
+...
+1825 |         assert!(verify_intoto_payload_subjects(&wrong_name, &[first, second], 1).is_err());
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `verify_intoto_payload`
+
+error[E0599]: no variant or associated item named `SubjectMismatch` found for enum `AttestationError` in the current scope
+    --> crates/mise-sigstore/src/lib.rs:1830:61
+     |
+  19 | pub enum AttestationError {
+     | ------------------------- variant or associated item `SubjectMismatch` not found for this enum
+...
+1830 |         assert!(is_slsa_subject_mismatch(&AttestationError::SubjectMismatch("x".into())));
+     |                                                             ^^^^^^^^^^^^^^^ variant or associated item not found in `AttestationError`
+
+error[E0425]: cannot find function `is_slsa_subject_mismatch` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1830:17
+     |
+1830 |         assert!(is_slsa_subject_mismatch(&AttestationError::SubjectMismatch("x".into())));
+     |                 ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function `is_slsa_subject_mismatch` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1831:18
+     |
+1831 |         assert!(!is_slsa_subject_mismatch(&AttestationError::Verification("bad signature".into())));
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0425]: cannot find function `is_slsa_subject_mismatch` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1832:18
+     |
+1832 |         assert!(!is_slsa_subject_mismatch(&AttestationError::UnsupportedFormat("json".into())));
+     |                  ^^^^^^^^^^^^^^^^^^^^^^^^ not found in this scope
+
+error[E0433]: failed to resolve: use of undeclared type `SlsaArtifact`
+    --> crates/mise-sigstore/src/lib.rs:1837:24
+     |
+1837 |         let artifact = SlsaArtifact::from_bytes("bin/tool".into(), b"tool");
+     |                        ^^^^^^^^^^^^ use of undeclared type `SlsaArtifact`
+
+error[E0425]: cannot find function `verify_intoto_payload_subjects` in this scope
+    --> crates/mise-sigstore/src/lib.rs:1842:9
+     |
+ 813 | fn verify_intoto_payload(payload: &[u8], artifact: &[u8], min_level: u8) -> Result<()> {
+     | -------------------------------------------------------------------------------------- similarly named function `verify_intoto_payload` defined here
+...
+1842 |         verify_intoto_payload_subjects(&payload, &[artifact], 1).unwrap();
+     |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: a function with a similar name exists: `verify_intoto_payload`
+
+Some errors have detailed explanations: E0425, E0433, E0599.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `mise-sigstore` (lib test) due to 12 previous errors

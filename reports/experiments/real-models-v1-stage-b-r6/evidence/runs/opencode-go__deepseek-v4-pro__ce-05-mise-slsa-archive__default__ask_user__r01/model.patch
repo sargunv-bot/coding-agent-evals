@@ -1,0 +1,686 @@
+diff --git a/Cargo.lock b/Cargo.lock
+index f4d086981c96aaf09fc2b60b0f6727ce63cebfa3..5b724fb312cc422c4a64fd98fce6c4f8cfc91ce1 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -5487,7 +5487,10 @@ version = "0.1.0"
+ dependencies = [
+  "async-trait",
+  "base64 0.22.1",
++ "bzip2 0.6.1",
++ "flate2",
+  "hex",
++ "mockito",
+  "reqwest 0.13.3",
+  "rustls-pki-types",
+  "rustls-webpki 0.103.13",
+@@ -5496,9 +5499,14 @@ dependencies = [
+  "sha2 0.11.0",
+  "sigstore-verify",
+  "snap",
++ "tar",
++ "tempfile",
+  "thiserror 2.0.18",
+  "tokio",
+  "x509-cert",
++ "xz2",
++ "zip 8.6.0",
++ "zstd",
+ ]
+ 
+ [[package]]
+diff --git a/crates/mise-sigstore/Cargo.toml b/crates/mise-sigstore/Cargo.toml
+index b736ac43f4c41fc6d4cedd0f2fc90737e5dbff19..11d86d17634e2b53b4ab8c45663ffa0bf086f17d 100644
+--- a/crates/mise-sigstore/Cargo.toml
++++ b/crates/mise-sigstore/Cargo.toml
+@@ -33,6 +33,13 @@ rustls-webpki = { version = "0.103", default-features = false, features = [
+   "aws-lc-rs",
+ ] }
+ rustls-pki-types = "1"
++tempfile = "3"
++tar = "0.4"
++flate2 = "1"
++bzip2 = "0.6"
++xz2 = "0.1"
++zstd = "0.13"
++zip = { version = "8", default-features = false, features = ["deflate"] }
+ 
+ [features]
+ default = ["rustls"]
+@@ -42,3 +49,7 @@ native-tls = [
+   "sigstore-verify/tuf",
+ ]
+ rustls = ["reqwest/rustls", "sigstore-verify/rustls", "sigstore-verify/tuf"]
++
++[dev-dependencies]
++mockito = "1"
++tokio = { version = "1", features = ["fs", "io-util", "rt", "macros"] }
+diff --git a/crates/mise-sigstore/src/lib.rs b/crates/mise-sigstore/src/lib.rs
+index 20a9047f1b5e1ac1c37ab5f5dbf46c0441a534a6..675c3621835e015976a05b8c2357a4ce49b737d7 100644
+--- a/crates/mise-sigstore/src/lib.rs
++++ b/crates/mise-sigstore/src/lib.rs
+@@ -1,4 +1,5 @@
+-use std::path::Path;
++use std::io::Read;
++use std::path::{Path, PathBuf};
+ 
+ use async_trait::async_trait;
+ use base64::Engine;
+@@ -304,6 +305,118 @@ impl AttestationClient {
+     }
+ }
+ 
++fn is_archive_by_extension(path: &Path) -> bool {
++    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
++    let name_lower = name.to_lowercase();
++
++    name_lower.ends_with(".tar.gz")
++        || name_lower.ends_with(".tgz")
++        || name_lower.ends_with(".tar.bz2")
++        || name_lower.ends_with(".tbz2")
++        || name_lower.ends_with(".tar.xz")
++        || name_lower.ends_with(".txz")
++        || name_lower.ends_with(".tar.zst")
++        || name_lower.ends_with(".tzst")
++        || name_lower.ends_with(".tar")
++        || name_lower.ends_with(".zip")
++}
++
++fn collect_files(dir: &Path, files: &mut Vec<PathBuf>) -> Result<()> {
++    for entry in std::fs::read_dir(dir)? {
++        let entry = entry?;
++        let path = entry.path();
++        if path.is_symlink() {
++            continue;
++        }
++        if path.is_dir() {
++            collect_files(&path, files)?;
++        } else if path.is_file() {
++            files.push(path);
++        }
++    }
++    Ok(())
++}
++
++fn extract_tar_to(archive: &Path, dest: &Path) -> Result<()> {
++    let file = std::fs::File::open(archive)?;
++    let name = archive.file_name().and_then(|n| n.to_str()).unwrap_or("");
++    let name_lower = name.to_lowercase();
++
++    let reader: Box<dyn Read> = if name_lower.ends_with(".tar.gz") || name_lower.ends_with(".tgz") {
++        Box::new(flate2::read::GzDecoder::new(file))
++    } else if name_lower.ends_with(".tar.bz2") || name_lower.ends_with(".tbz2") {
++        Box::new(bzip2::read::BzDecoder::new(file))
++    } else if name_lower.ends_with(".tar.xz") || name_lower.ends_with(".txz") {
++        Box::new(xz2::read::XzDecoder::new(file))
++    } else if name_lower.ends_with(".tar.zst") || name_lower.ends_with(".tzst") {
++        Box::new(zstd::stream::read::Decoder::new(file)?)
++    } else {
++        Box::new(file)
++    };
++
++    let mut archive = tar::Archive::new(reader);
++    for entry in archive.entries()? {
++        let entry = entry?;
++        if !matches!(
++            entry.header().entry_type(),
++            tar::EntryType::Regular | tar::EntryType::Continuous
++        ) {
++            continue;
++        }
++        let mut entry = entry;
++        entry.unpack_in(dest)?;
++    }
++
++    Ok(())
++}
++
++fn extract_zip_to(archive: &Path, dest: &Path) -> Result<()> {
++    let file = std::fs::File::open(archive)?;
++    let mut zip = zip::ZipArchive::new(file)
++        .map_err(|e| AttestationError::Api(format!("failed to open zip archive: {e}")))?;
++
++    for i in 0..zip.len() {
++        let mut entry = zip
++            .by_index(i)
++            .map_err(|e| AttestationError::Api(format!("failed to read zip entry: {e}")))?;
++        if entry.is_dir() || entry.is_symlink() {
++            continue;
++        }
++        let out_path = match entry.enclosed_name() {
++            Some(p) => dest.join(p),
++            None => continue,
++        };
++        if let Some(parent) = out_path.parent() {
++            std::fs::create_dir_all(parent)?;
++        }
++        let mut out = std::fs::File::create(&out_path)?;
++        std::io::copy(&mut entry, &mut out)?;
++    }
++
++    Ok(())
++}
++
++fn extract_archive_to_temp(archive: &Path) -> Result<(tempfile::TempDir, Vec<PathBuf>)> {
++    let tmp = tempfile::tempdir()?;
++
++    let name = archive.file_name().and_then(|n| n.to_str()).unwrap_or("");
++    let name_lower = name.to_lowercase();
++
++    if name_lower.ends_with(".zip") {
++        extract_zip_to(archive, tmp.path())?;
++    } else {
++        extract_tar_to(archive, tmp.path())?;
++    }
++
++    let mut files = Vec::new();
++    let _ = collect_files(tmp.path(), &mut files);
++
++    const MAX_FILES: usize = 20;
++    files.truncate(MAX_FILES);
++
++    Ok((tmp, files))
++}
++
+ pub async fn verify_github_attestation(
+     artifact_path: &Path,
+     owner: &str,
+@@ -360,13 +473,76 @@ async fn verify_github_attestation_inner(
+         })
+         .await?;
+ 
+-    if attestations.is_empty() {
+-        return Err(AttestationError::NoAttestations);
++    if !attestations.is_empty() {
++        let artifact = tokio::fs::read(artifact_path).await?;
++        let mut trust_roots = TrustRoots::default();
++        return verify_attestation_bundles(
++            &attestations,
++            &artifact,
++            signer_workflow,
++            &mut trust_roots,
++        )
++        .await;
+     }
+ 
+-    let artifact = tokio::fs::read(artifact_path).await?;
+-    let mut trust_roots = TrustRoots::default();
+-    verify_attestation_bundles(&attestations, &artifact, signer_workflow, &mut trust_roots).await
++    if is_archive_by_extension(artifact_path) {
++        return verify_files_in_archive(artifact_path, &client, owner, repo).await;
++    }
++
++    Err(AttestationError::NoAttestations)
++}
++
++async fn verify_files_in_archive(
++    archive_path: &Path,
++    client: &AttestationClient,
++    owner: &str,
++    repo: &str,
++) -> Result<bool> {
++    let (_tmp, files) = extract_archive_to_temp(archive_path)?;
++
++    let mut any_verified = false;
++    let mut any_attestations_found = false;
++
++    for file_path in &files {
++        let file_digest = calculate_file_digest_async(file_path).await?;
++        let file_attestations = client
++            .fetch_attestations(FetchParams {
++                owner: owner.to_string(),
++                repo: Some(format!("{owner}/{repo}")),
++                digest: format!("sha256:{file_digest}"),
++                limit: 30,
++                predicate_type: None,
++            })
++            .await?;
++
++        if file_attestations.is_empty() {
++            continue;
++        }
++        any_attestations_found = true;
++
++        let file_bytes = tokio::fs::read(file_path).await?;
++        let mut trust_roots = TrustRoots::default();
++        match verify_attestation_bundles(&file_attestations, &file_bytes, None, &mut trust_roots)
++            .await
++        {
++            Ok(true) => {
++                any_verified = true;
++                break;
++            }
++            Ok(false) => continue,
++            Err(_) => continue,
++        }
++    }
++
++    if any_verified {
++        return Ok(true);
++    }
++    if any_attestations_found {
++        return Err(AttestationError::Verification(
++            "Found attestations for archive contents but verification failed".to_string(),
++        ));
++    }
++    Err(AttestationError::NoAttestations)
+ }
+ 
+ pub async fn verify_cosign_signature(
+@@ -1196,4 +1372,417 @@ ignature1234567890123456789012345678901234567890Aa==\n\
+             "expected chain validation failure, got {err}"
+         );
+     }
++
++    mod archive_fallback {
++        use super::*;
++        use flate2::Compression;
++        use flate2::write::GzEncoder;
++        use std::io::Write;
++
++        fn create_test_tar_gz(path: &Path, files: &[(&str, &[u8])]) {
++            let file = std::fs::File::create(path).unwrap();
++            let enc = GzEncoder::new(file, Compression::default());
++            let mut tar = tar::Builder::new(enc);
++            for (name, content) in files {
++                let mut header = tar::Header::new_gnu();
++                header.set_path(name).unwrap();
++                header.set_size(content.len() as u64);
++                header.set_cksum();
++                tar.append(&header, &content[..]).unwrap();
++            }
++            let enc = tar.into_inner().unwrap();
++            enc.finish().unwrap();
++        }
++
++        fn create_test_zip(path: &Path, files: &[(&str, &[u8])]) {
++            let file = std::fs::File::create(path).unwrap();
++            let mut zip = zip::ZipWriter::new(file);
++            let options = zip::write::FileOptions::<()>::default()
++                .compression_method(zip::CompressionMethod::Deflated);
++            for (name, content) in files {
++                zip.start_file(*name, options).unwrap();
++                zip.write_all(content).unwrap();
++            }
++            zip.finish().unwrap();
++        }
++
++        #[test]
++        fn is_archive_recognizes_archive_extensions() {
++            assert!(is_archive_by_extension(Path::new("tool.tar.gz")));
++            assert!(is_archive_by_extension(Path::new("tool.tgz")));
++            assert!(is_archive_by_extension(Path::new("tool.tar.bz2")));
++            assert!(is_archive_by_extension(Path::new("tool.tbz2")));
++            assert!(is_archive_by_extension(Path::new("tool.tar.xz")));
++            assert!(is_archive_by_extension(Path::new("tool.txz")));
++            assert!(is_archive_by_extension(Path::new("tool.tar.zst")));
++            assert!(is_archive_by_extension(Path::new("tool.tzst")));
++            assert!(is_archive_by_extension(Path::new("tool.tar")));
++            assert!(is_archive_by_extension(Path::new("tool.zip")));
++            assert!(is_archive_by_extension(Path::new("TOOL.TAR.GZ")));
++        }
++
++        #[test]
++        fn is_archive_rejects_non_archive_extensions() {
++            assert!(!is_archive_by_extension(Path::new("tool")));
++            assert!(!is_archive_by_extension(Path::new("tool.gz")));
++            assert!(!is_archive_by_extension(Path::new("tool.bz2")));
++            assert!(!is_archive_by_extension(Path::new("tool.xz")));
++            assert!(!is_archive_by_extension(Path::new("tool.zst")));
++            assert!(!is_archive_by_extension(Path::new("tool.bin")));
++            assert!(!is_archive_by_extension(Path::new("tool.exe")));
++            assert!(!is_archive_by_extension(Path::new("tool.dmg")));
++            assert!(!is_archive_by_extension(Path::new("")));
++        }
++
++        #[test]
++        fn extract_tar_gz_collects_regular_files() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("test.tar.gz");
++            create_test_tar_gz(
++                &archive_path,
++                &[
++                    ("binary", b"#!/bin/sh\necho hello\n"),
++                    ("README.md", b"Test\n"),
++                ],
++            );
++
++            let (_extracted_dir, files) = extract_archive_to_temp(&archive_path).unwrap();
++            assert_eq!(files.len(), 2);
++
++            let mut names: Vec<String> = files
++                .iter()
++                .map(|p| p.file_name().unwrap().to_str().unwrap().to_string())
++                .collect();
++            names.sort();
++            assert_eq!(names, vec!["README.md", "binary"]);
++
++            let readme = files.iter().find(|p| p.ends_with("README.md")).unwrap();
++            assert_eq!(std::fs::read_to_string(readme).unwrap(), "Test\n");
++        }
++
++        #[test]
++        fn extract_tar_gz_with_top_level_dir_collects_nested_files() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("nested.tar.gz");
++
++            let file = std::fs::File::create(&archive_path).unwrap();
++            let enc = GzEncoder::new(file, Compression::default());
++            let mut tar = tar::Builder::new(enc);
++            for (path, content) in &[
++                ("tool-1.0.0/binary", b"binary\n" as &[u8]),
++                ("tool-1.0.0/sub/deep", b"deep\n"),
++            ] {
++                let mut header = tar::Header::new_gnu();
++                header.set_path(path).unwrap();
++                header.set_size(content.len() as u64);
++                header.set_cksum();
++                tar.append(&header, &content[..]).unwrap();
++            }
++            let enc = tar.into_inner().unwrap();
++            enc.finish().unwrap();
++
++            let (_extracted_dir, files) = extract_archive_to_temp(&archive_path).unwrap();
++            assert_eq!(files.len(), 2);
++
++            let mut names: Vec<String> = files
++                .iter()
++                .map(|p| p.file_name().unwrap().to_str().unwrap().to_string())
++                .collect();
++            names.sort();
++            assert_eq!(names, vec!["binary", "deep"]);
++        }
++
++        #[test]
++        fn extract_zip_collects_files() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("test.zip");
++            create_test_zip(
++                &archive_path,
++                &[("tool", b"binary content\n"), ("LICENSE", b"MIT\n")],
++            );
++
++            let (_extracted_dir, files) = extract_archive_to_temp(&archive_path).unwrap();
++            assert_eq!(files.len(), 2);
++
++            let tool_path = files.iter().find(|p| p.ends_with("tool")).unwrap();
++            assert_eq!(
++                std::fs::read_to_string(tool_path).unwrap(),
++                "binary content\n"
++            );
++        }
++
++        #[test]
++        fn extract_archive_truncates_file_list() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("many.tar.gz");
++
++            let file = std::fs::File::create(&archive_path).unwrap();
++            let enc = GzEncoder::new(file, Compression::default());
++            let mut tar = tar::Builder::new(enc);
++            for i in 0..25 {
++                let name = format!("file_{i}");
++                let content = format!("content {i}\n");
++                let mut header = tar::Header::new_gnu();
++                header.set_path(&name).unwrap();
++                header.set_size(content.len() as u64);
++                header.set_cksum();
++                tar.append(&header, content.as_bytes()).unwrap();
++            }
++            let enc = tar.into_inner().unwrap();
++            enc.finish().unwrap();
++
++            let (_extracted_dir, files) = extract_archive_to_temp(&archive_path).unwrap();
++            assert!(
++                files.len() <= 20,
++                "should truncate at 20, got {}",
++                files.len()
++            );
++        }
++
++        #[test]
++        fn extract_tar_gz_skips_symlinks_and_dirs() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("with_symlink.tar.gz");
++
++            let file = std::fs::File::create(&archive_path).unwrap();
++            let enc = GzEncoder::new(file, Compression::default());
++            let mut tar = tar::Builder::new(enc);
++
++            let mut dir_header = tar::Header::new_gnu();
++            dir_header.set_path("somedir").unwrap();
++            dir_header.set_entry_type(tar::EntryType::Directory);
++            dir_header.set_size(0);
++            dir_header.set_cksum();
++            tar.append(&dir_header, &[][..]).unwrap();
++
++            let mut reg_header = tar::Header::new_gnu();
++            reg_header.set_path("thebinary").unwrap();
++            reg_header.set_entry_type(tar::EntryType::Regular);
++            reg_header.set_size(4);
++            reg_header.set_cksum();
++            tar.append(&reg_header, b"data".as_slice()).unwrap();
++
++            let mut link_header = tar::Header::new_gnu();
++            link_header.set_path("link").unwrap();
++            link_header.set_entry_type(tar::EntryType::Symlink);
++            link_header.set_size(0);
++            link_header.set_cksum();
++            tar.append(&link_header, &[][..]).unwrap();
++
++            let enc = tar.into_inner().unwrap();
++            enc.finish().unwrap();
++
++            let (_extracted_dir, files) = extract_archive_to_temp(&archive_path).unwrap();
++            assert_eq!(files.len(), 1);
++            assert_eq!(files[0].file_name().unwrap().to_str().unwrap(), "thebinary");
++        }
++
++        #[test]
++        fn file_digest_is_stable() {
++            let tmp = tempfile::tempdir().unwrap();
++            let file_path = tmp.path().join("test.bin");
++            std::fs::write(&file_path, b"hello world\n").unwrap();
++
++            let rt = tokio::runtime::Runtime::new().unwrap();
++            let digest1 = rt
++                .block_on(calculate_file_digest_async(&file_path))
++                .unwrap();
++            let digest2 = rt
++                .block_on(calculate_file_digest_async(&file_path))
++                .unwrap();
++            assert_eq!(digest1, digest2);
++            assert_eq!(digest1.len(), 64);
++
++            std::fs::write(&file_path, b"different\n").unwrap();
++            let digest3 = rt
++                .block_on(calculate_file_digest_async(&file_path))
++                .unwrap();
++            assert_ne!(digest1, digest3);
++        }
++
++        #[test]
++        fn extract_archive_temp_dir_cleaned_up() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("test.tar.gz");
++            create_test_tar_gz(&archive_path, &[("f", b"x")]);
++
++            let dir_path: PathBuf;
++            {
++                let (extracted_dir, _files) = extract_archive_to_temp(&archive_path).unwrap();
++                dir_path = extracted_dir.path().to_path_buf();
++                assert!(dir_path.exists());
++            }
++            assert!(!dir_path.exists());
++        }
++
++        #[test]
++        fn extract_tar_gz_verify_file_content_integrity() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("content_test.tar.gz");
++            let original_content = b"exact content for integrity check\n";
++            create_test_tar_gz(&archive_path, &[("payload", original_content)]);
++
++            let (_extracted_dir, files) = extract_archive_to_temp(&archive_path).unwrap();
++            assert_eq!(files.len(), 1);
++            let extracted_content = std::fs::read(&files[0]).unwrap();
++            assert_eq!(extracted_content, original_content);
++        }
++
++        #[tokio::test]
++        async fn archive_fallback_fail_closed_when_file_attestations_exist_but_fail() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("test.tar.gz");
++            create_test_tar_gz(&archive_path, &[("binary", b"binary content\n")]);
++
++            let mut server = mockito::Server::new_async().await;
++
++            let archive_digest = calculate_file_digest_async(&archive_path).await.unwrap();
++            let archive_path_str =
++                format!("/repos/owner/repo/attestations/sha256:{archive_digest}?per_page=30");
++            let archive_mock = server
++                .mock("GET", archive_path_str.as_str())
++                .with_status(404)
++                .with_header("content-type", "application/json")
++                .create_async()
++                .await;
++
++            let binary_path = tmp.path().join("binary");
++            std::fs::write(&binary_path, b"binary content\n").unwrap();
++            let binary_digest = calculate_file_digest_async(&binary_path).await.unwrap();
++
++            let fake_bundle = serde_json::json!({
++                "mediaType": "application/vnd.dev.sigstore.bundle.v0.3+json",
++                "verificationMaterial": {
++                    "x509CertificateChain": { "certificates": [] }
++                },
++                "dsseEnvelope": {}
++            });
++            let attestation_response = serde_json::json!({
++                "attestations": [{
++                    "bundle": fake_bundle
++                }]
++            });
++
++            let file_path_str =
++                format!("/repos/owner/repo/attestations/sha256:{binary_digest}?per_page=30");
++            let _file_mock = server
++                .mock("GET", file_path_str.as_str())
++                .with_status(200)
++                .with_header("content-type", "application/json")
++                .with_body(serde_json::to_string(&attestation_response).unwrap())
++                .create_async()
++                .await;
++
++            let result = verify_github_attestation_with_base_url(
++                &archive_path,
++                "owner",
++                "repo",
++                None,
++                None,
++                &server.url(),
++            )
++            .await;
++
++            archive_mock.assert_async().await;
++            match result {
++                Err(AttestationError::Verification(msg)) => {
++                    assert!(
++                        msg.contains("archive contents"),
++                        "expected archive-contents verification error, got: {msg}"
++                    );
++                }
++                Ok(_) => panic!("expected verification error for fail-closed, got Ok"),
++                Err(other) => {
++                    panic!("expected Verification error for fail-closed, got: {other}")
++                }
++            }
++        }
++
++        #[tokio::test]
++        async fn archive_fallback_fail_closed_when_no_attestations_at_any_level() {
++            let tmp = tempfile::tempdir().unwrap();
++            let archive_path = tmp.path().join("test.tar.gz");
++            create_test_tar_gz(&archive_path, &[("binary", b"binary\n")]);
++
++            let mut server = mockito::Server::new_async().await;
++
++            let archive_digest = calculate_file_digest_async(&archive_path).await.unwrap();
++            let archive_path_str =
++                format!("/repos/owner/repo/attestations/sha256:{archive_digest}?per_page=30");
++            let archive_mock = server
++                .mock("GET", archive_path_str.as_str())
++                .with_status(404)
++                .with_header("content-type", "application/json")
++                .create_async()
++                .await;
++
++            let binary_path = tmp.path().join("binary");
++            std::fs::write(&binary_path, b"binary\n").unwrap();
++            let binary_digest = calculate_file_digest_async(&binary_path).await.unwrap();
++
++            let file_path_str =
++                format!("/repos/owner/repo/attestations/sha256:{binary_digest}?per_page=30");
++            let file_mock = server
++                .mock("GET", file_path_str.as_str())
++                .with_status(404)
++                .with_header("content-type", "application/json")
++                .create_async()
++                .await;
++
++            let result = verify_github_attestation_with_base_url(
++                &archive_path,
++                "owner",
++                "repo",
++                None,
++                None,
++                &server.url(),
++            )
++            .await;
++
++            archive_mock.assert_async().await;
++            file_mock.assert_async().await;
++            match result {
++                Err(AttestationError::NoAttestations) => {}
++                Ok(_) => panic!("expected NoAttestations, got Ok"),
++                Err(other) => panic!("expected NoAttestations, got: {other}"),
++            }
++        }
++
++        #[tokio::test]
++        async fn non_archive_file_no_attestations_returns_no_attestations() {
++            let tmp = tempfile::tempdir().unwrap();
++            let file_path = tmp.path().join("plain-binary");
++            std::fs::write(&file_path, b"plain binary content\n").unwrap();
++
++            let mut server = mockito::Server::new_async().await;
++
++            let digest = calculate_file_digest_async(&file_path).await.unwrap();
++            let path_str = format!("/repos/owner/repo/attestations/sha256:{digest}?per_page=30");
++            let mock = server
++                .mock("GET", path_str.as_str())
++                .with_status(404)
++                .with_header("content-type", "application/json")
++                .create_async()
++                .await;
++
++            let result = verify_github_attestation_with_base_url(
++                &file_path,
++                "owner",
++                "repo",
++                None,
++                None,
++                &server.url(),
++            )
++            .await;
++
++            mock.assert_async().await;
++            match result {
++                Err(AttestationError::NoAttestations) => {}
++                Ok(_) => panic!("expected NoAttestations for plain file, got Ok"),
++                Err(other) => {
++                    panic!("expected NoAttestations for plain file, got: {other}")
++                }
++            }
++        }
++    }
+ }
