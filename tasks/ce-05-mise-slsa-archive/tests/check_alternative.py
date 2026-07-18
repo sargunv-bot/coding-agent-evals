@@ -7,7 +7,6 @@ import re
 import sys
 from pathlib import Path
 
-
 ROOT = Path("/app")
 BRIDGE = ROOT / "src/github/sigstore.rs"
 BACKEND = ROOT / "src/backend/github.rs"
@@ -26,20 +25,33 @@ backend = BACKEND.read_text()
 normalized = re.sub(r"\s+", " ", bridge)
 
 # An alternative design must actually connect archive-aware verification to the
-# GitHub backend, not merely add dead helpers or tests.
-if "verify_attestation_or_archive_contents" not in backend:
-    fail("the GitHub backend does not call an archive-aware verifier", unsupported=True)
-if not re.search(r"verify_attestation_or_archive_contents\s*\(", bridge):
-    fail("the archive-aware verifier is not implemented in the GitHub bridge", unsupported=True)
+# GitHub backend, not merely add dead helpers or tests. Accept either a dedicated
+# archive-aware entry point or an archive-aware implementation of the existing
+# verify_attestation chokepoint, which all backend callers already use.
+dedicated_entrypoint = "verify_attestation_or_archive_contents" in backend and re.search(
+    r"verify_attestation_or_archive_contents\s*\(", bridge
+)
+existing_chokepoint = (
+    re.search(r"sigstore::verify_attestation\s*\(", backend)
+    and re.search(r"pub\s+async\s+fn\s+verify_attestation\s*\(", bridge)
+    and re.search(r"untar|ZipArchive|Archive::new|entries\s*\(", bridge)
+)
+if not (dedicated_entrypoint or existing_chokepoint):
+    fail("the GitHub backend does not reach an archive-aware verifier", unsupported=True)
 
 # Preserve the existing trust decision: verify the archive itself first and
 # enter content fallback only for the explicit no-attestations result.
 if "verify_attestation" not in bridge or "AttestationError::NoAttestations" not in bridge:
     fail("archive-first verification with a NoAttestations-only fallback is absent")
-if not re.search(
+archive_outcome_guard = re.search(
     r"archive_outcome\s*=.*?verify.*?if\s*!matches!\s*\(\s*archive_outcome\s*,\s*Err\s*\(\s*AttestationError::NoAttestations",
     normalized,
-):
+)
+direct_match_guard = re.search(
+    r"match\s+verify\w*\s*\(.*?\)\s*\.await\s*\{.*?Err\s*\(\s*AttestationError::NoAttestations\s*\)\s*=>.*?other\s*=>\s*other",
+    normalized,
+)
+if not (archive_outcome_guard or direct_match_guard):
     fail("non-NoAttestations archive verification outcomes are not returned before fallback")
 
 # The fallback needs a real archive walk and must distinguish regular files.
@@ -47,7 +59,7 @@ if not re.search(r"untar|ZipArchive|Archive::new|entries\s*\(", bridge):
     fail("archive contents are not extracted or enumerated")
 if not re.search(r"is_file\s*\(\)|is_regular|EntryType::Regular", bridge):
     fail("regular archive members are not identified")
-if not re.search(r"for\s+\w+\s+in\s+\w+", bridge):
+if not re.search(r"for\s+\w+\s+in\s+&?\w+", bridge):
     fail("archive members are not exhaustively iterated")
 
 # Extraction/inspection errors are security decisions. Returning the original
@@ -69,10 +81,16 @@ if "split_first" in bridge and re.search(
 # Once content-level verification is selected, every missing or invalid member
 # attestation must become a terminal error rather than a successful/fallback
 # result.
-if not re.search(
+direct_missing_member_failure = re.search(
     r"Err\s*\(\s*AttestationError::NoAttestations\s*\).*?Err\s*\(",
     normalized,
-):
+)
+aggregated_missing_member_failure = (
+    "ArchiveMemberOutcome::NoAttestation" in bridge
+    and re.search(r"ArchiveMemberOutcome::NoAttestation\s*=>\s*\{?\s*failures\.push", normalized)
+    and re.search(r"Err\s*\(\s*AttestationError::Verification", normalized)
+)
+if not (direct_missing_member_failure or aggregated_missing_member_failure):
     fail("missing inner-file attestations are not converted to a terminal failure")
 
 print("semantic alternative archive verifier checks passed")
