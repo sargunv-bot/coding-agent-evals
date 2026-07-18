@@ -1,2 +1,0 @@
-FAIL: redirected wrapper progress was not preserved on stderr
-FAIL: failed-command diagnostics were not visible on stderr

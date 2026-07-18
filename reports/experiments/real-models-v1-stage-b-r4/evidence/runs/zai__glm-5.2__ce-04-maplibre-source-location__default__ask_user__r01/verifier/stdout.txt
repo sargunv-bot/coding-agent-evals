@@ -1,4 +1,0 @@
-/tests/source_location_behavior.cpp: In function 'int main()':
-/tests/source_location_behavior.cpp:30:24: error: static assertion failed
-   30 |     static_assert(std::is_same_v<source_location, std::source_location>);
-      |                   ~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
