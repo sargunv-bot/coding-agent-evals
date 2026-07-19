@@ -63,6 +63,13 @@ class AgentRunResult:
 
 
 class AgentRunner:
+    @staticmethod
+    def _prepare_transcript(logs: Path) -> Path:
+        transcript = logs / "opencode.jsonl"
+        transcript.touch()
+        transcript.chmod(0o666)
+        return transcript
+
     def __init__(self, root: Path, engine: PodmanEngine | None = None) -> None:
         self.root = root.resolve()
         self.engine = engine or PodmanEngine(self.root)
@@ -265,6 +272,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
         instruction_path = config_dir / "instruction.txt"
         instruction_path.write_text(instruction + "\n")
         instruction_path.chmod(0o644)
+        event_path = self._prepare_transcript(logs)
         proctor_display = str(queue) if instruction_mode == "ask_user" else "disabled"
         print(f"[CAE_RUN] id={run_id} proctor_queue={proctor_display}", flush=True)
 
@@ -384,7 +392,7 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 agent_exit = process.returncode
             except subprocess.TimeoutExpired:
                 agent_exit = 124
-                with (logs / "opencode.jsonl").open("a") as stream:
+                with event_path.open("a") as stream:
                     stream.write(
                         json.dumps(
                             {
@@ -396,7 +404,6 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                         + "\n"
                     )
 
-            event_path = logs / "opencode.jsonl"
             usage = self._extract_usage(event_path)
             completion_status = self._completion_status(event_path, agent_exit)
             trajectory_path = logs / "trajectory.json"

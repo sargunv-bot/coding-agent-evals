@@ -26,6 +26,14 @@ class AgentRunnerGateTests(unittest.TestCase):
         ):
             AgentRunner(Path(directory)).run(cast(TaskSpec, None), self.route)
 
+    def test_transcript_is_host_owned_and_world_writable_before_container_run(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            transcript = AgentRunner._prepare_transcript(Path(directory))
+
+            self.assertEqual(0o666, transcript.stat().st_mode & 0o777)
+            with transcript.open("a") as stream:
+                stream.write('{"type":"error","error":"candidate timeout"}\n')
+
     def test_only_ask_user_mode_exposes_proctor_mcp(self) -> None:
         self.assertNotIn("mcp", AgentRunner.opencode_config(self.route, "baseline"))
         self.assertNotIn("mcp", AgentRunner.opencode_config(self.route, "full_info"))
