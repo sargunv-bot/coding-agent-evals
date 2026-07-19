@@ -22,6 +22,7 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
     for path in sorted(results_root.glob("*.json")):
         record = json.loads(path.read_text())
         cell = record["cell"]
+        state = record.get("state")
         attempts = record.get("attempts", [])
         latest = attempts[-1] if attempts else {}
         result = latest.get("result") if isinstance(latest, dict) else None
@@ -62,14 +63,18 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
                 "scenario": cell.get("scenario") or "",
                 "mode": cell["mode"],
                 "repeat": cell["repeat"],
-                "state": record.get("state"),
+                "state": state,
                 "run_id": run_id or "",
                 "agent_exit_code": result.get("agent_exit_code"),
                 "agent_completion_status": result.get("agent_completion_status", "unknown"),
                 "agent_exit_discrepancy": result.get("agent_exit_discrepancy", False),
                 "model_config_sha256": result.get("model_config_sha256", ""),
                 "verification_outcome": verification.get("outcome", ""),
-                "deterministic_pass": verification.get("outcome") == "passed",
+                "deterministic_pass": (
+                    verification.get("outcome") == "passed"
+                    if state == "completed"
+                    else None
+                ),
                 "duration_seconds": result.get("duration_seconds"),
                 "input_tokens": usage.get("input_tokens", 0),
                 "cached_input_tokens": usage.get("cached_input_tokens", 0),
@@ -151,10 +156,13 @@ def _markdown(payload: dict) -> str:
         "|---|---|---|---|---|---:|---:|---:|---:|---|",
     ]
     for row in payload["rows"]:
+        pass_label = "—"
+        if row["state"] == "completed":
+            pass_label = "yes" if row["deterministic_pass"] else "no"
         lines.append(
             f"| {row['provider']} | {row['model']} | {row['task_id']} | "
             f"{row['scenario'] or '—'} | {row['mode']} | "
-            f"{'yes' if row['deterministic_pass'] else 'no'} | {row['input_tokens']} | "
+            f"{pass_label} | {row['input_tokens']} | "
             f"{row['cached_input_tokens']} | {row['output_tokens']} | {row['run_id']} |"
         )
     return "\n".join(lines) + "\n"
