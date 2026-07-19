@@ -33,6 +33,16 @@ class EvidenceExportTest(unittest.TestCase):
             "attempts": [
                 {
                     "attempt": 1,
+                    "kind": "infrastructure_error",
+                    "result": {
+                        "run_id": "run-0",
+                        "patch_path": str(root / ".runs/run-0/logs/agent/model.patch"),
+                        "trajectory_path": str(root / ".runs/run-0/logs/agent/trajectory.json"),
+                        "verification": None,
+                    },
+                },
+                {
+                    "attempt": 2,
                     "kind": "completed",
                     "result": {
                         "run_id": run_id,
@@ -58,7 +68,7 @@ class EvidenceExportTest(unittest.TestCase):
             self.assertFalse((run / "trajectory.json").exists())
             record = (run / "matrix-record.json").read_text()
             self.assertNotIn(str(root), record)
-            self.assertIn('"patch_path": "model.patch"', record)
+            self.assertEqual(2, record.count('"patch_path": "model.patch"'))
             self.assertTrue((run / "artifacts.json").is_file())
             self.assertTrue((output / "README.md").is_file())
 

@@ -76,11 +76,14 @@ def export_experiment_evidence(repo_root: Path, experiment_id: str, output: Path
                 _copy_checked(source, target, repo_root)
 
         sanitized = json.loads(json.dumps(record))
-        sanitized_result = sanitized["attempts"][-1]["result"]
-        sanitized_result["patch_path"] = "model.patch"
-        sanitized_result["trajectory_path"] = "transcript.jsonl"
-        if isinstance(sanitized_result.get("verification"), dict):
-            sanitized_result["verification"]["run_dir"] = "verifier"
+        for attempt in sanitized["attempts"]:
+            sanitized_result = attempt.get("result")
+            if not isinstance(sanitized_result, dict):
+                continue
+            sanitized_result["patch_path"] = "model.patch"
+            sanitized_result["trajectory_path"] = "transcript.jsonl"
+            if isinstance(sanitized_result.get("verification"), dict):
+                sanitized_result["verification"]["run_dir"] = "verifier"
         matrix_record = destination / "matrix-record.json"
         matrix_record.write_text(json.dumps(sanitized, indent=2, sort_keys=True) + "\n")
         _scan(matrix_record.read_bytes(), matrix_record, repo_root)
