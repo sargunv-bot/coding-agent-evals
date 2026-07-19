@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "c3673d0b123918a685d5f1a596a9ebd61ac20e6d",
+  "benchmark_commit": "14389fa484179faf333ef0c582fd40e5c383ee7c",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -413,9 +413,9 @@
     },
     "ce-06-maplibre-ffi-ci": {
       "agent_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci-opencode:dev",
-      "agent_image_id": "944db225b62b9aeee0e8cb96747188f9bd6efbb91207c229f5ff1556c6f6ff38",
+      "agent_image_id": "eb9e5751d671577cf4f42f4cd873be39c8b6b72e08025bd789b9530f1c3ed0e9",
       "task_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci:dev",
-      "task_image_id": "c05135e48b139d79acafe4d0fb7de39154ba4e62c17dae870ddba9344c7184a2"
+      "task_image_id": "9d12efd16ff80e5c3934ca999ecc5abe2232a612c46a4d94279ad19e568e549b"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r6.toml",
