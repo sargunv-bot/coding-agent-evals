@@ -4,7 +4,7 @@
 
 | Cells | Passes | Infra errors | Input | Cached input | Output | Questions |
 |---:|---:|---:|---:|---:|---:|---:|
-| 10 | 2 | 2 | 1585930 | 34035677 | 189730 | 2 |
+| 11 | 3 | 2 | 1827383 | 39051741 | 213213 | 2 |
 
 Provider-reported cost is retained when supplied, but token counts are the primary usage record.
 
@@ -17,6 +17,7 @@ Provider-reported cost is retained when supplied, but token counts are the prima
 | opencode-go | deepseek-v4-pro | ce-07-mobility-result | validation-fail-fast | ask_user | no | 49691 | 2845440 | 22426 | 20260720T062606Z-ce-07-mobility-result-520216-1784528766050265305 |
 | opencode-go | kimi-k2.7-code | ce-05-mise-slsa-archive | — | ask_user | no | 479193 | 5850022 | 26747 | 20260718T182459Z-ce-05-mise-slsa-archive-2627538-1784399099081186252 |
 | opencode-go | kimi-k2.7-code | ce-06-maplibre-ffi-ci | — | ask_user | — | 0 | 0 | 0 | 20260719T150038Z-ce-06-maplibre-ffi-ci-1552481-1784473238268036081 |
+| opencode-go | kimi-k2.7-code | ce-07-mobility-result | all-errors-as-result | ask_user | yes | 241453 | 5016064 | 23483 | 20260720T065312Z-ce-07-mobility-result-605430-1784530392772880177 |
 | opencode-go | kimi-k2.7-code | ce-07-mobility-result | validation-fail-fast | ask_user | no | 275928 | 3060791 | 23913 | 20260720T052706Z-ce-07-mobility-result-284857-1784525226568477933 |
 | opencode-go | mimo-v2.5-pro | ce-05-mise-slsa-archive | — | ask_user | no | 224435 | 5010496 | 22351 | 20260718T185753Z-ce-05-mise-slsa-archive-2728706-1784401073092535685 |
 | opencode-go | mimo-v2.5-pro | ce-06-maplibre-ffi-ci | — | ask_user | — | 194721 | 1120640 | 21967 | 20260719T211048Z-ce-06-maplibre-ffi-ci-2607845-1784495448881441377 |

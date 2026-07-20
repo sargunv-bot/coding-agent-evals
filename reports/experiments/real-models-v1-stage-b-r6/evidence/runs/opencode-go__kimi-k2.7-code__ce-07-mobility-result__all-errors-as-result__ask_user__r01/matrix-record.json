@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 1368.939961,
+        "endpoint_host": "opencode.ai",
+        "finished_at": "2026-07-20T07:15:52.682198+00:00",
+        "instruction_mode": "ask_user",
+        "model": "kimi-k2.7-code",
+        "model_config_sha256": "7c7cf69b81b128b840910982f294e35d00d35ef1b12b120cbaaea530ab3516b1",
+        "patch_path": "model.patch",
+        "provider": "opencode-go",
+        "run_id": "20260720T065312Z-ce-07-mobility-result-605430-1784530392772880177",
+        "scenario": "all-errors-as-result",
+        "started_at": "2026-07-20T06:53:03.742249+00:00",
+        "task_id": "ce-07-mobility-result",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 5016064,
+          "input_tokens": 241453,
+          "output_tokens": 23483,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 4227
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 161.3647156349616,
+          "exit_code": 0,
+          "expectation_met": true,
+          "expected_pass": true,
+          "outcome": "passed",
+          "reward": {
+            "api": 1,
+            "behavioral": 1,
+            "regression": 1,
+            "reward": 1
+          },
+          "run_dir": "verifier",
+          "scenario": "all-errors-as-result",
+          "task_id": "ce-07-mobility-result"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "opencode-go__kimi-k2.7-code__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "kimi-k2.7-code",
+    "provider": "opencode-go",
+    "repeat": 1,
+    "scenario": "all-errors-as-result",
+    "task_id": "ce-07-mobility-result"
+  },
+  "experiment_id": "real-models-v1-stage-b-r6",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-20T07:15:52.935498+00:00"
+}

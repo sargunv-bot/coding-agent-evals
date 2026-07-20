@@ -28,6 +28,11 @@
     },
     {
       "artifacts": 7,
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "run_id": "20260720T065312Z-ce-07-mobility-result-605430-1784530392772880177"
+    },
+    {
+      "artifacts": 7,
       "cell_id": "opencode-go__kimi-k2.7-code__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
       "run_id": "20260720T052706Z-ce-07-mobility-result-284857-1784525226568477933"
     },
