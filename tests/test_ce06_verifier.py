@@ -78,13 +78,34 @@ def test_enables_steps_from_declarative_matrix_membership() -> None:
     )
 
 
-def test_rejects_procedural_matrix_condition() -> None:
+def test_evaluates_generated_string_conditions_semantically() -> None:
+    ios = {"mise_env": "ios-arm64-metal"}
+    linux_vulkan = {"mise_env": "linux-x64-vulkan"}
+
+    assert VERIFIER.enabled({"if": "${{ startsWith(matrix.mise_env, 'ios-') }}"}, ios)
+    assert not VERIFIER.enabled({"if": "${{ !startsWith(matrix.mise_env, 'ios-') }}"}, ios)
+    assert VERIFIER.enabled(
+        {
+            "if": "${{ matrix.mise_env != 'macos-arm64-egl' "
+            "&& !startsWith(matrix.mise_env, 'ios-') }}"
+        },
+        linux_vulkan,
+    )
+    assert VERIFIER.enabled(
+        {"if": "${{ contains(matrix.mise_env, '-vulkan') }}"}, linux_vulkan
+    )
+    assert not VERIFIER.enabled(
+        {"if": "${{ matrix.mise_env == 'macos-arm64-metal' }}"}, linux_vulkan
+    )
+
+
+def test_rejects_unknown_generated_condition() -> None:
     try:
         VERIFIER.enabled(
-            {"if": "${{ startsWith(matrix.mise_env, 'ios-') }}"},
+            {"if": "${{ endsWith(matrix.mise_env, '-metal') }}"},
             {"mise_env": "ios-arm64-metal"},
         )
     except AssertionError as error:
-        assert "retains procedural condition" in str(error)
+        assert "unsupported generated variant condition" in str(error)
     else:
-        raise AssertionError("procedural matrix condition was accepted")
+        raise AssertionError("unknown condition was accepted")
