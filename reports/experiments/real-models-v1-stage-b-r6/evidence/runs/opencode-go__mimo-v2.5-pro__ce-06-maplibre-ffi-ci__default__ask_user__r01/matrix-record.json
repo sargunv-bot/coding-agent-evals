@@ -1,0 +1,78 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "infrastructure_error",
+      "result": {
+        "agent_completion_status": "timeout",
+        "agent_exit_code": 124,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 10810.183814,
+        "endpoint_host": "opencode.ai",
+        "finished_at": "2026-07-19T21:10:29.813763+00:00",
+        "instruction_mode": "ask_user",
+        "model": "mimo-v2.5-pro",
+        "model_config_sha256": "8ac3ea805e0bbf8649f1a5b59f30060b9d909e2872b7fbd3579014d365bdceae",
+        "patch_path": "model.patch",
+        "provider": "opencode-go",
+        "run_id": "20260719T181029Z-ce-06-maplibre-ffi-ci-2607845-1784484629595829607",
+        "scenario": null,
+        "started_at": "2026-07-19T18:10:19.629966+00:00",
+        "task_id": "ce-06-maplibre-ffi-ci",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 0,
+          "input_tokens": 0,
+          "output_tokens": 0,
+          "provider_reported_cost": null,
+          "reasoning_tokens": 0
+        },
+        "verification": null
+      }
+    },
+    {
+      "attempt": 2,
+      "kind": "infrastructure_error",
+      "result": {
+        "agent_completion_status": "timeout",
+        "agent_exit_code": 124,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 10808.867648,
+        "endpoint_host": "opencode.ai",
+        "finished_at": "2026-07-20T00:10:49.122450+00:00",
+        "instruction_mode": "ask_user",
+        "model": "mimo-v2.5-pro",
+        "model_config_sha256": "8ac3ea805e0bbf8649f1a5b59f30060b9d909e2872b7fbd3579014d365bdceae",
+        "patch_path": "model.patch",
+        "provider": "opencode-go",
+        "run_id": "20260719T211048Z-ce-06-maplibre-ffi-ci-2607845-1784495448881441377",
+        "scenario": null,
+        "started_at": "2026-07-19T21:10:40.254820+00:00",
+        "task_id": "ce-06-maplibre-ffi-ci",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 1120640,
+          "input_tokens": 194721,
+          "output_tokens": 21967,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 0
+        },
+        "verification": null
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "mimo-v2.5-pro",
+    "provider": "opencode-go",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-06-maplibre-ffi-ci"
+  },
+  "experiment_id": "real-models-v1-stage-b-r6",
+  "schema_version": 1,
+  "state": "infrastructure_error",
+  "updated_at": "2026-07-20T00:10:59.612139+00:00"
+}
