@@ -149,8 +149,6 @@ class MatrixRunner:
                     self.tasks[cell.task_id],
                     self.routes[(cell.provider, cell.model)],
                     scenario=cell.scenario,
-                    instruction_mode=cell.mode,
-                    initial_clarification=cell.initial_clarification,
                 )
                 result_data = asdict(result)
                 verification = result_data.get("verification")
@@ -241,9 +239,9 @@ class MatrixRunner:
 
     def _model_configs(self) -> list[dict]:
         configs: list[dict] = []
-        seen: set[tuple[str, str, str]] = set()
+        seen: set[tuple[str, str]] = set()
         for cell in self.experiment.expand():
-            key = (cell.provider, cell.model, cell.mode)
+            key = (cell.provider, cell.model)
             if key in seen:
                 continue
             seen.add(key)
@@ -252,9 +250,8 @@ class MatrixRunner:
                 {
                     "provider": cell.provider,
                     "model": cell.model,
-                    "mode": cell.mode,
-                    "sha256": AgentRunner.opencode_config_sha256(route, cell.mode),
-                    "config": AgentRunner.opencode_config(route, cell.mode),
+                    "sha256": AgentRunner.opencode_config_sha256(route),
+                    "config": AgentRunner.opencode_config(route),
                 }
             )
         return configs

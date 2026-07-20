@@ -1,0 +1,118 @@
+{
+  "carry_forward": [
+    "neuralwatt__qwen3.6-35b__ce-01-antidote-output__default__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-02-horologia-overdue__default__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-03-jvl-completions__default__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-04-maplibre-source-location__default__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+    "neuralwatt__qwen3.6-35b__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-01-antidote-output__default__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-02-horologia-overdue__default__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-03-jvl-completions__default__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-04-maplibre-source-location__default__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-01-antidote-output__default__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-02-horologia-overdue__default__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-03-jvl-completions__default__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-04-maplibre-source-location__default__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-01-antidote-output__default__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-02-horologia-overdue__default__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-03-jvl-completions__default__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-04-maplibre-source-location__default__ask_user__r01",
+    "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
+    "zai__glm-5.2__ce-02-horologia-overdue__default__ask_user__r01",
+    "zai__glm-5.2__ce-03-jvl-completions__default__ask_user__r01",
+    "zai__glm-5.2__ce-04-maplibre-source-location__default__ask_user__r01",
+    "zai__glm-5.2__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "zai__glm-5.2__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+    "zai__glm-5.2__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-05-mise-slsa-archive__default__ask_user__r01",
+    "zai__glm-5.2__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
+    "opencode-go__kimi-k2.7-code__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+    "opencode-go__mimo-v2.5-pro__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+    "opencode-go__deepseek-v4-pro__ce-07-mobility-result__all-errors-as-result__ask_user__r01"
+  ],
+  "execution_order": [
+    "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__r01",
+    "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-06-maplibre-ffi-ci__default__r01",
+    "kimi-subscription__kimi-k3__ce-06-maplibre-ffi-ci__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-01-antidote-output__default__r01",
+    "kimi-subscription__kimi-k3__ce-01-antidote-output__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-02-horologia-overdue__default__r01",
+    "kimi-subscription__kimi-k3__ce-02-horologia-overdue__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-03-jvl-completions__default__r01",
+    "kimi-subscription__kimi-k3__ce-03-jvl-completions__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-04-maplibre-source-location__default__r01",
+    "kimi-subscription__kimi-k3__ce-04-maplibre-source-location__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+    "kimi-subscription__kimi-k3__ce-05-mise-slsa-archive__default__r01",
+    "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__validation-fail-fast__r01",
+    "kimi-subscription__kimi-k3__ce-07-mobility-result__validation-fail-fast__r01",
+    "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__all-errors-as-result__r01",
+    "kimi-subscription__kimi-k3__ce-07-mobility-result__all-errors-as-result__r01"
+  ],
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "task_groups": [
+    {
+      "cells": [
+        "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__r01",
+        "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__r01",
+        "openai-subscription__gpt-5.6-sol__ce-06-maplibre-ffi-ci__default__r01",
+        "kimi-subscription__kimi-k3__ce-06-maplibre-ffi-ci__default__r01"
+      ],
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cells": [
+        "openai-subscription__gpt-5.6-sol__ce-01-antidote-output__default__r01",
+        "kimi-subscription__kimi-k3__ce-01-antidote-output__default__r01"
+      ],
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cells": [
+        "openai-subscription__gpt-5.6-sol__ce-02-horologia-overdue__default__r01",
+        "kimi-subscription__kimi-k3__ce-02-horologia-overdue__default__r01"
+      ],
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cells": [
+        "openai-subscription__gpt-5.6-sol__ce-03-jvl-completions__default__r01",
+        "kimi-subscription__kimi-k3__ce-03-jvl-completions__default__r01"
+      ],
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cells": [
+        "openai-subscription__gpt-5.6-sol__ce-04-maplibre-source-location__default__r01",
+        "kimi-subscription__kimi-k3__ce-04-maplibre-source-location__default__r01"
+      ],
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cells": [
+        "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+        "kimi-subscription__kimi-k3__ce-05-mise-slsa-archive__default__r01"
+      ],
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cells": [
+        "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__validation-fail-fast__r01",
+        "kimi-subscription__kimi-k3__ce-07-mobility-result__validation-fail-fast__r01",
+        "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__all-errors-as-result__r01",
+        "kimi-subscription__kimi-k3__ce-07-mobility-result__all-errors-as-result__r01"
+      ],
+      "task_id": "ce-07-mobility-result"
+    }
+  ]
+}

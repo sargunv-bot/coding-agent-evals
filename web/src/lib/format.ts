@@ -1,6 +1,5 @@
 const ENUM_LABELS: Record<string, string> = {
-  ask_user: 'Ask user', full_info: 'Full info', baseline: 'Baseline', completed: 'Completed',
-  infrastructure_error: 'Infrastructure error', not_started: 'Not started', in_progress: 'In progress',
+  completed: 'Completed', not_started: 'Not started', in_progress: 'In progress',
   default: 'Default', validation_fail_fast: 'Validation fail-fast', all_errors_as_result: 'All errors as result',
   'validation-fail-fast': 'Validation fail-fast', 'all-errors-as-result': 'All errors as result',
 };

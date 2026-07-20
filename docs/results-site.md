@@ -2,7 +2,7 @@
 
 ## Purpose and trust model
 
-The results browser publishes committed evaluation output as a static GitHub Pages site. It never runs an evaluation, contacts a model provider, reads `.runs`, or requires credentials. The committed deterministic verifier result is the authoritative behavioral result. Blinded proctor review is displayed as a separate, non-overriding assessment of code quality and mergibility.
+The results browser publishes committed evaluation output as a static GitHub Pages site. It never runs an evaluation, contacts a model provider, reads `.runs`, or requires credentials. The committed deterministic verifier result is the authoritative behavioral result. Subjective review is displayed as a separate, non-overriding assessment of code quality and mergibility, with model-identity visibility recorded in each review.
 
 Provider and model attribution is explicit on every cell. Canonical transcripts remain JSONL, candidate changes remain patches, and verifier output remains plain text so that published evidence can be independently downloaded and hashed.
 

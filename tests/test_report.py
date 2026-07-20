@@ -10,7 +10,7 @@ from agent_evals.report import write_experiment_report
 
 
 class ExperimentReportTest(unittest.TestCase):
-    def test_reports_tokens_cost_and_questions_without_absolute_paths(self) -> None:
+    def test_reports_completed_results_without_absolute_paths(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             manifest = root / "experiment.toml"
@@ -38,7 +38,7 @@ class ExperimentReportTest(unittest.TestCase):
                         ),
                     ),
                 ),
-                cells=(CellSpec("task", None, "ask_user"),),
+                cells=(CellSpec("task", None),),
             )
             cell = experiment.expand()[0]
             results = root / ".runs" / "experiments" / experiment.experiment_id / "results"
@@ -79,24 +79,16 @@ class ExperimentReportTest(unittest.TestCase):
                     }
                 ],
             }
-            (results / "infrastructure-cell.json").write_text(
-                json.dumps(infrastructure_record)
-            )
-            questions = root / ".runs" / "run-1" / "proctor" / "questions"
-            questions.mkdir(parents=True)
-            (questions / "q1.json").write_text("{}")
+            (results / "infrastructure-cell.json").write_text(json.dumps(infrastructure_record))
             output = root / "report"
             payload = write_experiment_report(root, experiment, output)
             self.assertEqual(100, payload["totals"]["input_tokens"])
             self.assertEqual(60, payload["totals"]["cached_input_tokens"])
             self.assertEqual(20, payload["totals"]["output_tokens"])
-            self.assertEqual(1, payload["totals"]["questions"])
             self.assertEqual(1, payload["totals"]["deterministic_passes"])
-            self.assertEqual(1, payload["totals"]["infrastructure_errors"])
-            infrastructure_row = next(
-                row for row in payload["rows"] if row["cell_id"] == "infrastructure-cell"
-            )
-            self.assertIsNone(infrastructure_row["deterministic_pass"])
+            self.assertEqual(1, payload["totals"]["cells"])
+            self.assertNotIn("infrastructure_errors", payload["totals"])
+            self.assertNotIn("infrastructure-cell", {row["cell_id"] for row in payload["rows"]})
             self.assertEqual(0.000179, payload["totals"]["estimated_cost"])
             self.assertEqual("operator-test-rates", payload["rows"][0]["pricing_basis"])
             self.assertNotIn(b"\r\n", (output / "results.csv").read_bytes())
@@ -105,7 +97,7 @@ class ExperimentReportTest(unittest.TestCase):
             self.assertTrue((output / "results.csv").is_file())
             self.assertTrue((output / "summary.md").is_file())
             self.assertIn(
-                "| chosen | model | task | — | ask_user | — |",
+                "| chosen | model | task | — | yes |",
                 (output / "summary.md").read_text(),
             )
 

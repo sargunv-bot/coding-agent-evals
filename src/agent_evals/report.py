@@ -23,6 +23,8 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
         record = json.loads(path.read_text())
         cell = record["cell"]
         state = record.get("state")
+        if state != "completed":
+            continue
         attempts = record.get("attempts", [])
         latest = attempts[-1] if attempts else {}
         result = latest.get("result") if isinstance(latest, dict) else None
@@ -32,12 +34,6 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
         verification = result.get("verification")
         verification = verification if isinstance(verification, dict) else {}
         run_id = result.get("run_id")
-        question_count = 0
-        answer_count = 0
-        if isinstance(run_id, str):
-            proctor = repo_root / ".runs" / run_id / "proctor"
-            question_count = len(list((proctor / "questions").glob("*.json")))
-            answer_count = len(list((proctor / "answers").glob("*.json")))
         pricing = experiment.pricing(cell["provider"], cell["model"])
         estimated_cost = None
         if pricing is not None:
@@ -61,7 +57,6 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
                 "model": cell["model"],
                 "task_id": cell["task_id"],
                 "scenario": cell.get("scenario") or "",
-                "mode": cell["mode"],
                 "repeat": cell["repeat"],
                 "state": state,
                 "run_id": run_id or "",
@@ -71,9 +66,7 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
                 "model_config_sha256": result.get("model_config_sha256", ""),
                 "verification_outcome": verification.get("outcome", ""),
                 "deterministic_pass": (
-                    verification.get("outcome") == "passed"
-                    if state == "completed"
-                    else None
+                    verification.get("outcome") == "passed" if state == "completed" else None
                 ),
                 "duration_seconds": result.get("duration_seconds"),
                 "input_tokens": usage.get("input_tokens", 0),
@@ -84,15 +77,12 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
                 "estimated_cost": round(estimated_cost, 12) if estimated_cost is not None else None,
                 "pricing_basis": pricing.basis if pricing else "",
                 "pricing_currency": pricing.currency if pricing else "",
-                "questions": question_count,
-                "answers": answer_count,
                 "attempts": len(attempts),
             }
         )
     totals = {
         "cells": len(rows),
         "completed": sum(row["state"] == "completed" for row in rows),
-        "infrastructure_errors": sum(row["state"] == "infrastructure_error" for row in rows),
         "deterministic_passes": sum(bool(row["deterministic_pass"]) for row in rows),
         "input_tokens": sum(int(row["input_tokens"] or 0) for row in rows),
         "cached_input_tokens": sum(int(row["cached_input_tokens"] or 0) for row in rows),
@@ -106,7 +96,6 @@ def write_experiment_report(repo_root: Path, experiment: ExperimentSpec, output:
             if rows and all(row["estimated_cost"] is not None for row in rows)
             else None
         ),
-        "questions": sum(int(row["questions"]) for row in rows),
     }
     payload = {
         "schema_version": 1,
@@ -136,13 +125,12 @@ def _markdown(payload: dict) -> str:
         "",
         "## Totals",
         "",
-        "| Cells | Passes | Infra errors | Input | Cached input | Output | Questions |",
-        "|---:|---:|---:|---:|---:|---:|---:|",
+        "| Cells | Passes | Input | Cached input | Output |",
+        "|---:|---:|---:|---:|---:|",
         (
             f"| {totals['cells']} | {totals['deterministic_passes']} | "
-            f"{totals['infrastructure_errors']} | {totals['input_tokens']} | "
-            f"{totals['cached_input_tokens']} | {totals['output_tokens']} | "
-            f"{totals['questions']} |"
+            f"{totals['input_tokens']} | {totals['cached_input_tokens']} | "
+            f"{totals['output_tokens']} |"
         ),
         "",
         (
@@ -152,8 +140,8 @@ def _markdown(payload: dict) -> str:
         "",
         "## Cells",
         "",
-        "| Provider | Model | Task | Scenario | Mode | Pass | Input | Cached | Output | Run |",
-        "|---|---|---|---|---|---:|---:|---:|---:|---|",
+        "| Provider | Model | Task | Scenario | Pass | Input | Cached | Output | Run |",
+        "|---|---|---|---|---:|---:|---:|---:|---|",
     ]
     for row in payload["rows"]:
         pass_label = "—"
@@ -161,8 +149,7 @@ def _markdown(payload: dict) -> str:
             pass_label = "yes" if row["deterministic_pass"] else "no"
         lines.append(
             f"| {row['provider']} | {row['model']} | {row['task_id']} | "
-            f"{row['scenario'] or '—'} | {row['mode']} | "
-            f"{pass_label} | {row['input_tokens']} | "
+            f"{row['scenario'] or '—'} | {pass_label} | {row['input_tokens']} | "
             f"{row['cached_input_tokens']} | {row['output_tokens']} | {row['run_id']} |"
         )
     return "\n".join(lines) + "\n"

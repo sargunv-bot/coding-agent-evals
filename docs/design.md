@@ -9,8 +9,6 @@
 Build a small, high-signal coding-agent evaluation suite from Sargun's recent public engineering work. It should answer practical questions such as:
 
 - Which available model is most likely to complete the kinds of work Sargun actually does?
-- Does the model investigate ambiguity or guess?
-- When does it ask a useful clarification question?
 - Does it preserve regressions and security invariants?
 - How much time, output, and tool activity does it consume?
 
@@ -49,12 +47,12 @@ These mechanics are more valuable to this project than DeepSWE's prompt style. R
 | Pier + Harbor task format | Best task packaging, separate verifier, CLI agents, ATIF trajectories, per-agent network allowlists, and native OpenCode MCP configuration | Released Pier v0.3.0 does not support Podman. PR #14 adds rootless Podman support and substantial tests but is unreviewed, unmerged, and lacks functional CI evidence. |
 | Harbor | Stable upstream task schema and broad adapter ecosystem | Released Harbor also lacks Podman support; several competing Podman PRs remain open. Pier currently has the isolation and trajectory features most relevant here. |
 | Terminal-Bench 3 | Borrow its task-review, no-op/oracle, reward-hacking, deterministic-verifier, and test/instruction-alignment checks | Dataset is not specifically a personalized coding benchmark |
-| Inspect AI | Excellent custom/host tools, MCP bridges, human baselines, transcript capture | Duplicates sandbox/agent orchestration if Pier already works; consider only if clarification integration in Pier is awkward |
+| Inspect AI | Excellent custom/host tools, MCP bridges, human baselines, transcript capture | Duplicates sandbox/agent orchestration if Pier already works; consider only if custom host tooling requires it |
 | METR Task Standard | Borrow reproducibility, resource declaration, and task-family validation principles | VM/task-family runner is unnecessary for seven repository tasks |
 | SWE-smith | Environment-building ideas only | Mutation-generated test failures optimize scale, not task quality |
 | OpenHands / SWE-agent | Possible future scaffold comparisons | Too much platform and agent variance for a model-focused first experiment |
 
-**Recommendation:** author Harbor-compatible tasks and compare two pinned runners in Phase 0 rather than choosing by README: (a) current Harbor plus the smallest auditable rootless-Podman adapter, and (b) Pier PR #14 (`6263c12c`). Validate rootless networking, phase-specific filtered egress, separate verifiers, OpenCode custom providers, MCP clarification calls, ATIF completeness, artifact extraction, and cleanup. Prefer current Harbor if behavior is comparable because it is the larger, more active upstream; retain Pier only if its OpenCode trajectory or egress behavior is materially better. Do not create a bespoke task schema.
+**Recommendation:** author Harbor-compatible tasks and compare two pinned runners in Phase 0 rather than choosing by README: (a) current Harbor plus the smallest auditable rootless-Podman adapter, and (b) Pier PR #14 (`6263c12c`). Validate rootless networking, phase-specific filtered egress, separate verifiers, OpenCode custom providers, ATIF completeness, artifact extraction, and cleanup. Prefer current Harbor if behavior is comparable because it is the larger, more active upstream; retain Pier only if its OpenCode trajectory or egress behavior is materially better. Do not create a bespoke task schema.
 
 ### 3.3 DeepSWE quality audit
 
@@ -97,8 +95,6 @@ Mitigations:
 - Exit status from failed git commands must remain meaningful.
 - Existing project tests must pass.
 
-**Clarification profile:** no question should be necessary. If asked whether diagnostics should remain visible, the proctor answers “Yes—keep diagnostics on stderr; only prevent stdout from becoming generated content.”
-
 ### CE-02 — Horologia overdue-action validation matrix
 
 - **Source:** https://github.com/sargunv/horologia/pull/62
@@ -119,8 +115,6 @@ Mitigations:
 - `set_status` and `clear_due_date` accept one-off, recurring, and dependency-driven tasks when their own prerequisites are satisfied.
 - Unknown actions remain invalid.
 - Existing task-engine tests pass.
-
-**Clarification profile:** optional diagnostic clarification. An agent can infer the action matrix from code. A useful question about which actions are recurrence-specific receives the policy matrix; generic requests for implementation guidance receive “Please inspect the task-engine model and make a reasonable choice.”
 
 ### CE-03 — JVL composed-schema completions
 
@@ -146,8 +140,6 @@ Mitigations:
 - Hover behavior and unrelated schema resolution do not regress.
 - Unit and end-to-end LSP completion tests pass.
 
-**Clarification profile:** bounded scope ambiguity. If asked whether to expand general `$ref` behavior, answer “No new resolver semantics; preserve existing fragment-reference behavior and focus composition walking in completion collection.”
-
 ### CE-04 — MapLibre Native source-location portability
 
 - **Source:** https://github.com/maplibre/maplibre-native/pull/4318
@@ -169,8 +161,6 @@ Mitigations:
 - No declarations are injected into `namespace std`.
 - Existing bucket/layout callers compile in both modes.
 - The source is present in the relevant build manifests.
-
-**Clarification profile:** repository-answerable portability ambiguity. The agent should inspect existing callers. A question about column behavior gets “Zero is acceptable in the fallback.”
 
 ### CE-05 — mise fail-closed SLSA archive verification
 
@@ -198,8 +188,6 @@ Mitigations:
 - Existing archive-level verification remains unchanged.
 - Any security-gate failure marks the run `unsafe`, regardless of partial score.
 
-**Clarification profile:** asking about the trust boundary is useful. The proctor discloses policy, never implementation. Broad “what should I code?” questions are refused.
-
 ### CE-06 — MapLibre Native FFI manifest-driven CI
 
 - **Source:** https://github.com/maplibre/maplibre-native-ffi/pull/233
@@ -224,8 +212,6 @@ Mitigations:
 - Existing permissions, concurrency behavior, pinned actions, setup steps, required aggregate job, and relevant target policy are preserved.
 - Generated files are marked and formatting/lint orchestration includes manifests, generator, and generated output.
 
-**Clarification profile:** one architectural question is expected or at least reasonable. The proctor clarifies that manifests should be per subproject plus a central variant catalog, generated output remains checked in, and current CI semantics should be preserved unless they are clearly duplicated policy.
-
 ## 6. Core interaction task and reserves
 
 ### CE-07 — Mobility Data Kotlin `Result` error propagation
@@ -246,7 +232,7 @@ Mitigations:
 - `validation-fail-fast` (historical): transport, HTTP, and deserialization failures become `Result.failure`; caller argument/precondition validation continues to throw immediately.
 - `all-errors-as-result` (sealed counterfactual): caller validation is also represented as `Result.failure`.
 
-The initial prompt is identical. In `full_info`, the selected policy is stated. In `baseline`, it is withheld. In `ask_user`, a question that distinguishes caller misuse from operational failure receives the selected scenario policy. Tests also check Ktor `expectSuccess`, coroutine cancellation, API dumps, documentation snippets, and consistency across modules.
+The initial prompt is identical across both intended-world scenarios. Tests check Ktor `expectSuccess`, coroutine cancellation, API dumps, documentation snippets, and consistency across modules.
 
 ### CE-R1 — dprint clang-format config mapping in Wasm
 
@@ -264,63 +250,15 @@ The initial prompt is identical. In `full_info`, the selected policy is stated. 
 - **Prompt:** “The formatter benchmark can silently compare incomplete corpora. Make validation reject missing or unexpected source files and give useful deterministic diagnostics before comparing contents.”
 - **Use:** inexpensive Python reserve with excellent Linux reproducibility; useful if a short core task proves flaky or too implementation-revealing.
 
-## 7. Clarification protocol
-
-### 7.1 Tool surface
-
-Every `ask_user`-mode OpenCode run receives one additional tool:
-
-```text
-ask_user(question: string) -> string
-```
-
-The custom rootless-Podman runner writes the local MCP entry into `opencode.json` only for `ask_user` mode and records OpenCode JSON events in its normalized trajectory. Pier's inspected OpenCode adapter provides a compatible reference implementation; no Pier fork is required.
-
-The task container cannot read sealed scenario policy or verifier artifacts. The tool calls a host-side moderator through a mounted filesystem queue and stdio MCP process. It has no general network access.
-
-### 7.2 Live proctor
-
-The active SOTA Hermes model acts as Sargun's live proxy. It answers scope and product-semantics questions naturally, using the selected scenario's sealed policy where applicable, while refusing solution fishing. Every question and answer is recorded with task, scenario, timestamps, and proctor model provenance.
-
-Semantically equivalent questions should receive materially equivalent requirements. The proctor may direct an agent back to repository evidence but cannot reveal hidden tests, historical patches, expected symbols, or an implementation plan. This preserves natural interaction without using an unconstrained user simulator as the task oracle.
-
-### 7.3 Clarification analysis
-
-Clarifications are reported separately, not folded blindly into task score:
-
-- useful and blocking;
-- useful but optional;
-- answerable from repository context;
-- redundant;
-- solution-fishing;
-- missed blocking ambiguity;
-- unsupported assumption made without asking.
-
-No reward is granted merely for asking. Good autonomy and good clarification are both acceptable when behavior is correct.
-
-### 7.4 Paired interaction conditions
-
-For tasks with a registered consequential blocker, run three explicitly labeled conditions sharing the same intended-world scenario:
-
-- `full_info`: the blocker resolution is included in the initial prompt;
-- `baseline`: it is withheld and no clarification tool is available;
-- `ask_user`: it is withheld and `ask_user` is available.
-
-Use this only where two or more reasonable intended worlds imply incompatible correct behavior. Each blocker records when it becomes discoverable, acceptable question paraphrases, the deterministic answer in each scenario, and whether repository evidence can resolve it. Report blocker recall, question precision, redundant-question count, turns to resolution, and whether the implementation changed after the answer. This adapts the strongest parts of HiL-Bench's blocker/Ask-F1 framing without adopting its SWE-bench-derived corpus or LLM user simulator.
-
-CE-07 is the best initial paired-interaction candidate: “return failures as `Result`” leaves it consequentially unclear whether caller precondition errors should remain fail-fast. Two sealed intended-world variants use the same initial prompt while the live proctor returns the selected scenario policy.
-
 ## 8. Execution architecture
 
 ```text
 Host runner
   ├─ Pier/Harbor task controller
   ├─ provider proxy (credentials, token accounting, limits)
-  ├─ clarification moderator
   └─ results store
        ├─ ATIF trajectory
        ├─ model/tool calls
-       ├─ clarification transcript + card IDs
        ├─ committed binary patch
        ├─ timing/token/step/resource metrics
        └─ verifier artifacts / CTRF
@@ -330,7 +268,6 @@ Agent container (rootless, no GitHub/internet)
   ├─ future Git history removed
   ├─ pinned dependencies and tools
   ├─ OpenCode CLI, identical version/config for all models
-  └─ ask_user tool only
 
 Separate verifier container
   ├─ pristine base checkout
@@ -339,7 +276,7 @@ Separate verifier container
   └─ emits structured requirement-level results
 ```
 
-Only the selected provider credential enters the candidate environment, through inherited process environment rather than config or command arguments. It is absent from verifier containers and committed artifacts. The candidate has only exact-host model egress and the local stdio clarification tool.
+Only the selected provider credential enters the candidate environment, through inherited process environment rather than config or command arguments. It is absent from verifier containers and committed artifacts. The candidate has only exact-host model egress.
 
 ## 9. Task quality gates before model execution
 

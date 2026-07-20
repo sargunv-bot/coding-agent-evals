@@ -29,34 +29,26 @@ model = "deepseek-v4-pro"
 
 [[cells]]
 task = "ce-01-antidote-output"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-02-horologia-overdue"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-03-jvl-completions"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-04-maplibre-source-location"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-05-mise-slsa-archive"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-06-maplibre-ffi-ci"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-07-mobility-result"
 scenario = "validation-fail-fast"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-07-mobility-result"
 scenario = "all-errors-as-result"
-mode = "ask_user"

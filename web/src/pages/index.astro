@@ -9,7 +9,7 @@ const data = await loadSiteData();
 const configurationLabel = (run: Run) => {
   const stage = run.experimentId.includes('stage-a') ? 'Stage A' : run.experimentId.includes('stage-b') ? 'Stage B' : undefined;
   const scenario = run.scenario && run.scenario !== 'default' ? humanizeEnum(run.scenario) : undefined;
-  return [stage, scenario].filter(Boolean).join(' · ') || humanizeEnum(run.mode);
+  return [stage, scenario].filter(Boolean).join(' · ') || 'Default';
 };
 ---
 <BaseLayout title="Results">

@@ -27,8 +27,6 @@ class ScenarioSpec:
     scenario_id: str
     track: str
     gold_patch: Path
-    answer: str
-    full_info_addendum: str
 
     @classmethod
     def load(cls, root: Path, task_root: Path) -> ScenarioSpec:
@@ -41,8 +39,6 @@ class ScenarioSpec:
             scenario_id=str(data["scenario_id"]),
             track=str(data["track"]),
             gold_patch=gold,
-            answer=str(data["interaction"]["answer"]),
-            full_info_addendum=str(data["full_info"]["addendum"]),
         )
 
     @property

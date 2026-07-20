@@ -31,7 +31,7 @@ class MatrixRunnerTest(unittest.TestCase):
             infrastructure_retries=1,
             proctor_model="proctor",
             models=(ModelSpec("chosen", "model-a"),),
-            cells=(CellSpec("ce-01-antidote-output", None, "ask_user"),),
+            cells=(CellSpec("ce-01-antidote-output", None),),
         )
         route = ProviderRoute("chosen", "model-a", "https://chosen.invalid/v1", "KEY")
         self.runner = MatrixRunner(
@@ -64,7 +64,6 @@ class MatrixRunnerTest(unittest.TestCase):
             provider=cell.provider,
             model=cell.model,
             endpoint_host="chosen.invalid",
-            instruction_mode=cell.mode,
             started_at="2026-01-01T00:00:00+00:00",
             finished_at="2026-01-01T00:00:01+00:00",
             duration_seconds=1.0,
@@ -101,7 +100,6 @@ class MatrixRunnerTest(unittest.TestCase):
             provider=cell.provider,
             model=cell.model,
             endpoint_host="chosen.invalid",
-            instruction_mode=cell.mode,
             started_at="2026-01-01T00:00:00+00:00",
             finished_at="2026-01-01T00:00:01+00:00",
             duration_seconds=1.0,
@@ -131,8 +129,8 @@ class MatrixRunnerTest(unittest.TestCase):
         experiment = replace(
             self.experiment,
             cells=(
-                CellSpec("ce-01-antidote-output", None, "ask_user"),
-                CellSpec("ce-02-horologia-overdue", None, "ask_user"),
+                CellSpec("ce-01-antidote-output", None),
+                CellSpec("ce-02-horologia-overdue", None),
             ),
         )
         runner = MatrixRunner(self.repo_root, self.runner.engine, experiment, self.runner.routes)
@@ -147,7 +145,6 @@ class MatrixRunnerTest(unittest.TestCase):
             provider=selected.provider,
             model=selected.model,
             endpoint_host="chosen.invalid",
-            instruction_mode=selected.mode,
             started_at="2026-01-01T00:00:00+00:00",
             finished_at="2026-01-01T00:00:01+00:00",
             duration_seconds=1.0,
@@ -189,8 +186,8 @@ class MatrixRunnerTest(unittest.TestCase):
             self.experiment,
             path=self.repo_root / "experiments/real-models-v1-stage-b.toml",
             cells=(
-                CellSpec("ce-01-antidote-output", None, "ask_user"),
-                CellSpec("ce-02-horologia-overdue", None, "ask_user"),
+                CellSpec("ce-01-antidote-output", None),
+                CellSpec("ce-02-horologia-overdue", None),
             ),
         )
         runner = MatrixRunner(self.repo_root, self.runner.engine, experiment, self.runner.routes)

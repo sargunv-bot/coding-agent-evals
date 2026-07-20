@@ -29,9 +29,7 @@ model = "deepseek-v4-pro"
 
 [[cells]]
 task = "ce-01-antidote-output"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-07-mobility-result"
 scenario = "all-errors-as-result"
-mode = "ask_user"

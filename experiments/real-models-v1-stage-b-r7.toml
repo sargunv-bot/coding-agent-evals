@@ -1,6 +1,6 @@
 [experiment]
-id = "real-models-v1-stage-b-r6"
-description = "Incremental continuation after CE-05 semantic-verifier repair; retain 18 r4 and 9 r5 cells, execute only 13 remaining cells"
+id = "real-models-v1-stage-b-r7"
+description = "Stage-B continuation: rerun two invalid CE-06 cells and add GPT-5.6 Sol and Kimi K3 across eight cells"
 stage = "breadth"
 repeats = 1
 concurrency = 1
@@ -8,24 +8,22 @@ infrastructure_retries = 1
 proctor_model = "openai/gpt-5.6-sol"
 
 [[models]]
-provider = "zai"
-model = "glm-5.2"
-
-[[models]]
-provider = "neuralwatt"
-model = "qwen3.6-35b"
-
-[[models]]
 provider = "opencode-go"
 model = "kimi-k2.7-code"
+cells = ["ce-06-maplibre-ffi-ci/default"]
 
 [[models]]
 provider = "opencode-go"
 model = "mimo-v2.5-pro"
+cells = ["ce-06-maplibre-ffi-ci/default"]
 
 [[models]]
-provider = "opencode-go"
-model = "deepseek-v4-pro"
+provider = "openai-subscription"
+model = "gpt-5.6-sol"
+
+[[models]]
+provider = "kimi-subscription"
+model = "kimi-k3"
 
 [[cells]]
 task = "ce-01-antidote-output"

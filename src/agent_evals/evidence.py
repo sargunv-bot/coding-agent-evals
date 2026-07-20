@@ -38,6 +38,8 @@ def export_experiment_evidence(repo_root: Path, experiment_id: str, output: Path
     exported: list[dict] = []
     for result_path in sorted(result_root.glob("*.json")):
         record = json.loads(result_path.read_text())
+        if record.get("state") != "completed":
+            continue
         attempts = record.get("attempts") or []
         result = attempts[-1].get("result") if attempts else None
         if not isinstance(result, dict):

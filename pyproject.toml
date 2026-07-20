@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "coding-agent-evals"
 version = "0.1.0"
-description = "Personalized, clarification-aware coding-agent evaluation runner"
+description = "Personalized coding-agent evaluation runner"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "Apache-2.0"}

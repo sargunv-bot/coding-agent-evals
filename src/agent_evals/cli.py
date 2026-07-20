@@ -12,7 +12,6 @@ from .engine import DEFAULT_MIN_FREE_GIB, PodmanEngine
 from .evidence import export_experiment_evidence
 from .experiment import ExperimentSpec
 from .matrix import MatrixRunner
-from .proctor import ProctorQueue
 from .providers import load_routes, resolve_model
 from .report import write_experiment_report
 from .review import ProctorReview
@@ -71,7 +70,6 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--provider", required=True)
     run.add_argument("--providers", type=Path, default=Path("providers.toml"))
     run.add_argument("--scenario")
-    run.add_argument("--mode", choices=("baseline", "ask_user", "full_info"), default="ask_user")
 
     verify = commands.add_parser("verify")
     verify.add_argument("task_id")
@@ -91,21 +89,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     cleanup = commands.add_parser("cleanup")
     cleanup.add_argument("--include-images", action="store_true")
-
-    proctor = commands.add_parser("proctor")
-    proctor_sub = proctor.add_subparsers(dest="proctor_command", required=True)
-    pending = proctor_sub.add_parser("pending")
-    pending.add_argument("queue", type=Path)
-    ask = proctor_sub.add_parser("ask")
-    ask.add_argument("queue", type=Path)
-    ask.add_argument("--run-id", required=True)
-    ask.add_argument("--task-id", required=True)
-    ask.add_argument("question")
-    answer = proctor_sub.add_parser("answer")
-    answer.add_argument("queue", type=Path)
-    answer.add_argument("question_id")
-    answer.add_argument("answer")
-    answer.add_argument("--proctor", required=True)
 
     route = commands.add_parser("route")
     route.add_argument("model")
@@ -174,7 +157,6 @@ def main(argv: list[str] | None = None) -> int:
             _task(repo, args.task_id),
             route,
             scenario=args.scenario,
-            instruction_mode=args.mode,
         )
         _print(asdict(run_result))
         return 0
@@ -213,15 +195,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "cleanup":
         _print(engine.cleanup(include_images=args.include_images))
         return 0
-    if args.command == "proctor":
-        queue = ProctorQueue(args.queue)
-        if args.proctor_command == "pending":
-            _print([asdict(question) for question in queue.pending()])
-        elif args.proctor_command == "ask":
-            _print(asdict(queue.ask(args.run_id, args.task_id, args.question)))
-        else:
-            _print(asdict(queue.answer(args.question_id, args.answer, args.proctor)))
-        return 0
+
     if args.command == "route":
         _print(resolve_model(args.provider, args.model, load_routes(args.providers)).redacted())
         return 0

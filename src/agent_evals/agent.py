@@ -19,7 +19,6 @@ NODE_IMAGE = (
     "docker.io/library/node@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3"
 )
 OPENCODE_VERSION = "1.18.2"
-PROCTOR_TIMEOUT_MS = 30 * 60 * 1000
 LABEL = "io.sargunv.coding-agent-evals=true"
 
 
@@ -48,7 +47,6 @@ class AgentRunResult:
     provider: str
     model: str
     endpoint_host: str
-    instruction_mode: str
     started_at: str
     finished_at: str
     duration_seconds: float
@@ -106,10 +104,8 @@ class AgentRunner:
         )
 
     @staticmethod
-    def opencode_config(route: ProviderRoute, instruction_mode: str) -> dict:
-        if instruction_mode not in {"baseline", "ask_user", "full_info"}:
-            raise ValueError(f"unknown instruction mode: {instruction_mode}")
-        config = {
+    def opencode_config(route: ProviderRoute) -> dict:
+        return {
             "$schema": "https://opencode.ai/config.json",
             "provider": {
                 "cae": {
@@ -123,50 +119,20 @@ class AgentRunner:
                 }
             },
         }
-        if instruction_mode == "ask_user":
-            config["mcp"] = {
-                "proctor": {
-                    "type": "local",
-                    "command": ["/opt/cae/proctor-mcp"],
-                    "enabled": True,
-                    "timeout": PROCTOR_TIMEOUT_MS,
-                }
-            }
-        return config
 
     @classmethod
-    def opencode_config_text(cls, route: ProviderRoute, instruction_mode: str) -> str:
-        return json.dumps(cls.opencode_config(route, instruction_mode), indent=2) + "\n"
+    def opencode_config_text(cls, route: ProviderRoute) -> str:
+        return json.dumps(cls.opencode_config(route), indent=2) + "\n"
 
     @classmethod
-    def opencode_config_sha256(cls, route: ProviderRoute, instruction_mode: str) -> str:
-        config = cls.opencode_config_text(route, instruction_mode).encode()
+    def opencode_config_sha256(cls, route: ProviderRoute) -> str:
+        config = cls.opencode_config_text(route).encode()
         return hashlib.sha256(config).hexdigest()
 
     def build_tools(self) -> dict[str, str]:
         self.engine.ensure_space()
         self.build_dir.mkdir(parents=True, exist_ok=True)
         os.chmod(self.build_dir, 0o755)
-        proctor = self.build_dir / "proctor-mcp"
-        command = [
-            "podman",
-            "run",
-            "--rm",
-            "--network",
-            "none",
-            "-v",
-            f"{self.root / 'cmd/proctor-mcp'}:/src:ro",
-            "-v",
-            f"{self.build_dir}:/out",
-            "-w",
-            "/src",
-            "docker.io/library/golang@sha256:09fb8a652cf7a990b714c46a9f0f5fd2d5bc2222d995166b91907c1c05b7d0e8",
-            "sh",
-            "-c",
-            "CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/proctor-mcp main.go",
-        ]
-        self._checked(command)
-        proctor.chmod(0o755)
         self._checked(
             [
                 "podman",
@@ -180,7 +146,7 @@ class AgentRunner:
                 str(self.root / "cmd/egress-proxy"),
             ]
         )
-        return {"proctor_mcp": str(proctor), "proxy_image": self.proxy_image}
+        return {"proxy_image": self.proxy_image}
 
     def build_agent_image(self, task: TaskSpec) -> str:
         self.engine.ensure_space()
@@ -227,8 +193,6 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
         route: ProviderRoute,
         *,
         scenario: str | None = None,
-        instruction_mode: str = "ask_user",
-        initial_clarification: str | None = None,
     ) -> AgentRunResult:
         started_monotonic = time.monotonic()
         started_at = datetime.now(UTC).isoformat()
@@ -249,32 +213,22 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
         run_id = f"{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}-{task.task_id}-{nonce}"
         run_dir = self.root / ".runs" / run_id
         logs = run_dir / "logs" / "agent"
-        queue = run_dir / "proctor"
         config_dir = run_dir / "config"
-        for path in (logs, queue / "questions", queue / "answers", config_dir):
+        for path in (logs, config_dir):
             path.mkdir(parents=True, exist_ok=True)
-            os.chmod(path, 0o777 if "config" not in path.parts else 0o755)
+            os.chmod(path, 0o777 if path == logs else 0o755)
 
-        scenario_spec = task.scenario(scenario) if scenario else None
         instruction = task.instruction.read_text().strip()
-        if instruction_mode == "full_info":
-            clarification = initial_clarification or (
-                scenario_spec.full_info_addendum if scenario_spec else None
-            )
-            if not clarification:
-                raise ValueError("full_info mode requires an initial clarification")
-            instruction += "\n\nUser clarification:\n" + clarification
 
         config_path = config_dir / "opencode.json"
-        config_path.write_text(self.opencode_config_text(route, instruction_mode))
+        config_path.write_text(self.opencode_config_text(route))
         config_path.chmod(0o644)
-        model_config_sha256 = self.opencode_config_sha256(route, instruction_mode)
+        model_config_sha256 = self.opencode_config_sha256(route)
         instruction_path = config_dir / "instruction.txt"
         instruction_path.write_text(instruction + "\n")
         instruction_path.chmod(0o644)
         event_path = self._prepare_transcript(logs)
-        proctor_display = str(queue) if instruction_mode == "ask_user" else "disabled"
-        print(f"[CAE_RUN] id={run_id} proctor_queue={proctor_display}", flush=True)
+        print(f"[CAE_RUN] id={run_id}", flush=True)
 
         network = f"cae-net-{nonce}"
         proxy = f"cae-proxy-{nonce}"
@@ -326,16 +280,6 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
 
             patch_path = logs / "model.patch"
             model_arg = shlex.quote(f"cae/{route.model}")
-            proctor_args = []
-            if instruction_mode == "ask_user":
-                proctor_args = [
-                    "-v",
-                    f"{queue}:/proctor",
-                    "-v",
-                    f"{self.build_dir / 'proctor-mcp'}:/opt/cae/proctor-mcp:ro",
-                    "-e",
-                    "CAE_PROCTOR_QUEUE=/proctor",
-                ]
             shell = self.agent_shell(model_arg)
             command = [
                 "podman",
@@ -359,7 +303,6 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 f"{task.resources.memory_mb}m",
                 "-v",
                 f"{logs}:/logs/agent",
-                *proctor_args,
                 "-v",
                 f"{config_path}:/home/agent/.config/opencode/opencode.json:ro",
                 "-v",
@@ -420,7 +363,6 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
                 provider=route.provider,
                 model=route.model,
                 endpoint_host=endpoint.hostname,
-                instruction_mode=instruction_mode,
                 started_at=started_at,
                 finished_at=datetime.now(UTC).isoformat(),
                 duration_seconds=round(time.monotonic() - started_monotonic, 6),
@@ -463,16 +405,6 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
             except json.JSONDecodeError:
                 continue
             events.append(event)
-            part = event.get("part")
-            if event.get("type") != "tool_use" or not isinstance(part, dict):
-                continue
-            state = part.get("state")
-            if (
-                part.get("tool") == "proctor_ask_user"
-                and isinstance(state, dict)
-                and state.get("status") == "error"
-            ):
-                return "proctor_error"
         for event in reversed(events):
             if event.get("type") == "error":
                 return "error"

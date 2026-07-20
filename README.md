@@ -8,7 +8,7 @@ The suite emphasizes:
 - deterministic behavioral and regression checks;
 - rootless Podman isolation;
 - fresh, networkless verifier containers;
-- a live SOTA proctor for clarification and qualitative review;
+- a SOTA model for separate, non-overriding qualitative review;
 - explicit separation of historical replay and sealed transfer scenarios;
 - task-level evidence rather than one opaque leaderboard score.
 
@@ -102,7 +102,6 @@ cae audit-task ce-07-mobility-result \
 - internal-only Podman network;
 - exact-host TLS CONNECT proxy permitting only the selected provider host;
 - provider credential inherited into Podman without being written to config or command arguments;
-- local stdio MCP proctor tool;
 - hidden tests and gold patches absent.
 
 ### Verifier phase
@@ -148,11 +147,11 @@ This pins:
 
 - OpenCode `1.18.2`;
 - a digest-pinned Node 22 build image;
-- static `proctor-mcp` and `egress-proxy` binaries.
+- a static `egress-proxy` container image.
 
 No model is invoked by either command.
 
-## Candidate runs and live proctoring
+## Candidate runs
 
 Candidate execution is intentionally gated:
 
@@ -161,42 +160,14 @@ CAE_ALLOW_CANDIDATE_RUN=1 cae run \
   ce-07-mobility-result glm-5.2 \
   --provider zai \
   --providers providers.toml \
-  --scenario validation-fail-fast \
-  --mode ask_user
+  --scenario validation-fail-fast
 ```
 
-The runner prints:
-
-```text
-[CAE_RUN] id=... proctor_queue=.../.runs/.../proctor
-```
-
-OpenCode receives:
-
-```text
-ask_user(question: string) -> string
-```
-
-When it asks, the MCP server emits `[PROCTOR_QUESTION]` and blocks. The live Hermes proctor answers as Sargun would:
-
-```bash
-cae proctor pending .runs/<run-id>/proctor
-cae proctor answer .runs/<run-id>/proctor <question-id> \
-  '<scope or product clarification>' \
-  --proctor 'Hermes Agent / <model>'
-```
-
-The proctor clarifies intent and consequential preferences but does not reveal hidden tests, symbol names, the historical patch, or an implementation plan. See [`docs/proctor.md`](docs/proctor.md).
-
-Modes:
-
-- `baseline`: ambiguity withheld and no MCP clarification tool;
-- `ask_user`: ambiguity withheld with live MCP moderation;
-- `full_info`: scenario policy included initially and no MCP clarification tool.
+The runner prints the immutable run ID and records the exact instruction and generated model configuration. Candidate agents receive no interactive user or proctor tool.
 
 ## Qualitative review
 
-After deterministic verification, generate a model-blinded review record:
+After deterministic verification, generate a separate subjective review record:
 
 ```bash
 cae review-template <run-id> <task-id> \
@@ -225,11 +196,6 @@ the commit, manifest digest, explicit routes, image IDs, OpenCode version, and e
 cells. Resume refuses drift. Completed model failures are outcomes, not retry candidates;
 only infrastructure errors receive the manifest's bounded retry.
 
-While an `ask_user` matrix is active, the live proctor can wait for unanswered questions:
-
-```bash
-scripts/watch_proctor.py --wait --timeout 900
-```
 
 Results record input, cached-input, output, and reasoning tokens. Provider-reported cost is
 retained when available but is secondary for subscription-backed routes. Generate a

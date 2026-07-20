@@ -17,12 +17,17 @@ proctor_model = "provider/model"
 [[models]]
 provider = "explicit-provider"
 model = "exact-model-name"
+cells = ["optional-task-id/default", "optional-task-id/scenario-id"]
 
 [[cells]]
 task = "task-id"
 scenario = "optional-scenario-id"
-mode = "baseline | ask_user | full_info"
 ```
+
+Omit a model's `cells` list to run every declared cell. When present, it is a strict
+allowlist using `task/scenario` keys; use `default` for cells without a scenario. This keeps
+heterogeneous continuation campaigns safe even if `cae matrix run` is invoked without a
+specific `--cell`.
 
 An optional frozen pricing table may be attached to a model only when the operator has a
 defensible comparison basis:
@@ -35,11 +40,7 @@ All four token-category rates are required. Reports keep this derived estimate s
 from provider-reported cost. Subscription routes should normally omit pricing rather than
 pretend a list-price estimate is marginal spend.
 
-`full_info` cells must actually provide information: either select a task scenario with a
-sealed full-info addendum or set an operator-authored `initial_clarification`. The latter is
-part of the signed manifest and is rejected in other modes.
-
-For live Stage-A proctoring, `concurrency` must be `1`. Infrastructure retries may be `0` or `1`. A deterministic model failure, timeout, no-op, or failed verifier is a completed outcome and is never retried.
+For sequential execution, `concurrency` must be `1`. Infrastructure retries may be `0` or `1`. A deterministic model failure, timeout, no-op, or failed verifier is a completed outcome and is never retried.
 
 ## Lifecycle
 

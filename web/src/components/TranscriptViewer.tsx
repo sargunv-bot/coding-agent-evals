@@ -56,7 +56,6 @@ export function summarizeTranscript(events: TranscriptEvent[]) {
   const finalMessages = events.filter(isMessage);
   return {
     finalMessages,
-    clarifications: events.filter((event) => isTool(event) && event.tool === 'proctor_ask_user'),
     steps: groupTranscriptSteps(events),
     toolCalls: events.filter(isTool).length,
   };

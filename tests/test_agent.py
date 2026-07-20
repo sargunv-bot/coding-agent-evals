@@ -34,23 +34,16 @@ class AgentRunnerGateTests(unittest.TestCase):
             with transcript.open("a") as stream:
                 stream.write('{"type":"error","error":"candidate timeout"}\n')
 
-    def test_only_ask_user_mode_exposes_proctor_mcp(self) -> None:
-        self.assertNotIn("mcp", AgentRunner.opencode_config(self.route, "baseline"))
-        self.assertNotIn("mcp", AgentRunner.opencode_config(self.route, "full_info"))
-        ask_config = AgentRunner.opencode_config(self.route, "ask_user")
-        self.assertEqual(ask_config["mcp"]["proctor"]["command"], ["/opt/cae/proctor-mcp"])
-        self.assertEqual(ask_config["mcp"]["proctor"]["timeout"], 30 * 60 * 1000)
-
     def test_custom_provider_uses_environment_interpolation(self) -> None:
-        config = AgentRunner.opencode_config(self.route, "baseline")
+        config = AgentRunner.opencode_config(self.route)
         provider = config["provider"]["cae"]
         self.assertEqual(provider["npm"], "@ai-sdk/openai-compatible")
         self.assertEqual(provider["options"]["apiKey"], "{env:CAE_PROVIDER_API_KEY}")
+        self.assertNotIn("mcp", config)
 
-    def test_model_config_digest_is_canonical_and_mode_sensitive(self) -> None:
-        baseline = AgentRunner.opencode_config_sha256(self.route, "baseline")
-        self.assertEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "baseline"))
-        self.assertNotEqual(baseline, AgentRunner.opencode_config_sha256(self.route, "ask_user"))
+    def test_model_config_digest_is_canonical(self) -> None:
+        digest = AgentRunner.opencode_config_sha256(self.route)
+        self.assertEqual(digest, AgentRunner.opencode_config_sha256(self.route))
 
     def test_patch_capture_uses_pre_agent_head_even_with_multiple_root_commits(self) -> None:
         shell = AgentRunner.agent_shell("cae/model")
@@ -109,24 +102,15 @@ class AgentRunnerGateTests(unittest.TestCase):
             self.assertEqual("completed", AgentRunner._completion_status(path, 1))
             self.assertEqual("timeout", AgentRunner._completion_status(path, 124))
 
-    def test_completion_status_uses_terminal_step_and_rejects_proctor_transport_error(self) -> None:
+    def test_completion_status_uses_terminal_step(self) -> None:
         tool_calls = {"type": "step_finish", "part": {"reason": "tool-calls"}}
         stop = {"type": "step_finish", "part": {"reason": "stop"}}
-        proctor_error = {
-            "type": "tool_use",
-            "part": {
-                "tool": "proctor_ask_user",
-                "state": {"status": "error", "error": "MCP error -32001: Request timed out"},
-            },
-        }
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "events.jsonl"
             path.write_text("\n".join(json.dumps(event) for event in (tool_calls, stop)))
             self.assertEqual("completed", AgentRunner._completion_status(path, 0))
             path.write_text(json.dumps(tool_calls))
             self.assertEqual("incomplete", AgentRunner._completion_status(path, 0))
-            path.write_text("\n".join(json.dumps(event) for event in (proctor_error, stop)))
-            self.assertEqual("proctor_error", AgentRunner._completion_status(path, 0))
 
     def test_extracts_step_usage_without_double_counting_other_events(self) -> None:
         events = [

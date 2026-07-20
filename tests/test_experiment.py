@@ -51,12 +51,10 @@ model = "model-a"
 
 [[cells]]
 task = "ce-01-antidote-output"
-mode = "ask_user"
 
 [[cells]]
 task = "ce-07-mobility-result"
 scenario = "all-errors-as-result"
-mode = "ask_user"
 """
         )
         expanded = spec.expand()
@@ -64,6 +62,31 @@ mode = "ask_user"
         self.assertTrue(all(cell.provider == "chosen" for cell in expanded))
         self.assertEqual({1, 2}, {cell.repeat for cell in expanded})
         self.assertEqual(4, len({cell.cell_id for cell in expanded}))
+
+    def test_model_cell_allowlist_limits_cartesian_expansion(self) -> None:
+        spec = self._load(
+            """
+[experiment]
+id = "selected-cells"
+stage = "breadth"
+proctor_model = "proctor"
+
+[[models]]
+provider = "chosen"
+model = "model-a"
+cells = ["ce-01-antidote-output/default"]
+
+[[cells]]
+task = "ce-01-antidote-output"
+
+[[cells]]
+task = "ce-02-horologia-overdue"
+"""
+        )
+        self.assertEqual(
+            ["chosen__model-a__ce-01-antidote-output__default__r01"],
+            [cell.cell_id for cell in spec.expand()],
+        )
 
     def test_rejects_model_not_declared_by_selected_provider(self) -> None:
         with self.assertRaisesRegex(ExperimentValidationError, "not configured for provider"):
@@ -101,26 +124,7 @@ task = "ce-07-mobility-result"
 """
             )
 
-    def test_full_info_requires_actual_initial_information(self) -> None:
-        with self.assertRaisesRegex(ExperimentValidationError, "requires a scenario or"):
-            self._load(
-                """
-[experiment]
-id = "empty-full-info"
-stage = "diagnostic"
-proctor_model = "proctor"
-
-[[models]]
-provider = "chosen"
-model = "model-a"
-
-[[cells]]
-task = "ce-01-antidote-output"
-mode = "full_info"
-"""
-            )
-
-    def test_loads_frozen_pricing_and_initial_clarification(self) -> None:
+    def test_loads_frozen_pricing(self) -> None:
         spec = self._load(
             """
 [experiment]
@@ -142,15 +146,9 @@ reasoning_per_million = 2
 
 [[cells]]
 task = "ce-01-antidote-output"
-mode = "full_info"
-initial_clarification = "Apply the behavior to clone and update paths."
 """
         )
         self.assertEqual("published-list", spec.models[0].pricing.basis)
-        self.assertEqual(
-            "Apply the behavior to clone and update paths.",
-            spec.expand()[0].initial_clarification,
-        )
 
 
 if __name__ == "__main__":

@@ -33,7 +33,8 @@ function trackedSet(root: string, warnings: Warning[]): Set<string> {
 }
 function rowIdentity(cellId: string): Partial<Run> {
   const parts = cellId.split('__');
-  return parts.length >= 6 ? { provider: parts[0], model: parts[1], taskId: parts[2], scenario: parts[3] === 'default' ? '' : parts[3], mode: parts[4], repeat: Number(parts[5].replace(/^r/, '')) || 1 } : {};
+  if (parts.length >= 6) return { provider: parts[0], model: parts[1], taskId: parts[2], scenario: parts[3] === 'default' ? '' : parts[3], repeat: Number(parts[5].replace(/^r/, '')) || 1 };
+  return parts.length >= 5 ? { provider: parts[0], model: parts[1], taskId: parts[2], scenario: parts[3] === 'default' ? '' : parts[3], repeat: Number(parts[4].replace(/^r/, '')) || 1 } : {};
 }
 function metadataFromToml(doc: any, warnings: Warning[]): TaskMetadata | undefined {
   const m = asRecord(doc?.metadata); const t = asRecord(doc?.task); if (!m.task_id) return undefined;
@@ -58,6 +59,7 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
   for (const experimentId of await dirs(reportsRoot)) {
     const ew: Warning[] = []; const reportDir = path.join(reportsRoot, experimentId);
     const manifest = await optionalToml(path.join(dataRoot, 'experiments', `${experimentId}.toml`), ew, experimentId);
+    const selection = await optionalJson(path.join(dataRoot, 'experiments', `${experimentId}-selection.json`), ew, experimentId);
     const resultDoc = await optionalJson(path.join(reportDir, 'results.json'), ew, experimentId);
     const rows = Array.isArray(resultDoc?.rows) ? resultDoc.rows : [];
     const byCell = new Map<string, any>(rows.filter((r: any) => typeof r?.cell_id === 'string').map((r: any) => [r.cell_id, r]));
@@ -69,6 +71,7 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
       const matrix = await optionalJson(path.join(runDir, 'matrix-record.json'), rw, cellId); const cell = asRecord(matrix?.cell); const attempts = Array.isArray(matrix?.attempts) ? matrix.attempts : [];
       const latest = asRecord(attempts.at(-1)?.result); const row = { ...rowIdentity(cellId), ...cell, ...latest, ...sourceRow };
       const state = String(sourceRow.state || matrix?.state || (attempts.length ? 'completed' : 'partial'));
+      if (state === 'infrastructure_error') continue;
       const artifactManifest = await optionalJson(path.join(runDir, 'artifacts.json'), rw, cellId);
       const entries = Array.isArray(artifactManifest) ? artifactManifest : [];
       const artifacts: Artifact[] = [];
@@ -93,17 +96,17 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
       const parsed = parseTranscript(transcriptSource);
       let verifierOutput: string | undefined; try { if (artifacts.some((a) => a.path === 'verifier/stdout.txt')) verifierOutput = await utf8(await containedFile(runDir, 'verifier/stdout.txt')); } catch (e: any) { rw.push({ scope: cellId, message: e.message }); }
       const usage = asRecord(latest.usage); const verification = asRecord(latest.verification);
-      const run: Run = { experimentId, cellId, taskId: String(row.task_id || 'unknown-task'), provider: String(row.provider || 'unknown-provider'), model: String(row.model || 'unknown-model'), mode: String(row.mode || row.instruction_mode || 'baseline'),
+      const run: Run = { experimentId, cellId, taskId: String(row.task_id || 'unknown-task'), provider: String(row.provider || 'unknown-provider'), model: String(row.model || 'unknown-model'),
         scenario: String(row.scenario || ''), repeat: Number(row.repeat || 1), runId: row.run_id ? String(row.run_id) : undefined, state, completionStatus: row.agent_completion_status,
         deterministicPass: typeof row.deterministic_pass === 'boolean' ? row.deterministic_pass : typeof verification.expectation_met === 'boolean' ? verification.expectation_met : undefined,
-        verificationOutcome: row.verification_outcome || verification.outcome, infrastructureError: state === 'infrastructure_error' || attempts.at(-1)?.kind === 'infrastructure_error', durationSeconds: Number(row.duration_seconds || latest.duration_seconds) || undefined,
+        verificationOutcome: row.verification_outcome || verification.outcome, durationSeconds: Number(row.duration_seconds || latest.duration_seconds) || undefined,
         tokens: { input: Number(row.input_tokens ?? usage.input_tokens) || 0, cachedInput: Number(row.cached_input_tokens ?? usage.cached_input_tokens) || 0, output: Number(row.output_tokens ?? usage.output_tokens) || 0, reasoning: Number(row.reasoning_tokens ?? usage.reasoning_tokens) || 0 },
         artifacts, instruction, patch, transcript: parsed.events, transcriptTruncated: parsed.truncated, transcriptWarnings: parsed.warnings, verifierOutput,
         observed: extractObservedChecks(String(row.task_id || 'unknown-task'), verifierOutput, typeof row.deterministic_pass === 'boolean' ? row.deterministic_pass : undefined),
         reviewState: reviewState(state, asRecord(review)), warnings: rw };
       runs.push(run); allRuns.push(run); ew.push(...rw);
     }
-    const exp = asRecord(manifest?.experiment); const plannedCells = (Array.isArray(manifest?.models) ? manifest.models.length : 0) * (Array.isArray(manifest?.cells) ? manifest.cells.length : 0) * Number(exp.repeats || 1);
+    const exp = asRecord(manifest?.experiment); const plannedCells = Array.isArray(selection?.execution_order) ? selection.execution_order.length : (Array.isArray(manifest?.models) ? manifest.models.length : 0) * (Array.isArray(manifest?.cells) ? manifest.cells.length : 0) * Number(exp.repeats || 1);
     experiments.push({ id: experimentId, description: exp.description, stage: exp.stage, plannedCells, runs, warnings: ew }); warnings.push(...ew);
   }
   for (const run of allRuns) run.taskTitle = taskMap.get(run.taskId)?.title || run.taskId;

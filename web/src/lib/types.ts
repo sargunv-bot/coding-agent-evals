@@ -10,9 +10,9 @@ export interface TaskMetadata {
 }
 export interface TranscriptEvent { type: string; timestamp?: number; text?: string; tool?: string; status?: string; input?: unknown; output?: unknown; error?: unknown; usage?: any; elapsedMs?: number; raw: unknown }
 export interface Run {
-  experimentId: string; cellId: string; taskId: string; taskTitle?: string; provider: string; model: string; mode: string;
+  experimentId: string; cellId: string; taskId: string; taskTitle?: string; provider: string; model: string;
   scenario: string; repeat: number; runId?: string; state: string; completionStatus?: string;
-  deterministicPass?: boolean; verificationOutcome?: string; infrastructureError: boolean;
+  deterministicPass?: boolean; verificationOutcome?: string;
   durationSeconds?: number; tokens: { input: number; cachedInput: number; output: number; reasoning: number };
   artifacts: Artifact[]; instruction?: string; patch?: string; transcript: TranscriptEvent[]; transcriptTruncated: boolean;
   transcriptWarnings: string[]; verifierOutput?: string; observed: ObservedChecks; reviewState: ReviewState; warnings: Warning[];
