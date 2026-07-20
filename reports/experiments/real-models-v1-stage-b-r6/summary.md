@@ -4,7 +4,7 @@
 
 | Cells | Passes | Infra errors | Input | Cached input | Output | Questions |
 |---:|---:|---:|---:|---:|---:|---:|
-| 8 | 2 | 2 | 1391745 | 29656733 | 148199 | 2 |
+| 9 | 2 | 2 | 1536239 | 31190237 | 167304 | 2 |
 
 Provider-reported cost is retained when supplied, but token counts are the primary usage record.
 
@@ -19,4 +19,5 @@ Provider-reported cost is retained when supplied, but token counts are the prima
 | opencode-go | kimi-k2.7-code | ce-07-mobility-result | validation-fail-fast | ask_user | no | 275928 | 3060791 | 23913 | 20260720T052706Z-ce-07-mobility-result-284857-1784525226568477933 |
 | opencode-go | mimo-v2.5-pro | ce-05-mise-slsa-archive | — | ask_user | no | 224435 | 5010496 | 22351 | 20260718T185753Z-ce-05-mise-slsa-archive-2728706-1784401073092535685 |
 | opencode-go | mimo-v2.5-pro | ce-06-maplibre-ffi-ci | — | ask_user | — | 194721 | 1120640 | 21967 | 20260719T211048Z-ce-06-maplibre-ffi-ci-2607845-1784495448881441377 |
+| opencode-go | mimo-v2.5-pro | ce-07-mobility-result | validation-fail-fast | ask_user | no | 144494 | 1533504 | 19105 | 20260720T055901Z-ce-07-mobility-result-437781-1784527141536610755 |
 | zai | glm-5.2 | ce-06-maplibre-ffi-ci | — | ask_user | yes | 95039 | 3319168 | 13380 | 20260718T201055Z-ce-06-maplibre-ffi-ci-2966960-1784405455452871721 |
