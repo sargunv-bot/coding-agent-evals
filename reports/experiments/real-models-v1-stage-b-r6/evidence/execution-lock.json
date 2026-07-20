@@ -1,5 +1,5 @@
 {
-  "benchmark_commit": "d651405fe8dd2974df0586262034a15b2f59bf52",
+  "benchmark_commit": "d65140539ceb276202a80465aa683284e90bb4d3",
   "cells": [
     {
       "cell_id": "zai__glm-5.2__ce-01-antidote-output__default__ask_user__r01",
@@ -405,17 +405,11 @@
   "created_at": "2026-07-18T18:23:43.852168+00:00",
   "experiment_id": "real-models-v1-stage-b-r6",
   "images": {
-    "ce-05-mise-slsa-archive": {
-      "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
-      "agent_image_id": "b01be2b60f54338a25101de7443cebb93dc06ac342d218a9bd54dbd731d57d11",
-      "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
-      "task_image_id": "f18df076fe7615abad723c22f3274a14d6ba5659b788dd446c40c2f2b8881b3f"
-    },
-    "ce-06-maplibre-ffi-ci": {
-      "agent_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci-opencode:dev",
-      "agent_image_id": "eb9e5751d671577cf4f42f4cd873be39c8b6b72e08025bd789b9530f1c3ed0e9",
-      "task_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci:dev",
-      "task_image_id": "9d12efd16ff80e5c3934ca999ecc5abe2232a612c46a4d94279ad19e568e549b"
+    "ce-07-mobility-result": {
+      "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
+      "agent_image_id": "16ce026fd12d60f59af98feb04ee9d05ed3fdfc5cb1c464debf1deee07a1f870",
+      "task_image": "localhost/coding-agent-evals/ce-07-mobility-result:dev",
+      "task_image_id": "404e0dc57c1094c5cfc742231a17409501b69243011d3ceb0b0573597be0110e"
     }
   },
   "manifest_path": "experiments/real-models-v1-stage-b-r6.toml",
