@@ -121,9 +121,10 @@ def enabled(step: dict[str, object], matrix: dict[str, object]) -> bool:
     prefix = "${{ matrix."
     if condition.startswith(prefix) and condition.endswith(" }}"):
         key = condition[len(prefix) : -3].strip()
-        value = matrix.get(key)
-        assert isinstance(value, bool), (key, value)
-        return value
+        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
+            value = matrix.get(key)
+            assert isinstance(value, bool), (key, value)
+            return value
     membership = re.fullmatch(
         r"\$\{\{\s*contains\(matrix\.([A-Za-z_][A-Za-z0-9_]*),\s*(['\"])([^'\"]+)\2\)\s*}}",
         condition,
@@ -131,12 +132,41 @@ def enabled(step: dict[str, object], matrix: dict[str, object]) -> bool:
     if membership:
         key, _, item = membership.groups()
         value = matrix.get(key)
-        assert isinstance(value, list) and all(isinstance(entry, str) for entry in value), (
-            key,
-            value,
-        )
-        return item in value
-    raise AssertionError(f"generated variant step retains procedural condition: {condition}")
+        if isinstance(value, list) and all(isinstance(entry, str) for entry in value):
+            return item in value
+
+    expression = condition.removeprefix("${{").removesuffix("}}").strip()
+    clauses = [clause.strip() for clause in expression.split("&&")]
+    if clauses and all(clauses):
+        results = []
+        for clause in clauses:
+            comparison = re.fullmatch(
+                r"matrix\.mise_env\s*(!=|==)\s*(['\"])([^'\"]+)\2",
+                clause,
+            )
+            if comparison:
+                operator, _, expected = comparison.groups()
+                actual = matrix.get("mise_env")
+                assert isinstance(actual, str), actual
+                results.append(actual == expected if operator == "==" else actual != expected)
+                continue
+
+            string_call = re.fullmatch(
+                r"(!?)(startsWith|contains)\(matrix\.mise_env,\s*(['\"])([^'\"]+)\3\)",
+                clause,
+            )
+            if string_call:
+                negate, operation, _, argument = string_call.groups()
+                actual = matrix.get("mise_env")
+                assert isinstance(actual, str), actual
+                result = actual.startswith(argument) if operation == "startsWith" else argument in actual
+                results.append(not result if negate else result)
+                continue
+            break
+        else:
+            return all(results)
+
+    raise AssertionError(f"unsupported generated variant condition: {condition}")
 
 
 def workflow_policy(document: dict[str, object]) -> dict[str, tuple[str, set[str]]]:
