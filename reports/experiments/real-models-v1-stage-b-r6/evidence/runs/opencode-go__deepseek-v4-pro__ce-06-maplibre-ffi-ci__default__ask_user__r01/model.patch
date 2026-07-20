@@ -1,0 +1,408 @@
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1ebbac10f84c9123c2e7abfbf3dd4a77b95ba71e..9b55c4ab576f84883a98224795542aa1b1b1951c 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -42,6 +42,10 @@ jobs:
+       fail-fast: false
+       matrix:
+         include:
++          - mise_env: ios-arm64-metal
++            runner: macos-latest
++          - mise_env: ios-simulator-arm64-metal
++            runner: macos-latest
+           - mise_env: linux-arm64-egl
+             runner: ubuntu-24.04-arm
+           - mise_env: linux-arm64-vulkan
+@@ -50,15 +54,11 @@ jobs:
+             runner: ubuntu-latest
+           - mise_env: linux-x64-vulkan
+             runner: ubuntu-latest
+-          - mise_env: macos-arm64-metal
+-            runner: macos-latest
+-          - mise_env: macos-arm64-vulkan
+-            runner: macos-latest
+           - mise_env: macos-arm64-egl
+             runner: macos-latest
+-          - mise_env: ios-arm64-metal
++          - mise_env: macos-arm64-metal
+             runner: macos-latest
+-          - mise_env: ios-simulator-arm64-metal
++          - mise_env: macos-arm64-vulkan
+             runner: macos-latest
+           - mise_env: windows-x64-vulkan
+             runner: windows-2022
+@@ -75,7 +75,6 @@ jobs:
+       - name: Test native library
+         if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
+         run: mise run test
+-
+       - name: Build Java FFM binding
+         if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
+         run: mise run //bindings/java-ffm:build
+@@ -99,9 +98,8 @@ jobs:
+       - name: Test Zig binding
+         if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
+         run: mise run //bindings/zig:ci
+-
+       - name: Build LWJGL example
+-        if: ${{ contains(matrix.mise_env, 'vulkan') }}
++        if: ${{ contains(matrix.mise_env, '-vulkan') }}
+         run: mise run //examples/lwjgl-map:build
+       - name: Test Rust example
+         if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
+diff --git a/ci-variants.toml b/ci-variants.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..1680c8b9250a8e40e4c9009d3d4eec350f036758
+--- /dev/null
++++ b/ci-variants.toml
+@@ -0,0 +1,98 @@
++# CI variant support policy.
++# Variants are auto-discovered from .mise/config.*.toml files.
++# Run `mise run ci:generate` after editing this file or adding new variants.
++
++# GHA runner label per {os}-{arch} platform prefix.
++# Variant names (e.g. "linux-x64-vulkan") are matched by longest prefix.
++[runner]
++linux-x64 = "ubuntu-latest"
++linux-arm64 = "ubuntu-24.04-arm"
++macos-arm64 = "macos-latest"
++ios-arm64 = "macos-latest"
++ios-simulator-arm64 = "macos-latest"
++windows-x64 = "windows-2022"
++
++# Each step declares which variants it runs on with `only` and `exclude` glob
++# patterns (matched against the variant name, e.g. "linux-x64-vulkan").
++#
++#   only     — run only on variants matching at least one pattern
++#   exclude  — skip variants matching any pattern
++#
++# A step without `only` runs on all variants except those in `exclude`.
++# Patterns may contain a single `*` as prefix- or suffix-glob.
++# An optional `comment` list adds YAML comment lines above the step.
++
++[[step]]
++name = "Build native library"
++task = "build"
++only = ["ios-*"]
++
++[[step]]
++name = "Test native library"
++task = "test"
++exclude = ["ios-*"]
++
++[[step]]
++name = "Build Java FFM binding"
++task = "//bindings/java-ffm:build"
++exclude = ["macos-arm64-egl", "ios-*"]
++
++[[step]]
++name = "Build Java JNI binding"
++task = "//bindings/java-jni:build"
++exclude = ["macos-arm64-egl", "ios-*"]
++
++[[step]]
++name = "Test .NET binding"
++task = "//bindings/dotnet:test"
++exclude = ["macos-arm64-egl", "ios-*"]
++
++[[step]]
++name = "Test Kotlin/Native binding"
++task = "//bindings/kotlin-native:build"
++exclude = ["macos-arm64-egl", "ios-*", "windows-*", "linux-arm64-*"]
++comment = [
++  "linux-arm64: no Kotlin/Native host — https://youtrack.jetbrains.com/issue/KT-36871",
++  "windows: no MSVC target — https://youtrack.jetbrains.com/issue/SKIKO-446",
++]
++
++[[step]]
++name = "Test Rust binding"
++task = "//bindings/rust:ci"
++exclude = ["macos-arm64-egl", "ios-*"]
++
++[[step]]
++name = "Test Swift binding"
++task = "//bindings/swift:test"
++only = ["macos-*"]
++exclude = ["macos-arm64-egl"]
++
++[[step]]
++name = "Test Zig binding"
++task = "//bindings/zig:ci"
++exclude = ["ios-*"]
++
++[[step]]
++name = "Build LWJGL example"
++task = "//examples/lwjgl-map:build"
++only = ["*-vulkan"]
++
++[[step]]
++name = "Test Rust example"
++task = "//examples/rust-map:ci"
++exclude = ["macos-arm64-egl", "ios-*"]
++
++[[step]]
++name = "Build Swift example"
++task = "//examples/swift-map:build"
++only = ["macos-arm64-metal"]
++
++[[step]]
++name = "Build Zig example"
++task = "//examples/zig-map:build"
++exclude = ["macos-arm64-egl", "ios-*"]
++
++[[step]]
++name = "Run Zig readback example"
++task = "//examples/zig-readback:run"
++exclude = ["ios-*"]
+diff --git a/mise.toml b/mise.toml
+index f9cf3326d0d9d904fd53ad8c9674279b7cdd56f9..f417d573bdb62f68cc95617bec938640bdd26822 100644
+--- a/mise.toml
++++ b/mise.toml
+@@ -190,6 +190,7 @@ shell = '{% if os() == "windows" %}cmd /c{% else %}sh -c -o errexit{% endif %}'
+ run = [
+   # Warm process-plugin cache before hk runs parallel dprint batches.
+   "dprint output-resolved-config > /dev/null",
++  "python scripts/generate-ci.py --check",
+   "hk fix --all",
+   "git update-index -q --refresh",
+   # Lockfile drift is common across different mise builds
+@@ -197,6 +198,13 @@ run = [
+   "git diff --cached --exit-code -- . ':(exclude)mise.lock'",
+ ]
+ 
++[tasks."ci:generate"]
++description = "Generate CI workflow from the declarative variant manifest."
++run = [
++  "python scripts/generate-ci.py",
++  "dprint fmt .github/workflows/ci.yml",
++]
++
+ [tasks."ci:vulkan-info"]
+ description = "Print the active Vulkan loader and driver summary."
+ run = "vulkaninfo --summary"
+diff --git a/scripts/generate-ci.py b/scripts/generate-ci.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..e3e679132a70b949d33c9b71f035bf2f3bb388be
+--- /dev/null
++++ b/scripts/generate-ci.py
+@@ -0,0 +1,220 @@
++#!/usr/bin/env python3
++"""Generate .github/workflows/ci.yml from ci-variants.toml.
++
++Usage:
++  python scripts/generate-ci.py          # write ci.yml
++  python scripts/generate-ci.py --check  # check ci.yml is in sync (exit 1 if not)
++"""
++
++import difflib
++import pathlib
++import sys
++import tomllib
++
++
++REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
++MANIFEST_PATH = REPO_ROOT / "ci-variants.toml"
++OUTPUT_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
++MISE_CONFIG_DIR = REPO_ROOT / ".mise"
++
++
++def discover_variants() -> list[str]:
++    variants = []
++    for p in sorted(MISE_CONFIG_DIR.glob("config.*.toml")):
++        name = p.stem.removeprefix("config.")
++        variants.append(name)
++    return sorted(variants)
++
++
++def load_manifest() -> dict:
++    with open(MANIFEST_PATH, "rb") as f:
++        return tomllib.load(f)
++
++
++def pattern_to_gha(pattern: str) -> str:
++    """Convert a pattern like 'ios-*', '*-vulkan', or 'macos-arm64-egl' to a GHA expression fragment."""
++    var = "matrix.mise_env"
++    if "*" in pattern:
++        prefix, suffix = pattern.split("*", 1)
++        if prefix and not suffix:
++            return "startsWith(" + var + ", '" + prefix + "')"
++        elif suffix and not prefix:
++            return "contains(" + var + ", '" + suffix + "')"
++        else:
++            raise ValueError("Unsupported pattern: " + pattern)
++    else:
++        return var + " == '" + pattern + "'"
++
++
++def pattern_to_negated_gha(pattern: str) -> str:
++    """Same as pattern_to_gha but negated (e.g. matrix.mise_env != 'foo')."""
++    var = "matrix.mise_env"
++    if "*" in pattern:
++        prefix, suffix = pattern.split("*", 1)
++        if prefix and not suffix:
++            return "!startsWith(" + var + ", '" + prefix + "')"
++        elif suffix and not prefix:
++            return "!contains(" + var + ", '" + suffix + "')"
++        else:
++            raise ValueError("Unsupported pattern: " + pattern)
++    else:
++        return var + " != '" + pattern + "'"
++
++
++def compile_condition(only: list[str] | None, exclude: list[str] | None) -> str | None:
++    clauses = []
++
++    if exclude:
++        for p in exclude:
++            clauses.append(pattern_to_negated_gha(p))
++
++    if only:
++        for p in only:
++            clauses.append(pattern_to_gha(p))
++
++    if not clauses:
++        return None
++
++    if len(clauses) == 1:
++        return clauses[0]
++    return " && ".join(clauses)
++
++
++def get_runner(variant: str, runner_map: dict[str, str]) -> str:
++    for prefix in sorted(runner_map.keys(), key=len, reverse=True):
++        if variant.startswith(prefix):
++            return runner_map[prefix]
++    raise ValueError("No runner mapping for variant: " + variant)
++
++
++def generate_workflow() -> str:
++    variants = discover_variants()
++    manifest = load_manifest()
++    runners = manifest["runner"]
++    steps = manifest["step"]
++
++    matrix_lines = []
++    for v in variants:
++        runner = get_runner(v, runners)
++        matrix_lines.append("- mise_env: " + v + "\n            runner: " + runner)
++
++    step_lines = []
++    for s in steps:
++        name = s["name"]
++        task = s["task"]
++        only = s.get("only")
++        exclude = s.get("exclude")
++        comment = s.get("comment")
++
++        if comment:
++            for c in comment:
++                step_lines.append("      # " + c)
++        step_lines.append("      - name: " + name)
++        condition = compile_condition(only, exclude)
++        if condition:
++            step_lines.append("        if: ${{ " + condition + " }}")
++        step_lines.append("        run: mise run " + task)
++
++    return "\n".join([
++        "name: CI",
++        "",
++        "on:",
++        "  push:",
++        "    branches: [main]",
++        "  pull_request:",
++        "    branches: [main]",
++        "",
++        "permissions:",
++        "  contents: read",
++        "",
++        "concurrency:",
++        "  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}",
++        "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
++        "",
++        "jobs:",
++        "  hygiene:",
++        "    name: hygiene",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 30",
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "      - run: mise run ci:lint",
++        "",
++        "  docs:",
++        "    name: docs",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 60",
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "      - run: mise run //docs:build",
++        "",
++        "  variants:",
++        "    name: variant / ${{ matrix.mise_env }}",
++        "    runs-on: ${{ matrix.runner }}",
++        "    timeout-minutes: 120",
++        "    env:",
++        "      MISE_ENV: ${{ matrix.mise_env }}",
++        "    strategy:",
++        "      fail-fast: false",
++        "      matrix:",
++        "        include:",
++        "          " + "\n          ".join(matrix_lines),
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "",
++        "      - run: mise run configure",
++        "\n".join(step_lines),
++        "",
++        "  required:",
++        "    name: ci-required",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 5",
++        "    if: ${{ always() }}",
++        "    needs:",
++        "      - hygiene",
++        "      - docs",
++        "      - variants",
++        "    steps:",
++        "      - name: Fail if required jobs failed",
++        "        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}",
++        "        run: |",
++        "          echo '${{ toJSON(needs) }}'",
++        "          exit 1",
++        "",
++        "      - run: true",
++        "",
++    ])
++
++
++def main() -> None:
++    check_mode = "--check" in sys.argv
++
++    expected = generate_workflow()
++
++    if check_mode:
++        with open(OUTPUT_PATH, "r", newline="") as f:
++            current = f.read()
++        if current == expected:
++            return
++        diff = difflib.unified_diff(
++            current.splitlines(True),
++            expected.splitlines(True),
++            fromfile=str(OUTPUT_PATH),
++            tofile="(generated)",
++        )
++        sys.stderr.writelines(diff)
++        sys.stderr.write(
++            "ci.yml is out of sync with ci-variants.toml. "
++            "Run `mise run ci:generate` to regenerate.\n"
++        )
++        sys.exit(1)
++    else:
++        with open(OUTPUT_PATH, "w", newline="") as f:
++            f.write(expected)
++
++
++if __name__ == "__main__":
++    main()
