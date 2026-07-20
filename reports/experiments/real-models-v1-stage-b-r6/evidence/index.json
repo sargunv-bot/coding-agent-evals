@@ -13,6 +13,11 @@
     },
     {
       "artifacts": 7,
+      "cell_id": "opencode-go__deepseek-v4-pro__ce-07-mobility-result__all-errors-as-result__ask_user__r01",
+      "run_id": "20260720T075217Z-ce-07-mobility-result-787815-1784533937449167580"
+    },
+    {
+      "artifacts": 7,
       "cell_id": "opencode-go__deepseek-v4-pro__ce-07-mobility-result__validation-fail-fast__ask_user__r01",
       "run_id": "20260720T062606Z-ce-07-mobility-result-520216-1784528766050265305"
     },
