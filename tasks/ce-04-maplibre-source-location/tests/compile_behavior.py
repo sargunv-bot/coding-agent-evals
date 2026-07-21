@@ -10,6 +10,7 @@ ROOT = pathlib.Path("/app")
 BUILD = ROOT / "build-linux-opengl"
 TEST_SOURCE = pathlib.Path("/tests/source_location_behavior.cpp")
 FALLBACK_SOURCE = pathlib.Path("/tests/source_location_fallback.cpp")
+MACRO_PROBE_SOURCE = pathlib.Path("/tests/source_location_macro_probe.cpp")
 OUTPUT_ROOT = pathlib.Path("/tmp/ce04")
 
 
@@ -49,14 +50,44 @@ def run(command: list[str]) -> None:
         )
 
 
+def fallback_source(compiler: str, flags: list[str]) -> pathlib.Path:
+    command = [
+        compiler,
+        *flags,
+        "-std=c++17",
+        "-DMLN_SYMBOL_GUARDS=1",
+        "-E",
+        "-P",
+        str(MACRO_PROBE_SOURCE),
+    ]
+    completed = subprocess.run(command, text=True, capture_output=True)
+    if completed.returncode:
+        raise AssertionError(
+            f"preprocessor failed ({completed.returncode}): {shlex.join(command)}\n"
+            f"stdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
+        )
+    _, begin, remainder = completed.stdout.partition("CE04_EXPRESSION_BEGIN")
+    expression, end, _ = remainder.partition("CE04_EXPRESSION_END")
+    if not begin or not end or not expression.strip():
+        raise AssertionError("could not extract the expanded SYM_GUARD_LOC expression")
+    generated = OUTPUT_ROOT / f"fallback-{compiler.replace('+', 'x')}.cpp"
+    generated.write_text(
+        FALLBACK_SOURCE.read_text().replace(
+            "CE04_SOURCE_LOCATION_EXPRESSION",
+            expression.strip(),
+        )
+    )
+    return generated
+
+
 def main() -> None:
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     flags = compile_flags()
+    fallback_sources: list[pathlib.Path] = []
     for compiler in ("g++", "clang++"):
-        for standard, source in (
-            ("c++20", TEST_SOURCE),
-            ("c++17", FALLBACK_SOURCE),
-        ):
+        generated_fallback = fallback_source(compiler, flags)
+        fallback_sources.append(generated_fallback)
+        for standard, source in (("c++20", TEST_SOURCE), ("c++17", generated_fallback)):
             output = OUTPUT_ROOT / f"{compiler.replace('+', 'x')}-{standard}"
             run(
                 [
@@ -71,10 +102,8 @@ def main() -> None:
             )
             run([str(output)])
 
-    for standard, source in (
-        ("c++20", TEST_SOURCE),
-        ("c++17", FALLBACK_SOURCE),
-    ):
+    tidy_sources = [("c++20", TEST_SOURCE), *[("c++17", path) for path in fallback_sources]]
+    for standard, source in tidy_sources:
         run(
             [
                 "clang-tidy",

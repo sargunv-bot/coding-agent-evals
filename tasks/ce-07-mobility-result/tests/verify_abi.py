@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-import re
 
 ROOT = pathlib.Path("/app")
 EXPECTED = json.loads(pathlib.Path("/tests/expected-client-methods.json").read_text())
@@ -26,17 +25,20 @@ def client_block(text: str, module: str) -> str:
     return text[start:end]
 
 
-for module, expected_names in EXPECTED.items():
+for module, expected_lines in EXPECTED.items():
     text = (ROOT / module / "api" / f"{module}.klib.api").read_text()
     block = client_block(text, module)
-    suspend_lines = [line.strip() for line in block.splitlines() if "final suspend fun" in line]
-    if not suspend_lines:
-        raise AssertionError(f"{module}: no public suspend client methods")
+    suspend_lines = {
+        line.strip().split(" // ", 1)[0]
+        for line in block.splitlines()
+        if "final suspend fun" in line
+    }
+    if suspend_lines != set(expected_lines):
+        missing = sorted(set(expected_lines) - suspend_lines)
+        unexpected = sorted(suspend_lines - set(expected_lines))
+        raise AssertionError(f"{module}: public client ABI drift: missing={missing}, unexpected={unexpected}")
     for line in suspend_lines:
         if ": kotlin/Result<" not in line:
             raise AssertionError(f"{module}: public client method does not return Result: {line}")
-    for name in expected_names:
-        if not any(re.search(rf"(?:\.|\s){re.escape(name)}\(", line) for line in suspend_lines):
-            raise AssertionError(f"{module}: original public client method disappeared: {name}")
 
-print("PASS: every public client fetch method returns Result and original API methods remain")
+print("PASS: every public client fetch method has the expected signature and returns Result")

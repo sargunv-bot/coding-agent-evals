@@ -1,0 +1,20 @@
+[experiment]
+id = "real-models-v1-behavioral-rerun-ce01"
+description = "Fresh CE-01 runs after candidate-visible contract repair"
+stage = "breadth"
+repeats = 1
+concurrency = 1
+infrastructure_retries = 1
+proctor_model = "openai/gpt-5.6-sol"
+
+[[models]]
+provider = "openai-subscription"
+model = "gpt-5.6-sol"
+
+[[models]]
+provider = "kimi-subscription"
+model = "kimi-k3"
+
+[[cells]]
+task = "ce-01-antidote-output"
+mode = "ask_user"

@@ -28,6 +28,8 @@ class ProctorReview:
 
     def validate(self) -> list[str]:
         errors: list[str] = []
+        if self.mergeable is not None and type(self.mergeable) is not bool:
+            errors.append("mergeable must be a boolean")
         for name in (
             "scope_discipline",
             "code_clarity",

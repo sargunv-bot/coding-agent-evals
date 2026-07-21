@@ -18,13 +18,13 @@ class ReviewPacketTests(unittest.TestCase):
         run = root / ".runs" / run_id
         (run / "config").mkdir(parents=True)
         (run / "logs" / "agent").mkdir(parents=True)
-        (run / "config" / "instruction.txt").write_text("fix the behavior\n")
+        (run / "config" / "instruction.txt").write_text("fix this for SECRET-MODEL\n")
         patch = run / "logs" / "agent" / "model.patch"
-        patch.write_text("diff --git a/x b/x\n")
+        patch.write_text("diff --git a/x b/x\n+secret-provider\n")
         trajectory = run / "logs" / "agent" / "trajectory.json"
         trajectory.write_text(json.dumps({
             "model": "secret-model",
-            "nested": {"providerID": "secret-provider"},
+            "nested": {"providerID": "secret-provider", "model-name": "secret-model"},
             "message": "secret-model via secret-provider",
         }))
 
@@ -77,6 +77,7 @@ class ReviewPacketTests(unittest.TestCase):
             "summary": "mergeable",
             "rating_rationales": rationales,
             "overall_reasoning": "The patch is direct and adequately tested.",
+            "model_identity_blinded": True,
         }
 
     def test_packet_is_opaque_and_mapping_is_separate(self) -> None:
@@ -84,7 +85,7 @@ class ReviewPacketTests(unittest.TestCase):
             root = Path(tmp)
             self.fixture(root)
             packets = root / "packets"
-            mapping = root / "trusted" / "mapping.json"
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
             result = prepare_review_packets(root, "exp", packets, mapping)
             self.assertEqual(result["packets"], 1)
             packet_dirs = list(packets.iterdir())
@@ -99,6 +100,7 @@ class ReviewPacketTests(unittest.TestCase):
             sanitized = json.loads((packet_dirs[0] / "trajectory.json").read_text())
             self.assertNotIn("model", sanitized)
             self.assertNotIn("providerID", sanitized["nested"])
+            self.assertNotIn("model-name", sanitized["nested"])
             self.assertIn("secret-model", mapping.read_text())
 
     def test_mapping_cannot_live_in_packet_tree(self) -> None:
@@ -109,12 +111,17 @@ class ReviewPacketTests(unittest.TestCase):
             with self.assertRaisesRegex(ReviewPacketError, "outside"):
                 prepare_review_packets(root, "exp", packets, packets / "mapping.json")
 
+            experiment_packets = root / ".runs" / "experiments" / "exp" / "packets"
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
+            with self.assertRaisesRegex(ReviewPacketError, "outside the experiment"):
+                prepare_review_packets(root, "exp", experiment_packets, mapping)
+
     def test_finalize_attaches_trusted_fields_and_canonical_path(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             self.fixture(root)
             packets = root / "packets"
-            mapping = root / "trusted" / "mapping.json"
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
             prepare_review_packets(root, "exp", packets, mapping)
             packet_id = json.loads(mapping.read_text())["packets"][0]["packet_id"]
             response = root / "response.json"
@@ -140,7 +147,7 @@ class ReviewPacketTests(unittest.TestCase):
             root = Path(tmp)
             self.fixture(root)
             packets = root / "packets"
-            mapping = root / "trusted" / "mapping.json"
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
             prepare_review_packets(root, "exp", packets, mapping)
             packet_id = json.loads(mapping.read_text())["packets"][0]["packet_id"]
             payload = self.response() | {"blinded_to_model_identity": False}
@@ -155,6 +162,65 @@ class ReviewPacketTests(unittest.TestCase):
                     proctor="Hermes Agent",
                     proctor_model="reviewer-model",
                 )
+
+    def test_mapping_cannot_overwrite_results_or_existing_mapping(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result_path, _ = self.fixture(root)
+            packets = root / "packets"
+            with self.assertRaisesRegex(ReviewPacketError, "inside"):
+                prepare_review_packets(root, "exp", packets, result_path)
+
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
+            mapping.parent.mkdir(parents=True)
+            mapping.write_text("preserve me")
+            with self.assertRaisesRegex(ReviewPacketError, "already exists"):
+                prepare_review_packets(root, "exp", packets, mapping)
+            self.assertEqual(mapping.read_text(), "preserve me")
+
+    def test_finalize_rejects_unblinded_or_malformed_response(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.fixture(root)
+            packets = root / "packets"
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
+            prepare_review_packets(root, "exp", packets, mapping)
+            packet_id = json.loads(mapping.read_text())["packets"][0]["packet_id"]
+            response = root / "response.json"
+
+            response.write_text(json.dumps(self.response() | {"model_identity_blinded": False}))
+            with self.assertRaisesRegex(ReviewPacketError, "must be true"):
+                finalize_review(root, mapping, packet_id, response, proctor="p", proctor_model="m")
+
+            response.write_text(json.dumps(self.response() | {"mergeable": "yes"}))
+            with self.assertRaisesRegex(ReviewPacketError, "must be a boolean"):
+                finalize_review(root, mapping, packet_id, response, proctor="p", proctor_model="m")
+
+    def test_finalize_rejects_mapping_path_escape_and_review_clobber(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.fixture(root)
+            packets = root / "packets"
+            mapping = root / ".runs" / "experiments" / "exp" / "review-mappings" / "mapping.json"
+            prepare_review_packets(root, "exp", packets, mapping)
+            document = json.loads(mapping.read_text())
+            packet_id = document["packets"][0]["packet_id"]
+            response = root / "response.json"
+            response.write_text(json.dumps(self.response()))
+
+            document["packets"][0]["review_path"] = document["packets"][0]["result_path"]
+            mapping.write_text(json.dumps(document))
+            with self.assertRaisesRegex(ReviewPacketError, "review path"):
+                finalize_review(root, mapping, packet_id, response, proctor="p", proctor_model="m")
+
+            document["packets"][0]["review_path"] = ".runs/experiments/exp/reviews/cell.json"
+            mapping.write_text(json.dumps(document))
+            review_path = root / document["packets"][0]["review_path"]
+            review_path.parent.mkdir(parents=True)
+            review_path.write_text("historical review")
+            with self.assertRaisesRegex(ReviewPacketError, "already exists"):
+                finalize_review(root, mapping, packet_id, response, proctor="p", proctor_model="m")
+            self.assertEqual(review_path.read_text(), "historical review")
 
 
 if __name__ == "__main__":

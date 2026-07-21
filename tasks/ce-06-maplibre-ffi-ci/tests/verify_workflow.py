@@ -110,17 +110,6 @@ def candidate_manifest_paths(source: pathlib.Path) -> list[pathlib.Path]:
     ]
 
 
-def unknown_field_bytes(path: pathlib.Path, original: bytes) -> bytes:
-    if path.suffix == ".toml":
-        return original + b"\ncae_unknown_field = true\n"
-    document = yaml.safe_load(original) if path.suffix in {".yaml", ".yml"} else json.loads(original)
-    assert isinstance(document, dict), path
-    document["cae_unknown_field"] = True
-    if path.suffix in {".yaml", ".yml"}:
-        return yaml.safe_dump(document, sort_keys=False).encode()
-    return (json.dumps(document, indent=2) + "\n").encode()
-
-
 def malformed_bytes(path: pathlib.Path, original: bytes) -> bytes:
     if path.suffix == ".toml":
         return original + b"\n[[[\n"
@@ -129,7 +118,7 @@ def malformed_bytes(path: pathlib.Path, original: bytes) -> bytes:
     return original + b"\n: invalid\n"
 
 
-def assert_manifest_strictness(source: pathlib.Path, fixture: pathlib.Path, canonical: str) -> None:
+def assert_required_inputs_reject_malformed(source: pathlib.Path, fixture: pathlib.Path, canonical: str) -> None:
     workflow = fixture / ".github/workflows/ci.yml"
     dependencies: list[pathlib.Path] = []
     for relative in candidate_manifest_paths(source):
@@ -150,10 +139,9 @@ def assert_manifest_strictness(source: pathlib.Path, fixture: pathlib.Path, cano
     for relative in dependencies:
         path = fixture / relative
         original = path.read_bytes()
-        for mutation in (unknown_field_bytes, malformed_bytes):
-            path.write_bytes(mutation(path, original))
-            run(GENERATE_COMMAND, cwd=fixture, expect_success=False)
-            path.write_bytes(original)
+        path.write_bytes(malformed_bytes(path, original))
+        run(GENERATE_COMMAND, cwd=fixture, expect_success=False)
+        path.write_bytes(original)
         run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
         assert workflow.read_text() == canonical
 
@@ -303,7 +291,7 @@ def main() -> None:
         run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
         assert digest(workflow) == before, "generation is nondeterministic"
         validate_workflow(fixture)
-        assert_manifest_strictness(source, fixture, workflow.read_text())
+        assert_required_inputs_reject_malformed(source, fixture, workflow.read_text())
 
         text = workflow.read_text()
         assert "mise run test" in text

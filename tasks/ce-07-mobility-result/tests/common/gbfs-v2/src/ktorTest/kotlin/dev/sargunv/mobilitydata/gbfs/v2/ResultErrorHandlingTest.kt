@@ -9,6 +9,7 @@ import io.ktor.http.headersOf
 import java.io.File
 import java.io.IOException
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.runTest
 
@@ -45,6 +46,14 @@ class ResultErrorHandlingTest {
       respond("not json", headers = headersOf(HttpHeaders.ContentType, "application/json"))
     }
     assertTrue(GbfsV2Client(engine).getSystemManifest("https://example.com/gbfs.json").isFailure)
+  }
+
+  @Test
+  fun missingFeedReturnsFailureBeforeNetwork() = runTest {
+    var requests = 0
+    val client = GbfsV2Client(MockEngine { requests += 1; error("unexpected network call") })
+    context(Service()) { assertTrue(client.getSystemInformation().isFailure) }
+    assertEquals(0, requests)
   }
 
   @Test

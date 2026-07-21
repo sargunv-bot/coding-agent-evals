@@ -1,0 +1,20 @@
+[experiment]
+id = "real-models-v1-behavioral-rerun-ce07"
+description = "Fresh unified CE-07 runs after removing contradictory scenario prompts"
+stage = "breadth"
+repeats = 1
+concurrency = 1
+infrastructure_retries = 1
+proctor_model = "openai/gpt-5.6-sol"
+
+[[models]]
+provider = "openai-subscription"
+model = "gpt-5.6-sol"
+
+[[models]]
+provider = "kimi-subscription"
+model = "kimi-k3"
+
+[[cells]]
+task = "ce-07-mobility-result"
+mode = "ask_user"
