@@ -20,6 +20,7 @@ NODE_IMAGE = (
 )
 OPENCODE_VERSION = "1.18.2"
 LABEL = "io.sargunv.coding-agent-evals=true"
+AGENT_STREAM_IDLE_TIMEOUT_SECONDS = 900
 
 
 def _token_count(tokens: dict, *keys: str) -> int:
@@ -67,6 +68,91 @@ class AgentRunner:
         transcript.touch()
         transcript.chmod(0o666)
         return transcript
+
+    @staticmethod
+    def _last_event_metadata(source: Path) -> dict[str, object]:
+        if not source.exists():
+            return {}
+        for line in reversed(source.read_text(errors="replace").splitlines()):
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            metadata: dict[str, object] = {}
+            for key in ("type", "timestamp"):
+                value = event.get(key)
+                if isinstance(value, str | int):
+                    metadata[f"last_event_{key}"] = value
+            part = event.get("part")
+            if isinstance(part, dict):
+                for key in ("type", "reason", "tool"):
+                    value = part.get(key)
+                    if isinstance(value, str):
+                        metadata[f"last_part_{key}"] = value
+            return metadata
+        return {}
+
+    @classmethod
+    def _run_candidate_process(
+        cls,
+        command: list[str],
+        *,
+        env: dict[str, str],
+        event_path: Path,
+        total_timeout: float,
+        idle_timeout: float = AGENT_STREAM_IDLE_TIMEOUT_SECONDS,
+        poll_interval: float = 1.0,
+    ) -> int:
+        process = subprocess.Popen(command, text=True, env=env)
+        started = time.monotonic()
+        last_activity = started
+        last_signature = cls._transcript_signature(event_path)
+        timeout_kind: str | None = None
+        try:
+            while process.poll() is None:
+                now = time.monotonic()
+                signature = cls._transcript_signature(event_path)
+                if signature != last_signature:
+                    last_signature = signature
+                    last_activity = now
+                if now - started >= total_timeout:
+                    timeout_kind = "total"
+                    break
+                if now - last_activity >= idle_timeout:
+                    timeout_kind = "stream_idle"
+                    break
+                time.sleep(min(poll_interval, total_timeout - (now - started)))
+            if timeout_kind is None:
+                return process.wait()
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+
+        event = {
+            "type": "error",
+            "error": "candidate timeout",
+            "timeout_kind": timeout_kind,
+            "timeout_seconds": total_timeout if timeout_kind == "total" else idle_timeout,
+            **cls._last_event_metadata(event_path),
+        }
+        with event_path.open("a") as stream:
+            stream.write(json.dumps(event) + "\n")
+        return 124
+
+    @staticmethod
+    def _transcript_signature(source: Path) -> tuple[int, int]:
+        try:
+            stat = source.stat()
+        except FileNotFoundError:
+            return (0, 0)
+        return (stat.st_size, stat.st_mtime_ns)
 
     def __init__(self, root: Path, engine: PodmanEngine | None = None) -> None:
         self.root = root.resolve()
@@ -330,22 +416,12 @@ ENV PATH=/opt/agent-tools/bin:$PATH OPENCODE_FAKE_VCS=git
             ]
             env = os.environ.copy()
             env["CAE_PROVIDER_API_KEY"] = key
-            try:
-                process = subprocess.run(command, text=True, env=env, timeout=task.agent_timeout)
-                agent_exit = process.returncode
-            except subprocess.TimeoutExpired:
-                agent_exit = 124
-                with event_path.open("a") as stream:
-                    stream.write(
-                        json.dumps(
-                            {
-                                "type": "error",
-                                "error": "candidate timeout",
-                                "timeout_seconds": task.agent_timeout,
-                            }
-                        )
-                        + "\n"
-                    )
+            agent_exit = self._run_candidate_process(
+                command,
+                env=env,
+                event_path=event_path,
+                total_timeout=task.agent_timeout,
+            )
 
             usage = self._extract_usage(event_path)
             completion_status = self._completion_status(event_path, agent_exit)

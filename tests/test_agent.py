@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -33,6 +34,52 @@ class AgentRunnerGateTests(unittest.TestCase):
             self.assertEqual(0o666, transcript.stat().st_mode & 0o777)
             with transcript.open("a") as stream:
                 stream.write('{"type":"error","error":"candidate timeout"}\n')
+
+    def test_candidate_process_stops_after_stream_idle_timeout_with_diagnostics(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            transcript = AgentRunner._prepare_transcript(Path(directory))
+            command = [
+                sys.executable,
+                "-c",
+                (
+                    "import pathlib,sys,time; "
+                    "pathlib.Path(sys.argv[1]).write_text("
+                    '\'{"type":"step_start","timestamp":123,\''
+                    '\'"part":{"type":"step-start"}}\\n\'); '
+                    "time.sleep(10)"
+                ),
+                str(transcript),
+            ]
+            exit_code = AgentRunner._run_candidate_process(
+                command,
+                env=os.environ.copy(),
+                event_path=transcript,
+                total_timeout=5,
+                idle_timeout=0.2,
+                poll_interval=0.02,
+            )
+            events = [json.loads(line) for line in transcript.read_text().splitlines()]
+
+        self.assertEqual(124, exit_code)
+        self.assertEqual("stream_idle", events[-1]["timeout_kind"])
+        self.assertEqual("step_start", events[-1]["last_event_type"])
+        self.assertEqual("step-start", events[-1]["last_part_type"])
+
+    def test_candidate_process_returns_normal_exit_before_watchdogs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            transcript = AgentRunner._prepare_transcript(Path(directory))
+            exit_code = AgentRunner._run_candidate_process(
+                [sys.executable, "-c", "raise SystemExit(7)"],
+                env=os.environ.copy(),
+                event_path=transcript,
+                total_timeout=5,
+                idle_timeout=1,
+                poll_interval=0.02,
+            )
+            transcript_text = transcript.read_text()
+
+        self.assertEqual(7, exit_code)
+        self.assertEqual("", transcript_text)
 
     def test_custom_provider_uses_environment_interpolation(self) -> None:
         config = AgentRunner.opencode_config(self.route)
