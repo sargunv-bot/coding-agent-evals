@@ -1,0 +1,86 @@
+{
+  "experiment_id": "behavioral-corrected-20260721",
+  "runs": [
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-01-antidote-output__default__ask_user__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-01-antidote-output__default__ask_user__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-02-horologia-overdue__default__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-02-horologia-overdue__default__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-03-jvl-completions__default__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-03-jvl-completions__default__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-04-maplibre-source-location__default__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-04-maplibre-source-location__default__r01",
+      "deterministic_pass": false,
+      "reviewed": true
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+      "deterministic_pass": false,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-05-mise-slsa-archive__default__r01",
+      "deterministic_pass": false,
+      "reviewed": true
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "deterministic_pass": false,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "deterministic_pass": false,
+      "reviewed": true
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__ask_user__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__default__ask_user__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-07-mobility-result__default__ask_user__r01",
+      "deterministic_pass": true,
+      "reviewed": true
+    }
+  ],
+  "schema_version": 1
+}

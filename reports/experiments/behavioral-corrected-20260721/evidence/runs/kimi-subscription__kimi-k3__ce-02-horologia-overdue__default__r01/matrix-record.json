@@ -1,0 +1,65 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 721.020928,
+        "endpoint_host": "cliproxy.home.sargunv.dev",
+        "finished_at": "2026-07-20T11:38:04.527317+00:00",
+        "model": "kimi-k3",
+        "model_config_sha256": "5fbee02972f8fca5bf1f748a7958223b9721da65f15423d9930b1787560730b5",
+        "patch_path": "model.patch",
+        "provider": "kimi-subscription",
+        "run_id": "20260720T112608Z-ce-02-horologia-overdue-1487683-1784546768713983934",
+        "scenario": null,
+        "started_at": "2026-07-20T11:26:03.506408+00:00",
+        "task_id": "ce-02-horologia-overdue",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 1525248,
+          "input_tokens": 49485,
+          "output_tokens": 9922,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 3794
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 2.3403783780522645,
+          "exit_code": 0,
+          "expectation_met": true,
+          "expected_pass": true,
+          "outcome": "passed",
+          "reward": {
+            "behavioral": 1,
+            "regression": 1,
+            "reward": 1
+          },
+          "scenario": null,
+          "task_id": "ce-02-horologia-overdue"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "kimi-subscription__kimi-k3__ce-02-horologia-overdue__default__r01",
+    "model": "kimi-k3",
+    "provider": "kimi-subscription",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-02-horologia-overdue"
+  },
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "schema_version": 1,
+  "state": "completed",
+  "supersession": {
+    "kind": "preserved-patch-replay",
+    "original_experiment": "real-models-v1-stage-b-r7",
+    "verifier_commit": "d9ba1521692ddd91b738fd57a63eb1b6cce86617"
+  },
+  "updated_at": "2026-07-20T11:38:04.861822+00:00"
+}

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/tests/verify_workflow.py", line 308, in <module>
+    main()
+    ~~~~^^
+  File "/tests/verify_workflow.py", line 287, in main
+    run(CHECK_COMMAND, cwd=fixture, expect_success=True)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tests/verify_workflow.py", line 80, in run
+    raise AssertionError(
+    ...<2 lines>...
+    )
+AssertionError: generator ['ci:generate-workflow', '--', '--check'] returned 1; stdout='' stderr='mise ERROR no task //:ci:generate-workflow found\n\nDid you mean one of these?\n  - //:ci:lint\n\nAvailable tasks (`mise tasks ls --all`):\n  Name                        Description\n  //.devcontainer:build       Build the local devcontainer image for the host architecture.\n  //.devcontainer:smoke       Run a quick command in the local devcontainer image.\n  //:actions-up               Update and pin GitHub Actions steps.\n  //:build                    \n  //:check                    \n  //:ci:lint                  \n  //:ci:vulkan-info           Print the active Vulkan loader and driver summary.\n  //:clean                    \n  //:configure                \n  //:deps                     Install variant-specific managed dependencies.\n  //:deps:angle               Download and verify the pinned ANGLE binary artifact for the active variant.\n  //:ensure-native-library    \n  //:fix                      \n  //:sync-submodules          Init only MapLibre Native submodules required for maplibre-native-ffi builds\n  //:test                     \n  //bindings/dotnet:build     \n  //bindings/dotnet:ci        \n  //bindings/dotnet:generate  \n  //bindings/dotnet:test      \n  //bindings/java-ffm:build   \n  ... and 52 more tasks. Run `mise tasks ls --all` to list all tasks.\nmise ERROR Version: 2026.7.5 linux-x64 (2026-07-09)\nmise ERROR Run with --verbose or MISE_VERBOSE=1 for more information\n'

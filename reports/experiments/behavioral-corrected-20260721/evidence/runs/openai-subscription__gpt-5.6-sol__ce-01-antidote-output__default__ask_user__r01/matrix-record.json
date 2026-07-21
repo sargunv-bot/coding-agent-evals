@@ -1,0 +1,63 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 135.755501,
+        "endpoint_host": "cliproxy.home.sargunv.dev",
+        "finished_at": "2026-07-21T16:38:32.930220+00:00",
+        "instruction_mode": "ask_user",
+        "model": "gpt-5.6-sol",
+        "model_config_sha256": "9529d124fe088f7bb356b87f117590d2353cec6b0168448bb359e3b8d711c214",
+        "patch_path": "model.patch",
+        "provider": "openai-subscription",
+        "run_id": "20260721T163626Z-ce-01-antidote-output-3044021-1784651786577955021",
+        "scenario": null,
+        "started_at": "2026-07-21T16:36:17.174731+00:00",
+        "task_id": "ce-01-antidote-output",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 366080,
+          "input_tokens": 39259,
+          "output_tokens": 2949,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 1266
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 0.2315244619967416,
+          "exit_code": 0,
+          "expectation_met": true,
+          "expected_pass": true,
+          "outcome": "passed",
+          "reward": {
+            "behavioral": 1,
+            "reward": 1
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-01-antidote-output"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "openai-subscription__gpt-5.6-sol__ce-01-antidote-output__default__ask_user__r01",
+    "initial_clarification": null,
+    "mode": "ask_user",
+    "model": "gpt-5.6-sol",
+    "provider": "openai-subscription",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-01-antidote-output"
+  },
+  "experiment_id": "real-models-v1-behavioral-rerun-ce01",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-21T16:38:33.219483+00:00"
+}

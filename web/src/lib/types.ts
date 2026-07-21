@@ -12,6 +12,7 @@ export interface TaskMetadata {
 export interface TranscriptEvent { type: string; timestamp?: number; text?: string; tool?: string; status?: string; input?: unknown; output?: unknown; error?: unknown; usage?: any; elapsedMs?: number; raw: unknown }
 export interface Run {
   experimentId: string; cellId: string; taskId: string; taskTitle?: string; provider: string; model: string; mode: string;
+  authoritative: boolean;
   scenario: string; repeat: number; runId?: string; state: string; completionStatus?: string;
   deterministicPass?: boolean; verificationOutcome?: string; infrastructureError: boolean;
   durationSeconds?: number; tokens: { input: number; cachedInput: number; output: number; reasoning: number };
@@ -20,5 +21,5 @@ export interface Run {
 }
 export interface Task extends TaskMetadata { runs: Run[]; scenarios: string[] }
 export interface Model { key: string; slug: string; provider: string; name: string; runs: Run[] }
-export interface Experiment { id: string; description?: string; stage?: string; plannedCells: number; runs: Run[]; warnings: Warning[] }
-export interface SiteData { tasks: Task[]; models: Model[]; experiments: Experiment[]; runs: Run[]; warnings: Warning[] }
+export interface Experiment { id: string; description?: string; stage?: string; authoritative: boolean; plannedCells: number; runs: Run[]; warnings: Warning[] }
+export interface SiteData { tasks: Task[]; models: Model[]; experiments: Experiment[]; runs: Run[]; authoritativeRuns: Run[]; warnings: Warning[] }

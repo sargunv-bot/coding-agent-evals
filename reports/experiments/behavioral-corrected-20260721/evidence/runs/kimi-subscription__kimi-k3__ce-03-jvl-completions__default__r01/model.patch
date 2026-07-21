@@ -1,0 +1,661 @@
+diff --git a/src/schema.rs b/src/schema.rs
+index e442a5cbeae896dee573cd757e9864662654b8ff..db4068c9a8bdfabd70923bf829fb246b065b4428 100644
+--- a/src/schema.rs
++++ b/src/schema.rs
+@@ -815,10 +815,7 @@ fn collect_properties_from(
+                 follow_ref(root, prop_schema, &mut prop_visited).unwrap_or(prop_schema);
+ 
+             let description = format_annotation(resolved_prop);
+-            let schema_type = resolved_prop
+-                .get("type")
+-                .and_then(|v| v.as_str())
+-                .map(|s| s.to_string());
++            let schema_type = schema_type_of(resolved_prop);
+ 
+             props.push(PropertyInfo {
+                 name: name.clone(),
+@@ -829,14 +826,42 @@ fn collect_properties_from(
+         }
+     }
+ 
+-    // Recurse into allOf branches.
+-    if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array()) {
+-        for branch in all_of {
+-            collect_properties_from(root, branch, props, seen, depth + 1);
++    // Recurse into composition branches (allOf/anyOf/oneOf).
++    for keyword in COMPOSITION_KEYWORDS {
++        if let Some(branches) = schema.get(keyword).and_then(|v| v.as_array()) {
++            for branch in branches {
++                collect_properties_from(root, branch, props, seen, depth + 1);
++            }
+         }
+     }
+ }
+ 
++/// Schema composition keywords whose branches are merged for completions.
++const COMPOSITION_KEYWORDS: [&str; 3] = ["allOf", "anyOf", "oneOf"];
++
++/// Extract a display type from a schema's `type` keyword.
++///
++/// Handles both a single type string and an array of types (nullable types).
++/// For arrays, the first non-"null" type is preferred so snippets and detail
++/// text reflect the primary type (e.g. `["string", "null"]` → `"string"`).
++fn schema_type_of(schema: &serde_json::Value) -> Option<String> {
++    match schema.get("type") {
++        Some(serde_json::Value::String(s)) => Some(s.clone()),
++        Some(serde_json::Value::Array(types)) => {
++            let mut null_type = None;
++            for t in types.iter().filter_map(|t| t.as_str()) {
++                if t == "null" {
++                    null_type.get_or_insert(t);
++                } else {
++                    return Some(t.to_string());
++                }
++            }
++            null_type.map(|s| s.to_string())
++        }
++        _ => None,
++    }
++}
++
+ /// Format title and description from a schema node into a single string.
+ fn format_annotation(schema: &serde_json::Value) -> Option<String> {
+     let title = schema.get("title").and_then(|v| v.as_str());
+@@ -852,7 +877,9 @@ fn format_annotation(schema: &serde_json::Value) -> Option<String> {
+ /// Collect possible value suggestions for a property at the given pointer path.
+ ///
+ /// Navigates to the subschema at `pointer` + `property_name`, then inspects
+-/// `enum`, `const`, and `type` to generate value suggestions.
++/// `enum`, `const`, and `type` to generate value suggestions. Composition
++/// branches (`allOf`/`anyOf`/`oneOf`) are merged and nullable types such as
++/// `["string", "null"]` are handled. Duplicate suggestions are suppressed.
+ pub fn collect_values(
+     root: &serde_json::Value,
+     pointer: &[String],
+@@ -866,31 +893,88 @@ pub fn collect_values(
+     };
+ 
+     let mut suggestions = Vec::new();
++    let mut seen = HashSet::new();
++    collect_values_from(root, subschema, &mut suggestions, &mut seen, 0);
++    suggestions
++}
++
++/// Recursively collect value suggestions from a schema and its composition
++/// branches (`allOf`/`anyOf`/`oneOf`). `seen` holds JSON-formatted value keys
++/// ("null", "true", "\"dark\"", ...) used to suppress duplicate suggestions
++/// across branches and across suggestion kinds.
++fn collect_values_from(
++    root: &serde_json::Value,
++    schema: &serde_json::Value,
++    suggestions: &mut Vec<ValueSuggestion>,
++    seen: &mut HashSet<String>,
++    depth: usize,
++) {
++    if depth > MAX_SCHEMA_DEPTH {
++        return;
++    }
++
++    // Follow $ref.
++    let mut visited = HashSet::new();
++    let Some(schema) = follow_ref(root, schema, &mut visited) else {
++        return;
++    };
+ 
+     // Check for const.
+-    if let Some(const_val) = subschema.get("const") {
++    if let Some(const_val) = schema.get("const")
++        && seen.insert(value_key(const_val))
++    {
+         suggestions.push(ValueSuggestion::Const(const_val.clone()));
+-        return suggestions;
+     }
+ 
+     // Check for enum.
+-    if let Some(enum_vals) = subschema.get("enum").and_then(|v| v.as_array()) {
++    if let Some(enum_vals) = schema.get("enum").and_then(|v| v.as_array()) {
+         for val in enum_vals {
+-            suggestions.push(ValueSuggestion::Enum(val.clone()));
++            if seen.insert(value_key(val)) {
++                suggestions.push(ValueSuggestion::Enum(val.clone()));
++            }
+         }
+-        return suggestions;
+     }
+ 
+-    // Check for type-based suggestions.
+-    if let Some(type_str) = subschema.get("type").and_then(|v| v.as_str()) {
++    // Check for type-based suggestions. `type` may be a single string or an
++    // array of types (e.g. ["string", "null"] for a nullable string).
++    let types: Vec<&str> = match schema.get("type") {
++        Some(serde_json::Value::String(s)) => vec![s.as_str()],
++        Some(serde_json::Value::Array(arr)) => arr.iter().filter_map(|t| t.as_str()).collect(),
++        _ => vec![],
++    };
++    for type_str in types {
+         match type_str {
+-            "boolean" => suggestions.push(ValueSuggestion::Boolean),
+-            "null" => suggestions.push(ValueSuggestion::Null),
++            "boolean" => {
++                // Only suggest the true/false pair if neither was already
++                // produced by an earlier branch or enum entry.
++                let new_true = seen.insert("true".to_string());
++                let new_false = seen.insert("false".to_string());
++                if new_true && new_false {
++                    suggestions.push(ValueSuggestion::Boolean);
++                }
++            }
++            "null" => {
++                if seen.insert("null".to_string()) {
++                    suggestions.push(ValueSuggestion::Null);
++                }
++            }
+             _ => {}
+         }
+     }
+ 
+-    suggestions
++    // Recurse into composition branches (allOf/anyOf/oneOf).
++    for keyword in COMPOSITION_KEYWORDS {
++        if let Some(branches) = schema.get(keyword).and_then(|v| v.as_array()) {
++            for branch in branches {
++                collect_values_from(root, branch, suggestions, seen, depth + 1);
++            }
++        }
++    }
++}
++
++/// Stable dedup key for a suggested JSON value.
++fn value_key(value: &serde_json::Value) -> String {
++    serde_json::to_string(value).unwrap_or_default()
+ }
+ 
+ /// Resolve the subschema at a given JSON pointer path within a schema.
+@@ -923,11 +1007,13 @@ fn resolve_subschema<'a>(
+         return resolve_subschema(root, prop_schema, rest, visited, depth + 1);
+     }
+ 
+-    // Try allOf branches.
+-    if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array()) {
+-        for branch in all_of {
+-            if let Some(result) = resolve_subschema(root, branch, pointer, visited, depth + 1) {
+-                return Some(result);
++    // Try composition branches (allOf/anyOf/oneOf).
++    for keyword in COMPOSITION_KEYWORDS {
++        if let Some(branches) = schema.get(keyword).and_then(|v| v.as_array()) {
++            for branch in branches {
++                if let Some(result) = resolve_subschema(root, branch, pointer, visited, depth + 1) {
++                    return Some(result);
++                }
+             }
+         }
+     }
+@@ -1399,6 +1485,214 @@ mod tests {
+         assert!(values.is_empty());
+     }
+ 
++    #[test]
++    fn collect_properties_anyof_merge() {
++        let schema = serde_json::json!({
++            "anyOf": [
++                {
++                    "properties": {
++                        "name": { "type": "string" }
++                    },
++                    "required": ["name"]
++                },
++                {
++                    "properties": {
++                        "age": { "type": "number" }
++                    }
++                }
++            ]
++        });
++        let props = collect_properties(&schema, &[]);
++        assert_eq!(props.len(), 2);
++        let name_prop = props.iter().find(|p| p.name == "name").unwrap();
++        assert!(name_prop.required);
++    }
++
++    #[test]
++    fn collect_properties_oneof_merge() {
++        let schema = serde_json::json!({
++            "oneOf": [
++                { "properties": { "cat": { "type": "string" } } },
++                { "properties": { "dog": { "type": "string" } } }
++            ]
++        });
++        let props = collect_properties(&schema, &[]);
++        assert_eq!(props.len(), 2);
++        assert!(props.iter().any(|p| p.name == "cat"));
++        assert!(props.iter().any(|p| p.name == "dog"));
++    }
++
++    #[test]
++    fn collect_properties_dedup_across_branches() {
++        let schema = serde_json::json!({
++            "properties": {
++                "shared": { "type": "string", "description": "top-level" }
++            },
++            "allOf": [
++                { "properties": { "shared": { "type": "number" } } },
++                { "properties": { "shared": { "type": "boolean" } } }
++            ],
++            "anyOf": [
++                { "properties": { "shared": { "type": "null" } } }
++            ]
++        });
++        let props = collect_properties(&schema, &[]);
++        assert_eq!(props.len(), 1);
++        // First occurrence wins.
++        assert_eq!(props[0].schema_type.as_deref(), Some("string"));
++    }
++
++    #[test]
++    fn collect_properties_nullable_type() {
++        let schema = serde_json::json!({
++            "properties": {
++                "nickname": { "type": ["string", "null"] },
++                "maybe": { "type": ["null"] }
++            }
++        });
++        let props = collect_properties(&schema, &[]);
++        let nickname = props.iter().find(|p| p.name == "nickname").unwrap();
++        assert_eq!(nickname.schema_type.as_deref(), Some("string"));
++        let maybe = props.iter().find(|p| p.name == "maybe").unwrap();
++        assert_eq!(maybe.schema_type.as_deref(), Some("null"));
++    }
++
++    #[test]
++    fn collect_properties_nested_in_anyof_branch() {
++        let schema = serde_json::json!({
++            "anyOf": [
++                {
++                    "properties": {
++                        "server": {
++                            "type": "object",
++                            "properties": {
++                                "host": { "type": "string" }
++                            }
++                        }
++                    }
++                }
++            ]
++        });
++        let props = collect_properties(&schema, &["server".into()]);
++        assert_eq!(props.len(), 1);
++        assert_eq!(props[0].name, "host");
++    }
++
++    #[test]
++    fn collect_values_anyof_merges_enums_without_duplicates() {
++        let schema = serde_json::json!({
++            "properties": {
++                "severity": {
++                    "anyOf": [
++                        { "enum": ["low", "medium"] },
++                        { "enum": ["medium", "high"] }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "severity");
++        assert_eq!(values.len(), 3);
++        assert!(matches!(&values[0], ValueSuggestion::Enum(v) if v == "low"));
++        assert!(matches!(&values[1], ValueSuggestion::Enum(v) if v == "medium"));
++        assert!(matches!(&values[2], ValueSuggestion::Enum(v) if v == "high"));
++    }
++
++    #[test]
++    fn collect_values_oneof_const_and_enum() {
++        let schema = serde_json::json!({
++            "properties": {
++                "level": {
++                    "oneOf": [
++                        { "const": 0 },
++                        { "enum": [0, 1, 2] }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "level");
++        // const 0 dedups against enum 0.
++        assert_eq!(values.len(), 3);
++        assert!(matches!(&values[0], ValueSuggestion::Const(v) if v == &serde_json::json!(0)));
++        assert!(matches!(&values[1], ValueSuggestion::Enum(v) if v == &serde_json::json!(1)));
++        assert!(matches!(&values[2], ValueSuggestion::Enum(v) if v == &serde_json::json!(2)));
++    }
++
++    #[test]
++    fn collect_values_nullable_type_array() {
++        let schema = serde_json::json!({
++            "properties": {
++                "nickname": { "type": ["string", "null"] }
++            }
++        });
++        let values = collect_values(&schema, &[], "nickname");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Null));
++    }
++
++    #[test]
++    fn collect_values_nullable_boolean() {
++        let schema = serde_json::json!({
++            "properties": {
++                "notifications": { "type": ["boolean", "null"] }
++            }
++        });
++        let values = collect_values(&schema, &[], "notifications");
++        assert_eq!(values.len(), 2);
++        assert!(matches!(&values[0], ValueSuggestion::Boolean));
++        assert!(matches!(&values[1], ValueSuggestion::Null));
++    }
++
++    #[test]
++    fn collect_values_composed_boolean_dedup() {
++        let schema = serde_json::json!({
++            "properties": {
++                "flag": {
++                    "allOf": [
++                        { "type": "boolean" },
++                        { "type": "boolean" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "flag");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Boolean));
++    }
++
++    #[test]
++    fn collect_values_enum_null_dedups_null_type() {
++        let schema = serde_json::json!({
++            "properties": {
++                "opt": {
++                    "anyOf": [
++                        { "enum": ["a", null] },
++                        { "type": "null" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "opt");
++        assert_eq!(values.len(), 2);
++        assert!(matches!(&values[0], ValueSuggestion::Enum(v) if v == "a"));
++        assert!(matches!(&values[1], ValueSuggestion::Enum(v) if v.is_null()));
++    }
++
++    #[test]
++    fn collect_values_property_in_composed_branch() {
++        // Property defined inside an anyOf branch at the parent level.
++        let schema = serde_json::json!({
++            "anyOf": [
++                {
++                    "properties": {
++                        "mode": { "enum": ["on", "off"] }
++                    }
++                }
++            ]
++        });
++        let values = collect_values(&schema, &[], "mode");
++        assert_eq!(values.len(), 2);
++    }
++
+     #[test]
+     fn hover_truncate_multibyte_boundary() {
+         // Place a 4-byte emoji (U+1F600) right at the 10,000-byte boundary.
+diff --git a/tests/fixtures/completion-schema.json b/tests/fixtures/completion-schema.json
+index a034f97f825358054828124f32055d1a41639811..e04a91b54aa50d7086a84a073b48fb2001b7a0cf 100644
+--- a/tests/fixtures/completion-schema.json
++++ b/tests/fixtures/completion-schema.json
+@@ -24,6 +24,17 @@
+     "enabled": { "type": "boolean" },
+     "mode": { "enum": ["dark", "light", "auto"] },
+     "version": { "const": 2 },
++    "nickname": {
++      "description": "Optional nickname",
++      "type": ["string", "null"]
++    },
++    "notifications": { "type": ["boolean", "null"] },
++    "severity": {
++      "anyOf": [
++        { "enum": ["low", "medium"] },
++        { "enum": ["medium", "high"] }
++      ]
++    },
+     "address": { "$ref": "#/$defs/Address" },
+     "settings": {
+       "type": "object",
+@@ -37,5 +48,33 @@
+       }
+     }
+   },
++  "allOf": [
++    {
++      "properties": {
++        "legacy": { "type": "string", "description": "Legacy field" },
++        "database": {
++          "type": "object",
++          "properties": {
++            "host": { "type": "string", "description": "Database host" },
++            "port": { "type": "number" }
++          },
++          "required": ["host"]
++        }
++      }
++    },
++    {
++      "properties": {
++        "shared": { "type": "number" }
++      }
++    }
++  ],
++  "anyOf": [
++    {
++      "properties": {
++        "shared": { "type": "number" },
++        "variant": { "type": "string" }
++      }
++    }
++  ],
+   "required": ["name"]
+ }
+diff --git a/tests/lsp_completion.rs b/tests/lsp_completion.rs
+index 60753f1e8032edd548eecfa5a6b40a3bdca65569..cdf235f2993f1d65a5214a037a33c32cebe9b385 100644
+--- a/tests/lsp_completion.rs
++++ b/tests/lsp_completion.rs
+@@ -405,3 +405,193 @@ async fn completion_includes_documentation() {
+         "expected description in documentation, got: {doc}"
+     );
+ }
++
++/// Count how many completion items carry the given label.
++fn label_count(result: &serde_json::Value, label: &str) -> usize {
++    result["items"]
++        .as_array()
++        .unwrap_or(&vec![])
++        .iter()
++        .filter(|item| item["label"] == label)
++        .count()
++}
++
++/// Properties from allOf/anyOf branches are merged into root completions.
++#[tokio::test]
++async fn completion_merges_composed_properties() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema("");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let cursor_col = (content.len() - 1) as u32;
++    let result = client.completion(&uri, 0, cursor_col).await;
++
++    let names = labels(&result);
++    for expected in ["legacy", "database", "shared", "variant"] {
++        assert!(
++            names.contains(&expected.to_string()),
++            "expected '{expected}' from composed schema branches, got: {names:?}"
++        );
++    }
++}
++
++/// A property defined in multiple composition branches is suggested only once.
++#[tokio::test]
++async fn completion_composed_properties_have_no_duplicates() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema("");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let cursor_col = (content.len() - 1) as u32;
++    let result = client.completion(&uri, 0, cursor_col).await;
++
++    assert_eq!(
++        label_count(&result, "shared"),
++        1,
++        "'shared' is defined in both allOf and anyOf branches but must appear once"
++    );
++}
++
++/// Nested object completion navigates through an allOf branch at the root.
++#[tokio::test]
++async fn completion_nested_object_inside_composed_branch() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    // {"$schema": "...", "database": {}}
++    let content = doc_with_schema(r#""database": {}"#);
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    // Cursor inside database {}
++    let inner_brace = content.rfind('{').unwrap();
++    let cursor_col = (inner_brace + 1) as u32;
++    let result = client.completion(&uri, 0, cursor_col).await;
++
++    let names = labels(&result);
++    assert!(
++        names.contains(&"host".to_string()),
++        "expected 'host' from allOf-defined 'database', got: {names:?}"
++    );
++    assert!(
++        names.contains(&"port".to_string()),
++        "expected 'port' from allOf-defined 'database', got: {names:?}"
++    );
++    assert!(
++        !names.contains(&"name".to_string()),
++        "root property 'name' must not appear in nested completions"
++    );
++
++    // 'host' is required inside database, so it sorts before 'port'.
++    let items = result["items"].as_array().unwrap();
++    let host = items.iter().find(|i| i["label"] == "host").unwrap();
++    let port = items.iter().find(|i| i["label"] == "port").unwrap();
++    assert!(
++        host["sortText"].as_str().unwrap() < port["sortText"].as_str().unwrap(),
++        "required 'host' should sort before optional 'port'"
++    );
++}
++
++/// Enum values from anyOf branches are merged without duplicates.
++#[tokio::test]
++async fn completion_anyof_merges_enum_values_without_duplicates() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema(r#""severity": null"#);
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let idx = content.find("\"severity\": ").unwrap() + "\"severity\": ".len();
++    let result = client.completion(&uri, 0, idx as u32).await;
++
++    let names = labels(&result);
++    for expected in [r#""low""#, r#""medium""#, r#""high""#] {
++        assert!(
++            names.contains(&expected.to_string()),
++            "expected {expected} in anyOf enum completions, got: {names:?}"
++        );
++    }
++    // "medium" appears in both anyOf branches but must be suggested once.
++    assert_eq!(
++        label_count(&result, r#""medium""#),
++        1,
++        "'medium' must not be duplicated across anyOf branches"
++    );
++}
++
++/// A nullable type (["string", "null"]) suggests null at the value position.
++#[tokio::test]
++async fn completion_nullable_type_suggests_null() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema(r#""nickname": "x""#);
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let idx = content.find("\"nickname\": ").unwrap() + "\"nickname\": ".len();
++    let result = client.completion(&uri, 0, idx as u32).await;
++
++    let names = labels(&result);
++    assert_eq!(
++        names,
++        vec!["null".to_string()],
++        "expected only 'null' for a nullable string, got: {names:?}"
++    );
++}
++
++/// A nullable boolean (["boolean", "null"]) suggests true, false and null once each.
++#[tokio::test]
++async fn completion_nullable_boolean_suggests_true_false_null() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema(r#""notifications": null"#);
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let idx = content.find("\"notifications\": ").unwrap() + "\"notifications\": ".len();
++    let result = client.completion(&uri, 0, idx as u32).await;
++
++    let names = labels(&result);
++    for expected in ["true", "false", "null"] {
++        assert!(
++            names.contains(&expected.to_string()),
++            "expected '{expected}' for nullable boolean, got: {names:?}"
++        );
++        assert_eq!(
++            label_count(&result, expected),
++            1,
++            "'{expected}' must appear exactly once"
++        );
++    }
++}
++
++/// Nullable property detail/snippet uses the primary (non-null) type.
++#[tokio::test]
++async fn completion_nullable_property_uses_primary_type() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema("");
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let cursor_col = (content.len() - 1) as u32;
++    let result = client.completion(&uri, 0, cursor_col).await;
++
++    let items = result["items"].as_array().unwrap();
++    let nickname = items.iter().find(|i| i["label"] == "nickname").unwrap();
++    let detail = nickname["detail"].as_str().unwrap();
++    assert_eq!(
++        detail, "string",
++        "nullable string should display its primary type, got: {detail}"
++    );
++}

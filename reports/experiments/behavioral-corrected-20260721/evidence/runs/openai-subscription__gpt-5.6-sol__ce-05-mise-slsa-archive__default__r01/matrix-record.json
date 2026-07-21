@@ -1,0 +1,63 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 803.92721,
+        "endpoint_host": "cliproxy.home.sargunv.dev",
+        "finished_at": "2026-07-21T04:42:57.117824+00:00",
+        "model": "gpt-5.6-sol",
+        "model_config_sha256": "6450cb3c31bd1b36bd6421a88379682573a0d7ebb54db4e7e938299ea1d96598",
+        "patch_path": "model.patch",
+        "provider": "openai-subscription",
+        "run_id": "20260721T042948Z-ce-05-mise-slsa-archive-519077-1784608188359408053",
+        "scenario": null,
+        "started_at": "2026-07-21T04:29:33.190631+00:00",
+        "task_id": "ce-05-mise-slsa-archive",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 2598400,
+          "input_tokens": 110210,
+          "output_tokens": 11534,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 9376
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 155.75781416893005,
+          "exit_code": 1,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "reward": 0
+          },
+          "scenario": null,
+          "task_id": "ce-05-mise-slsa-archive"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+    "model": "gpt-5.6-sol",
+    "provider": "openai-subscription",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-05-mise-slsa-archive"
+  },
+  "experiment_id": "real-models-v1-stage-b-r8",
+  "schema_version": 1,
+  "state": "completed",
+  "supersession": {
+    "kind": "preserved-patch-replay",
+    "original_experiment": "real-models-v1-stage-b-r8",
+    "verifier_commit": "d9ba1521692ddd91b738fd57a63eb1b6cce86617"
+  },
+  "updated_at": "2026-07-21T04:42:57.451003+00:00"
+}
