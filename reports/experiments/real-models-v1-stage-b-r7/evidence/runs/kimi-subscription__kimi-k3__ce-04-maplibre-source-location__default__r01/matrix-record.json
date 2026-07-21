@@ -1,0 +1,62 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 562.735042,
+        "endpoint_host": "cliproxy.home.sargunv.dev",
+        "finished_at": "2026-07-20T17:25:34.708898+00:00",
+        "model": "kimi-k3",
+        "model_config_sha256": "5fbee02972f8fca5bf1f748a7958223b9721da65f15423d9930b1787560730b5",
+        "patch_path": "model.patch",
+        "provider": "kimi-subscription",
+        "run_id": "20260720T171617Z-ce-04-maplibre-source-location-2545713-1784567777208351795",
+        "scenario": null,
+        "started_at": "2026-07-20T17:16:11.973869+00:00",
+        "task_id": "ce-04-maplibre-source-location",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 717824,
+          "input_tokens": 36476,
+          "output_tokens": 6988,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 4730
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 0.17710300802718848,
+          "exit_code": 1,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "fallback": 0,
+            "manifests": 0,
+            "native": 0,
+            "reward": 0
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-04-maplibre-source-location"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "kimi-subscription__kimi-k3__ce-04-maplibre-source-location__default__r01",
+    "model": "kimi-k3",
+    "provider": "kimi-subscription",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-04-maplibre-source-location"
+  },
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-20T17:25:34.965727+00:00"
+}

@@ -1,0 +1,15 @@
+[experiment]
+id = "real-models-v1-stage-b-r8"
+description = "One-cell repair of the stalled GPT-5.6 Sol CE-05 result with stream-idle supervision"
+stage = "repair"
+repeats = 1
+concurrency = 1
+infrastructure_retries = 0
+proctor_model = "openai/gpt-5.6-sol"
+
+[[models]]
+provider = "openai-subscription"
+model = "gpt-5.6-sol"
+
+[[cells]]
+task = "ce-05-mise-slsa-archive"

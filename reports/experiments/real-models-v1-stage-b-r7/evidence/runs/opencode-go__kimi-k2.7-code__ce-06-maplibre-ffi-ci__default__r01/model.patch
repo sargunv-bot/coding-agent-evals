@@ -1,0 +1,1043 @@
+diff --git a/.github/ci-targets.toml b/.github/ci-targets.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c636be9dce956c5f63172f5877b185b1a55fe51
+--- /dev/null
++++ b/.github/ci-targets.toml
+@@ -0,0 +1,281 @@
++# Declarative CI target support policy.
++#
++# This manifest drives scripts/generate-ci-targets.py, which produces
++# .github/workflows/ci.yml. After editing this file, run:
++#
++#     mise run ci:sync-targets
++#
++# The hygiene job enforces that the checked-in workflow stays in sync with this
++# manifest.
++
++[variant.linux-arm64-egl]
++runner = "ubuntu-24.04-arm"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = false
++rust = true
++swift = false
++zig = true
++lwjgl = false
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++[variant.linux-arm64-vulkan]
++runner = "ubuntu-24.04-arm"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = false
++rust = true
++swift = false
++zig = true
++lwjgl = true
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++[variant.linux-x64-egl]
++runner = "ubuntu-latest"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = true
++rust = true
++swift = false
++zig = true
++lwjgl = false
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++[variant.linux-x64-vulkan]
++runner = "ubuntu-latest"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = true
++rust = true
++swift = false
++zig = true
++lwjgl = true
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++[variant.macos-arm64-metal]
++runner = "macos-latest"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = true
++rust = true
++swift = true
++zig = true
++lwjgl = false
++rust_example = true
++swift_example = true
++zig_example = true
++zig_readback = true
++
++[variant.macos-arm64-vulkan]
++runner = "macos-latest"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = true
++rust = true
++swift = true
++zig = true
++lwjgl = true
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++[variant.macos-arm64-egl]
++runner = "macos-latest"
++build_native = false
++test_native = true
++java = false
++dotnet = false
++kotlin_native = false
++rust = false
++swift = false
++zig = true
++lwjgl = false
++rust_example = false
++swift_example = false
++zig_example = false
++zig_readback = true
++
++[variant.ios-arm64-metal]
++runner = "macos-latest"
++build_native = true
++test_native = false
++java = false
++dotnet = false
++kotlin_native = false
++rust = false
++swift = false
++zig = false
++lwjgl = false
++rust_example = false
++swift_example = false
++zig_example = false
++zig_readback = false
++
++[variant.ios-simulator-arm64-metal]
++runner = "macos-latest"
++build_native = true
++test_native = false
++java = false
++dotnet = false
++kotlin_native = false
++rust = false
++swift = false
++zig = false
++lwjgl = false
++rust_example = false
++swift_example = false
++zig_example = false
++zig_readback = false
++
++[variant.windows-x64-vulkan]
++runner = "windows-2022"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = false
++rust = true
++swift = false
++zig = true
++lwjgl = true
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++[variant.windows-x64-wgl]
++runner = "windows-2022"
++build_native = false
++test_native = true
++java = true
++dotnet = true
++kotlin_native = false
++rust = true
++swift = false
++zig = true
++lwjgl = false
++rust_example = true
++swift_example = false
++zig_example = true
++zig_readback = true
++
++# Native library steps are split because iOS variants only cross-compile; they do
++# not run the desktop test suite.
++
++[[step]]
++name = ""
++run = "mise run configure"
++group = "native"
++
++[[step]]
++name = "Build native library"
++run = "mise run build"
++capability = "build_native"
++group = "native"
++
++[[step]]
++name = "Test native library"
++run = "mise run test"
++capability = "test_native"
++group = "native"
++
++[[step]]
++name = "Build Java FFM binding"
++run = "mise run //bindings/java-ffm:build"
++capability = "java"
++group = "bindings"
++
++[[step]]
++name = "Build Java JNI binding"
++run = "mise run //bindings/java-jni:build"
++capability = "java"
++group = "bindings"
++
++[[step]]
++name = "Test .NET binding"
++run = "mise run //bindings/dotnet:test"
++capability = "dotnet"
++group = "bindings"
++
++[[step]]
++name = "Test Kotlin/Native binding"
++run = "mise run //bindings/kotlin-native:build"
++capability = "kotlin_native"
++group = "bindings"
++comment = """
++linux-arm64: no Kotlin/Native host — https://youtrack.jetbrains.com/issue/KT-36871
++windows: no MSVC target — https://youtrack.jetbrains.com/issue/SKIKO-446
++"""
++
++[[step]]
++name = "Test Rust binding"
++run = "mise run //bindings/rust:ci"
++capability = "rust"
++group = "bindings"
++
++[[step]]
++name = "Test Swift binding"
++run = "mise run //bindings/swift:test"
++capability = "swift"
++group = "bindings"
++
++[[step]]
++name = "Test Zig binding"
++run = "mise run //bindings/zig:ci"
++capability = "zig"
++group = "bindings"
++
++[[step]]
++name = "Build LWJGL example"
++run = "mise run //examples/lwjgl-map:build"
++capability = "lwjgl"
++group = "examples"
++
++[[step]]
++name = "Test Rust example"
++run = "mise run //examples/rust-map:ci"
++capability = "rust_example"
++group = "examples"
++
++[[step]]
++name = "Build Swift example"
++run = "mise run //examples/swift-map:build"
++capability = "swift_example"
++group = "examples"
++
++[[step]]
++name = "Build Zig example"
++run = "mise run //examples/zig-map:build"
++capability = "zig_example"
++group = "examples"
++
++[[step]]
++name = "Run Zig readback example"
++run = "mise run //examples/zig-readback:run"
++capability = "zig_readback"
++group = "examples"
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1ebbac10f84c9123c2e7abfbf3dd4a77b95ba71e..e6c43ab094453b83dbdc17e24fb1114a5af5e196 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,3 +1,6 @@
++# Generated by scripts/generate-ci-targets.py from .github/ci-targets.toml.
++# Do not edit this file directly; run `mise run ci:sync-targets` instead.
++
+ name: CI
+ 
+ on:
+@@ -44,76 +47,219 @@ jobs:
+         include:
+           - mise_env: linux-arm64-egl
+             runner: ubuntu-24.04-arm
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: false
++            lwjgl: false
++            rust: true
++            rust_example: true
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: linux-arm64-vulkan
+             runner: ubuntu-24.04-arm
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: false
++            lwjgl: true
++            rust: true
++            rust_example: true
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: linux-x64-egl
+             runner: ubuntu-latest
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: true
++            lwjgl: false
++            rust: true
++            rust_example: true
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: linux-x64-vulkan
+             runner: ubuntu-latest
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: true
++            lwjgl: true
++            rust: true
++            rust_example: true
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: macos-arm64-metal
+             runner: macos-latest
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: true
++            lwjgl: false
++            rust: true
++            rust_example: true
++            swift: true
++            swift_example: true
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: macos-arm64-vulkan
+             runner: macos-latest
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: true
++            lwjgl: true
++            rust: true
++            rust_example: true
++            swift: true
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: macos-arm64-egl
+             runner: macos-latest
++            build_native: false
++            dotnet: false
++            java: false
++            kotlin_native: false
++            lwjgl: false
++            rust: false
++            rust_example: false
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: false
++            zig_readback: true
+           - mise_env: ios-arm64-metal
+             runner: macos-latest
++            build_native: true
++            dotnet: false
++            java: false
++            kotlin_native: false
++            lwjgl: false
++            rust: false
++            rust_example: false
++            swift: false
++            swift_example: false
++            test_native: false
++            zig: false
++            zig_example: false
++            zig_readback: false
+           - mise_env: ios-simulator-arm64-metal
+             runner: macos-latest
++            build_native: true
++            dotnet: false
++            java: false
++            kotlin_native: false
++            lwjgl: false
++            rust: false
++            rust_example: false
++            swift: false
++            swift_example: false
++            test_native: false
++            zig: false
++            zig_example: false
++            zig_readback: false
+           - mise_env: windows-x64-vulkan
+             runner: windows-2022
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: false
++            lwjgl: true
++            rust: true
++            rust_example: true
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+           - mise_env: windows-x64-wgl
+             runner: windows-2022
++            build_native: false
++            dotnet: true
++            java: true
++            kotlin_native: false
++            lwjgl: false
++            rust: true
++            rust_example: true
++            swift: false
++            swift_example: false
++            test_native: true
++            zig: true
++            zig_example: true
++            zig_readback: true
+     steps:
+       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+       - uses: ./.github/actions/setup-ci-deps
+ 
+       - run: mise run configure
+       - name: Build native library
+-        if: ${{ startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.build_native }}
+         run: mise run build
+       - name: Test native library
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.test_native }}
+         run: mise run test
+ 
+       - name: Build Java FFM binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.java }}
+         run: mise run //bindings/java-ffm:build
+       - name: Build Java JNI binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.java }}
+         run: mise run //bindings/java-jni:build
+       - name: Test .NET binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.dotnet }}
+         run: mise run //bindings/dotnet:test
+       # linux-arm64: no Kotlin/Native host — https://youtrack.jetbrains.com/issue/KT-36871
+       # windows: no MSVC target — https://youtrack.jetbrains.com/issue/SKIKO-446
+       - name: Test Kotlin/Native binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') && !startsWith(matrix.mise_env, 'windows-') && !startsWith(matrix.mise_env, 'linux-arm64-') }}
++        if: ${{ matrix.kotlin_native }}
+         run: mise run //bindings/kotlin-native:build
+       - name: Test Rust binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.rust }}
+         run: mise run //bindings/rust:ci
+       - name: Test Swift binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && startsWith(matrix.mise_env, 'macos-') }}
++        if: ${{ matrix.swift }}
+         run: mise run //bindings/swift:test
+       - name: Test Zig binding
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.zig }}
+         run: mise run //bindings/zig:ci
+ 
+       - name: Build LWJGL example
+-        if: ${{ contains(matrix.mise_env, 'vulkan') }}
++        if: ${{ matrix.lwjgl }}
+         run: mise run //examples/lwjgl-map:build
+       - name: Test Rust example
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.rust_example }}
+         run: mise run //examples/rust-map:ci
+       - name: Build Swift example
+-        if: ${{ matrix.mise_env == 'macos-arm64-metal' }}
++        if: ${{ matrix.swift_example }}
+         run: mise run //examples/swift-map:build
+       - name: Build Zig example
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.zig_example }}
+         run: mise run //examples/zig-map:build
+       - name: Run Zig readback example
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ matrix.zig_readback }}
+         run: mise run //examples/zig-readback:run
+ 
+   required:
+diff --git a/AGENTS.md b/AGENTS.md
+index b1f42517b6bfaf409676f3bb3d2a6c8d43d9da35..fcac199f4f904952e5e032b89780fbca1e7c45bf 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -49,6 +49,12 @@ mise run fix
+ 
+ # Run formatters and linters on targeted files (will stage affected files)
+ hk fix [FILES...]
++
++# Regenerate the GitHub Actions CI workflow from the target manifest
++mise run ci:sync-targets
++
++# Check that the CI workflow is in sync with the target manifest
++mise run ci:check-targets
+ ```
+ 
+ Available mise envs: `linux-x64-vulkan`, `linux-x64-egl`, `linux-arm64-vulkan`,
+diff --git a/mise.toml b/mise.toml
+index f9cf3326d0d9d904fd53ad8c9674279b7cdd56f9..ace306c082d21e231ade4c5574db0c3cbb9dd731 100644
+--- a/mise.toml
++++ b/mise.toml
+@@ -186,11 +186,21 @@ run = 'java -jar {{ tools["aqua:facebook/ktfmt"].path }}/ktfmt'
+ # ktfmt on windows doesn't work in git bash for some reason
+ shell = '{% if os() == "windows" %}cmd /c{% else %}sh -c -o errexit{% endif %}'
+ 
++[tasks."ci:sync-targets"]
++description = "Regenerate .github/workflows/ci.yml from .github/ci-targets.toml."
++run = "python3 scripts/generate-ci-targets.py"
++
++[tasks."ci:check-targets"]
++description = "Check .github/workflows/ci.yml is in sync with .github/ci-targets.toml."
++run = "python3 scripts/generate-ci-targets.py --check"
++
+ [tasks."ci:lint"]
+ run = [
+   # Warm process-plugin cache before hk runs parallel dprint batches.
+   "dprint output-resolved-config > /dev/null",
+   "hk fix --all",
++  "python3 scripts/generate-ci-targets_test.py",
++  "python3 scripts/generate-ci-targets.py --check",
+   "git update-index -q --refresh",
+   # Lockfile drift is common across different mise builds
+   "git diff --exit-code -- . ':(exclude)mise.lock'",
+diff --git a/scripts/generate-ci-targets.py b/scripts/generate-ci-targets.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..9cd86efd09ba401cfb8a4efa5650acc1b2909cbb
+--- /dev/null
++++ b/scripts/generate-ci-targets.py
+@@ -0,0 +1,253 @@
++#!/usr/bin/env python3
++"""Generate .github/workflows/ci.yml from .github/ci-targets.toml.
++
++Run with no arguments to regenerate the workflow, or with --check to verify that
++.the checked-in workflow is in sync with the manifest.
++"""
++
++from __future__ import annotations
++
++import argparse
++import difflib
++import shutil
++import subprocess
++import sys
++import tomllib
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++MANIFEST_PATH = REPO_ROOT / ".github" / "ci-targets.toml"
++OUTPUT_PATH = REPO_ROOT / ".github" / "workflows" / "ci.yml"
++
++CHECKOUT_ACTION = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3"
++SETUP_ACTION = "./.github/actions/setup-ci-deps"
++
++
++def load_manifest(path: Path) -> dict:
++    with path.open("rb") as f:
++        return tomllib.load(f)
++
++
++def format_yaml_value(value: object) -> str:
++    if isinstance(value, bool):
++        return "true" if value else "false"
++    if isinstance(value, str):
++        if value.startswith("${{") and value.endswith("}}"):
++            return value
++        return value
++    raise TypeError(f"unsupported value type: {type(value)}")
++
++
++def indent(text: str, spaces: int) -> str:
++    prefix = " " * spaces
++    return "\n".join(prefix + line if line else line for line in text.splitlines())
++
++
++def generate_matrix(manifest: dict) -> str:
++    variants = manifest["variant"]
++    lines = ["    strategy:", "      fail-fast: false", "      matrix:", "        include:"]
++    for name, cfg in variants.items():
++        lines.append("          - mise_env: {name}".format(name=name))
++        lines.append("            runner: {runner}".format(runner=cfg["runner"]))
++        for key in sorted(cfg.keys()):
++            if key == "runner":
++                continue
++            value = format_yaml_value(cfg[key])
++            lines.append("            {key}: {value}".format(key=key, value=value))
++    return "\n".join(lines)
++
++
++def generate_steps(steps: list[dict]) -> str:
++    blocks = []
++    previous_group = None
++    for step in steps:
++        name = step.get("name", "")
++        run = step["run"]
++        capability = step.get("capability")
++        comment = step.get("comment")
++        group = step.get("group")
++
++        if group is not None and previous_group is not None and group != previous_group:
++            blocks.append("")
++        previous_group = group
++
++        lines = []
++        if comment:
++            for line in comment.strip().splitlines():
++                lines.append(f"      # {line}")
++
++        run_lines = run.splitlines()
++        multiline_run = len(run_lines) > 1
++
++        # Build ordered key-value pairs for the step mapping.
++        pairs: list[tuple[str, str]] = []
++        if name:
++            pairs.append(("name", name))
++        if capability:
++            pairs.append(("if", f"${{{{ matrix.{capability} }}}}"))
++        run_value = "|" if multiline_run else run_lines[0]
++        pairs.append(("run", run_value))
++
++        # Emit the first pair on the list-item line, remaining pairs indented.
++        first_key, first_value = pairs[0]
++        lines.append(f"      - {first_key}: {first_value}")
++        for key, value in pairs[1:]:
++            lines.append(f"        {key}: {value}")
++        if multiline_run:
++            for line in run_lines:
++                lines.append(f"          {line}")
++
++        blocks.append("\n".join(lines))
++    return "\n".join(blocks)
++
++
++def generate_workflow(manifest: dict) -> str:
++    steps = manifest["step"]
++    matrix_block = generate_matrix(manifest)
++    steps_block = generate_steps(steps)
++
++    return f"""# Generated by scripts/generate-ci-targets.py from .github/ci-targets.toml.
++# Do not edit this file directly; run `mise run ci:sync-targets` instead.
++
++name: CI
++
++on:
++  push:
++    branches: [main]
++  pull_request:
++    branches: [main]
++
++permissions:
++  contents: read
++
++concurrency:
++  group: ${{{{ github.workflow }}}}-${{{{ github.event.pull_request.number || github.ref }}}}
++  cancel-in-progress: ${{{{ github.event_name == 'pull_request' }}}}
++
++jobs:
++  hygiene:
++    name: hygiene
++    runs-on: ubuntu-latest
++    timeout-minutes: 30
++    steps:
++      - uses: {CHECKOUT_ACTION}
++      - uses: {SETUP_ACTION}
++      - run: mise run ci:lint
++
++  docs:
++    name: docs
++    runs-on: ubuntu-latest
++    timeout-minutes: 60
++    steps:
++      - uses: {CHECKOUT_ACTION}
++      - uses: {SETUP_ACTION}
++      - run: mise run //docs:build
++
++  variants:
++    name: variant / ${{{{ matrix.mise_env }}}}
++    runs-on: ${{{{ matrix.runner }}}}
++    timeout-minutes: 120
++    env:
++      MISE_ENV: ${{{{ matrix.mise_env }}}}
++{matrix_block}
++    steps:
++      - uses: {CHECKOUT_ACTION}
++      - uses: {SETUP_ACTION}
++
++{steps_block}
++
++  required:
++    name: ci-required
++    runs-on: ubuntu-latest
++    timeout-minutes: 5
++    if: ${{{{ always() }}}}
++    needs:
++      - hygiene
++      - docs
++      - variants
++    steps:
++      - name: Fail if required jobs failed
++        if: ${{{{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}}}
++        run: |
++          echo '${{{{ toJSON(needs) }}}}'
++          exit 1
++
++      - run: true
++"""
++
++
++def format_with_dprint(content: str) -> str:
++    """Format YAML content with dprint if it is available.
++
++    Returns the original content if dprint cannot be found.
++    """
++    dprint = shutil.which("dprint")
++    if dprint is None:
++        return content
++
++    try:
++        result = subprocess.run(
++            [dprint, "fmt", "--stdin", "ci.yml"],
++            input=content,
++            capture_output=True,
++            text=True,
++            check=True,
++        )
++        return result.stdout
++    except (subprocess.CalledProcessError, FileNotFoundError):
++        return content
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser(
++        description="Generate the CI workflow from target manifests."
++    )
++    parser.add_argument(
++        "--manifest",
++        type=Path,
++        default=MANIFEST_PATH,
++        help="Path to the target manifest TOML file.",
++    )
++    parser.add_argument(
++        "--output",
++        type=Path,
++        default=OUTPUT_PATH,
++        help="Path to the workflow YAML file to generate.",
++    )
++    parser.add_argument(
++        "--check",
++        action="store_true",
++        help="Exit with an error if the checked-in workflow is out of sync.",
++    )
++    args = parser.parse_args()
++
++    manifest = load_manifest(args.manifest)
++    generated = generate_workflow(manifest)
++    formatted = format_with_dprint(generated)
++
++    if args.check:
++        existing = args.output.read_text()
++        if existing != formatted:
++            diff = difflib.unified_diff(
++                existing.splitlines(),
++                formatted.splitlines(),
++                fromfile=str(args.output),
++                tofile=f"{args.output} (generated)",
++            )
++            print(
++                f"Error: {args.output} is out of sync with {args.manifest}.",
++                file=sys.stderr,
++            )
++            print("Run `mise run ci:sync-targets` to regenerate it.", file=sys.stderr)
++            print("\n".join(diff), file=sys.stderr)
++            return 1
++        print(f"{args.output} is in sync with {args.manifest}.")
++        return 0
++
++    args.output.write_text(formatted)
++    print(f"Wrote {args.output}")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/generate-ci-targets_test.py b/scripts/generate-ci-targets_test.py
+new file mode 100755
+index 0000000000000000000000000000000000000000..158695abc7ed46edc677b5220ea8926800e22af6
+--- /dev/null
++++ b/scripts/generate-ci-targets_test.py
+@@ -0,0 +1,203 @@
++#!/usr/bin/env python3
++"""Tests for scripts/generate-ci-targets.py."""
++
++from __future__ import annotations
++
++import subprocess
++import sys
++import tempfile
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[1]
++GENERATOR = REPO_ROOT / "scripts" / "generate-ci-targets.py"
++
++
++def test_check_passes_when_in_sync() -> None:
++    with tempfile.TemporaryDirectory() as tmp:
++        manifest = Path(tmp) / "ci-targets.toml"
++        workflow = Path(tmp) / "ci.yml"
++        manifest.write_text(
++            """
++[variant.linux-x64-vulkan]
++runner = "ubuntu-latest"
++build_native = true
++test_native = true
++zig = true
++
++[[step]]
++name = ""
++run = "mise run configure"
++
++[[step]]
++name = "Test native library"
++run = "mise run test"
++capability = "test_native"
++"""
++        )
++        subprocess.run(
++            [
++                sys.executable,
++                str(GENERATOR),
++                "--manifest",
++                str(manifest),
++                "--output",
++                str(workflow),
++            ],
++            check=True,
++            capture_output=True,
++            text=True,
++        )
++        result = subprocess.run(
++            [
++                sys.executable,
++                str(GENERATOR),
++                "--manifest",
++                str(manifest),
++                "--output",
++                str(workflow),
++                "--check",
++            ],
++            capture_output=True,
++            text=True,
++        )
++        assert result.returncode == 0, result.stderr
++        generated = workflow.read_text()
++        assert "mise_env: linux-x64-vulkan" in generated
++        assert "runner: ubuntu-latest" in generated
++        assert "test_native: true" in generated
++        assert "if: ${{ matrix.test_native }}" in generated
++
++
++def test_check_fails_when_out_of_sync() -> None:
++    with tempfile.TemporaryDirectory() as tmp:
++        manifest = Path(tmp) / "ci-targets.toml"
++        workflow = Path(tmp) / "ci.yml"
++        manifest.write_text(
++            """
++[variant.linux-x64-vulkan]
++runner = "ubuntu-latest"
++build_native = true
++test_native = true
++
++[[step]]
++name = ""
++run = "mise run configure"
++"""
++        )
++        workflow.write_text("stale content\n")
++        result = subprocess.run(
++            [
++                sys.executable,
++                str(GENERATOR),
++                "--manifest",
++                str(manifest),
++                "--output",
++                str(workflow),
++                "--check",
++            ],
++            capture_output=True,
++            text=True,
++        )
++        assert result.returncode != 0
++        assert "out of sync" in result.stderr
++
++
++def test_generates_matrix_with_capabilities() -> None:
++    with tempfile.TemporaryDirectory() as tmp:
++        manifest = Path(tmp) / "ci-targets.toml"
++        workflow = Path(tmp) / "ci.yml"
++        manifest.write_text(
++            """
++[variant.linux-x64-vulkan]
++runner = "ubuntu-latest"
++build_native = true
++test_native = true
++java = true
++
++[variant.ios-arm64-metal]
++runner = "macos-latest"
++build_native = true
++test_native = false
++java = false
++
++[[step]]
++name = ""
++run = "mise run configure"
++
++[[step]]
++name = "Test native library"
++run = "mise run test"
++capability = "test_native"
++
++[[step]]
++name = "Build Java binding"
++run = "mise run //bindings/java:build"
++capability = "java"
++"""
++        )
++        subprocess.run(
++            [
++                sys.executable,
++                str(GENERATOR),
++                "--manifest",
++                str(manifest),
++                "--output",
++                str(workflow),
++            ],
++            check=True,
++            capture_output=True,
++            text=True,
++        )
++        generated = workflow.read_text()
++        assert "mise_env: linux-x64-vulkan" in generated
++        assert "mise_env: ios-arm64-metal" in generated
++        assert "test_native: true" in generated
++        assert "test_native: false" in generated
++        assert "java: true" in generated
++        assert "java: false" in generated
++
++
++def test_preserves_manifest_variant_order() -> None:
++    with tempfile.TemporaryDirectory() as tmp:
++        manifest = Path(tmp) / "ci-targets.toml"
++        workflow = Path(tmp) / "ci.yml"
++        manifest.write_text(
++            """
++[variant.beta]
++runner = "beta-runner"
++build_native = true
++
++[variant.alpha]
++runner = "alpha-runner"
++build_native = true
++
++[[step]]
++name = ""
++run = "echo ok"
++"""
++        )
++        subprocess.run(
++            [
++                sys.executable,
++                str(GENERATOR),
++                "--manifest",
++                str(manifest),
++                "--output",
++                str(workflow),
++            ],
++            check=True,
++            capture_output=True,
++            text=True,
++        )
++        generated = workflow.read_text()
++        beta_pos = generated.index("mise_env: beta")
++        alpha_pos = generated.index("mise_env: alpha")
++        assert beta_pos < alpha_pos
++
++
++if __name__ == "__main__":
++    test_check_passes_when_in_sync()
++    test_check_fails_when_out_of_sync()
++    test_generates_matrix_with_capabilities()
++    test_preserves_manifest_variant_order()
++    print("All generator tests passed.")

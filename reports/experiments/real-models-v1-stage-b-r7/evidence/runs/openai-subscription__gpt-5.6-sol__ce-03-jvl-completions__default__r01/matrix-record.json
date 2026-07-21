@@ -1,0 +1,61 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 940.708651,
+        "endpoint_host": "cliproxy.home.sargunv.dev",
+        "finished_at": "2026-07-20T12:06:50.030711+00:00",
+        "model": "gpt-5.6-sol",
+        "model_config_sha256": "6450cb3c31bd1b36bd6421a88379682573a0d7ebb54db4e7e938299ea1d96598",
+        "patch_path": "model.patch",
+        "provider": "openai-subscription",
+        "run_id": "20260720T115115Z-ce-03-jvl-completions-1549941-1784548275256657565",
+        "scenario": null,
+        "started_at": "2026-07-20T11:51:09.322072+00:00",
+        "task_id": "ce-03-jvl-completions",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 2686464,
+          "input_tokens": 114929,
+          "output_tokens": 17491,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 5206
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 7.376616848981939,
+          "exit_code": 0,
+          "expectation_met": true,
+          "expected_pass": true,
+          "outcome": "passed",
+          "reward": {
+            "behavioral": 1,
+            "regression": 1,
+            "reward": 1
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-03-jvl-completions"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "openai-subscription__gpt-5.6-sol__ce-03-jvl-completions__default__r01",
+    "model": "gpt-5.6-sol",
+    "provider": "openai-subscription",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-03-jvl-completions"
+  },
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-20T12:06:50.308519+00:00"
+}

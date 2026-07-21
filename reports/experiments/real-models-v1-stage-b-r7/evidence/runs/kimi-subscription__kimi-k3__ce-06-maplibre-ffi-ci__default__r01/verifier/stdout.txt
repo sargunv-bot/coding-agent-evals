@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/tests/verify_workflow.py", line 309, in <module>
+    main()
+    ~~~~^^
+  File "/tests/verify_workflow.py", line 295, in main
+    validate_workflow(fixture)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/tests/verify_workflow.py", line 267, in validate_workflow
+    policy = workflow_policy(document)
+  File "/tests/verify_workflow.py", line 193, in workflow_policy
+    if isinstance(step, dict) and enabled(step, row)
+                                  ~~~~~~~^^^^^^^^^^^
+  File "/tests/verify_workflow.py", line 169, in enabled
+    raise AssertionError(f"unsupported generated variant condition: {condition}")
+AssertionError: unsupported generated variant condition: ${{ contains(fromJSON('["ios-arm64-metal","ios-simulator-arm64-metal"]'), matrix.mise_env) }}

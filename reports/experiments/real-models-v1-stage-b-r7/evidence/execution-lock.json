@@ -1,0 +1,321 @@
+{
+  "benchmark_commit": "8018a51fa1b3d05a90843c00ce68439c225bfae7",
+  "cells": [
+    {
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__r01",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__r01",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-01-antidote-output__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-02-horologia-overdue__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-03-jvl-completions__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-04-maplibre-source-location__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-06-maplibre-ffi-ci__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__validation-fail-fast__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__all-errors-as-result__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-01-antidote-output__default__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-01-antidote-output"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-02-horologia-overdue__default__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-02-horologia-overdue"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-03-jvl-completions__default__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-03-jvl-completions"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-04-maplibre-source-location__default__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-04-maplibre-source-location"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-05-mise-slsa-archive__default__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-06-maplibre-ffi-ci__default__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-06-maplibre-ffi-ci"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-07-mobility-result__validation-fail-fast__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": "validation-fail-fast",
+      "task_id": "ce-07-mobility-result"
+    },
+    {
+      "cell_id": "kimi-subscription__kimi-k3__ce-07-mobility-result__all-errors-as-result__r01",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "repeat": 1,
+      "scenario": "all-errors-as-result",
+      "task_id": "ce-07-mobility-result"
+    }
+  ],
+  "created_at": "2026-07-20T09:26:00.690314+00:00",
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "images": {
+    "ce-01-antidote-output": {
+      "agent_image": "localhost/coding-agent-evals/ce-01-antidote-output-opencode:dev",
+      "agent_image_id": "234aaf087e441b7524832aebb367daac46f89602420add0b2c2a66b0a4818bd3",
+      "task_image": "localhost/coding-agent-evals/ce-01-antidote-output:dev",
+      "task_image_id": "64b53585c7b4a789c2e977d0a7c13f27da582487e0d496347ed63f01b39dbced"
+    },
+    "ce-02-horologia-overdue": {
+      "agent_image": "localhost/coding-agent-evals/ce-02-horologia-overdue-opencode:dev",
+      "agent_image_id": "e3bc3bfa2e9bf6829f9ee7304d632ac9811d7e257660c216e82f7f723cc426c3",
+      "task_image": "localhost/coding-agent-evals/ce-02-horologia-overdue:dev",
+      "task_image_id": "a5634c282cf62b2a8c8bb80509236a2910c6b3f874e808178fd36d18b0a4244a"
+    },
+    "ce-03-jvl-completions": {
+      "agent_image": "localhost/coding-agent-evals/ce-03-jvl-completions-opencode:dev",
+      "agent_image_id": "30059f942a6621b1e103ae47e62e957ab8b3e41a075b717da5eb4fa7139a3354",
+      "task_image": "localhost/coding-agent-evals/ce-03-jvl-completions:dev",
+      "task_image_id": "ba8ec59b6d5b3c97703b54ffe2b52e2c3caab47580f878e94c17ba716d34dad2"
+    },
+    "ce-04-maplibre-source-location": {
+      "agent_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location-opencode:dev",
+      "agent_image_id": "492359a473e41dffd84246cd9e2bc6c14bfdf672ab68be5d24b37014e6c8b2c8",
+      "task_image": "localhost/coding-agent-evals/ce-04-maplibre-source-location:dev",
+      "task_image_id": "019087d02c22bdb2587add5ed95b93a53cab74884052d4239609e385ffe00cd9"
+    },
+    "ce-05-mise-slsa-archive": {
+      "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
+      "agent_image_id": "ce726d9f7a836c322ceba4ba3bab2879ee5468175a0858bb7d025c3c4cc9797c",
+      "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
+      "task_image_id": "67a214223c66af4285d95faf8f89a676dbf74e1c5e26af96dc34ffe1da3597e3"
+    },
+    "ce-06-maplibre-ffi-ci": {
+      "agent_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci-opencode:dev",
+      "agent_image_id": "77c494997dc315a3c8d8233c569fd75f521dc857e13d53f3ee607e1919997419",
+      "task_image": "localhost/coding-agent-evals/ce-06-maplibre-ffi-ci:dev",
+      "task_image_id": "f6a81ebe609040cd2bf5c13c9418003ca1da7f77d7625271d26a080cd8060ee7"
+    },
+    "ce-07-mobility-result": {
+      "agent_image": "localhost/coding-agent-evals/ce-07-mobility-result-opencode:dev",
+      "agent_image_id": "127a8e6211bb143db1a9dfdc4f55ffa9cc0ca048039b78c1805a1b912afe23a6",
+      "task_image": "localhost/coding-agent-evals/ce-07-mobility-result:dev",
+      "task_image_id": "cc9f81c4d427de1ebdaabf9570853c4c40546a3c76b9a7d316c09427aac543b1"
+    }
+  },
+  "manifest_path": "experiments/real-models-v1-stage-b-r7.toml",
+  "manifest_sha256": "d1884bd1f1b21e2b6c3b7c1b2c998a7a7534d27891964bc8c040d74cdf0a5357",
+  "model_configs": [
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "provider": {
+          "cae": {
+            "models": {
+              "kimi-k2.7-code": {
+                "name": "kimi-k2.7-code"
+              }
+            },
+            "name": "opencode-go",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://opencode.ai/zen/go/v1"
+            }
+          }
+        }
+      },
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go",
+      "sha256": "5a18f532388aa04a84fee6fe8ebc5ed57838e6def307b7bd1c7d53341a74e08f"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "provider": {
+          "cae": {
+            "models": {
+              "mimo-v2.5-pro": {
+                "name": "mimo-v2.5-pro"
+              }
+            },
+            "name": "opencode-go",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://opencode.ai/zen/go/v1"
+            }
+          }
+        }
+      },
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go",
+      "sha256": "e27c8c248106c7de89356980f317786b79fbc18b02536d9ac3b86b30f648fe90"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "provider": {
+          "cae": {
+            "models": {
+              "gpt-5.6-sol": {
+                "name": "gpt-5.6-sol"
+              }
+            },
+            "name": "openai-subscription",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://cliproxy.home.sargunv.dev/v1"
+            }
+          }
+        }
+      },
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "sha256": "6450cb3c31bd1b36bd6421a88379682573a0d7ebb54db4e7e938299ea1d96598"
+    },
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "provider": {
+          "cae": {
+            "models": {
+              "kimi-k3": {
+                "name": "kimi-k3"
+              }
+            },
+            "name": "kimi-subscription",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://cliproxy.home.sargunv.dev/v1"
+            }
+          }
+        }
+      },
+      "model": "kimi-k3",
+      "provider": "kimi-subscription",
+      "sha256": "5fbee02972f8fca5bf1f748a7958223b9721da65f15423d9930b1787560730b5"
+    }
+  ],
+  "opencode_version": "1.18.2",
+  "proctor_model": "openai/gpt-5.6-sol",
+  "routes": [
+    {
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "endpoint_host": "opencode.ai",
+      "model": "kimi-k2.7-code",
+      "provider": "opencode-go"
+    },
+    {
+      "api_key_env": "OPENCODE_GO_API_KEY",
+      "endpoint_host": "opencode.ai",
+      "model": "mimo-v2.5-pro",
+      "provider": "opencode-go"
+    },
+    {
+      "api_key_env": "CLIPROXY_API_KEY",
+      "endpoint_host": "cliproxy.home.sargunv.dev",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription"
+    },
+    {
+      "api_key_env": "CLIPROXY_API_KEY",
+      "endpoint_host": "cliproxy.home.sargunv.dev",
+      "model": "kimi-k3",
+      "provider": "kimi-subscription"
+    }
+  ],
+  "schema_version": 1,
+  "stage": "breadth"
+}

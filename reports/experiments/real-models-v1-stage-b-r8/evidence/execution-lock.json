@@ -1,0 +1,62 @@
+{
+  "benchmark_commit": "091aaf88d2e0e4eb5c4ec1a90548d1b196e99cc0",
+  "cells": [
+    {
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "repeat": 1,
+      "scenario": null,
+      "task_id": "ce-05-mise-slsa-archive"
+    }
+  ],
+  "created_at": "2026-07-21T04:28:26.873485+00:00",
+  "experiment_id": "real-models-v1-stage-b-r8",
+  "images": {
+    "ce-05-mise-slsa-archive": {
+      "agent_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive-opencode:dev",
+      "agent_image_id": "f5a1afc8f0b11e483fcc8e9021edfd4c335f81bfa30a3c44efea62bb44993cbe",
+      "task_image": "localhost/coding-agent-evals/ce-05-mise-slsa-archive:dev",
+      "task_image_id": "da8f389534d2923df1f9b2bac71b48a92f92ac1a07631da2c0ce295eb11e575f"
+    }
+  },
+  "manifest_path": "experiments/real-models-v1-stage-b-r8.toml",
+  "manifest_sha256": "6f79fb011f311152104c4d4d4a8c85619f110f308c0fcd4f4ee65be27365ac39",
+  "model_configs": [
+    {
+      "config": {
+        "$schema": "https://opencode.ai/config.json",
+        "provider": {
+          "cae": {
+            "models": {
+              "gpt-5.6-sol": {
+                "name": "gpt-5.6-sol"
+              }
+            },
+            "name": "openai-subscription",
+            "npm": "@ai-sdk/openai-compatible",
+            "options": {
+              "apiKey": "{env:CAE_PROVIDER_API_KEY}",
+              "baseURL": "https://cliproxy.home.sargunv.dev/v1"
+            }
+          }
+        }
+      },
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription",
+      "sha256": "6450cb3c31bd1b36bd6421a88379682573a0d7ebb54db4e7e938299ea1d96598"
+    }
+  ],
+  "opencode_version": "1.18.2",
+  "proctor_model": "openai/gpt-5.6-sol",
+  "routes": [
+    {
+      "api_key_env": "CLIPROXY_API_KEY",
+      "endpoint_host": "cliproxy.home.sargunv.dev",
+      "model": "gpt-5.6-sol",
+      "provider": "openai-subscription"
+    }
+  ],
+  "schema_version": 1,
+  "stage": "repair"
+}

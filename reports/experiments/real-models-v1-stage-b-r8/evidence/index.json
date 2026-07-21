@@ -1,0 +1,11 @@
+{
+  "experiment_id": "real-models-v1-stage-b-r8",
+  "runs": [
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-05-mise-slsa-archive__default__r01",
+      "run_id": "20260721T042948Z-ce-05-mise-slsa-archive-519077-1784608188359408053"
+    }
+  ],
+  "schema_version": 1
+}

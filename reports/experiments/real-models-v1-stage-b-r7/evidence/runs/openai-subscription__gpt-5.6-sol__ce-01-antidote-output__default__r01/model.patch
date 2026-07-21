@@ -1,0 +1,40 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..2efa9846fb7b9726f98568ca03e552cd480cce69 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >&2
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..27cbae584a44b7708d8c2dc2dd953fcbc5cde7f0 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -95,6 +95,22 @@ Clone a missing plugin.
+ %
+ ```
+ 
++Git wrappers may write progress to stdout even when passed `--quiet`. Keep that
++output out of the generated script without hiding it from the user.
++
++```zsh
++% function git { [[ $1 == clone ]] && print 'wrapper: cloning repository'; mockgit "$@" }
++% antidote-script fakeuser/fakerepo >$T_TEMPDIR/generated.zsh 2>$T_TEMPDIR/diagnostics
++% cat $T_TEMPDIR/generated.zsh | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++% cat $T_TEMPDIR/diagnostics
++# antidote cloning fakeuser/fakerepo...
++wrapper: cloning repository
++% function git { mockgit "$@" }
++%
++```
++
+ ### kind:zsh
+ 
+ ```zsh

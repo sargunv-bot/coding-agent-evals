@@ -1,0 +1,881 @@
+diff --git a/.github/ci/steps.toml b/.github/ci/steps.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..0f2e9e025c95b643083cf7ee9918d1cd66c3f1a0
+--- /dev/null
++++ b/.github/ci/steps.toml
+@@ -0,0 +1,183 @@
++# Ordered variant-job steps and the variants on which each step is supported.
++
++[[steps]]
++id = "native-build"
++name = "Build native library"
++run = "mise run build"
++targets = ["ios-arm64-metal", "ios-simulator-arm64-metal"]
++
++[[steps]]
++id = "native-test"
++name = "Test native library"
++run = "mise run test"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "macos-arm64-egl",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "java-ffm"
++name = "Build Java FFM binding"
++run = "mise run //bindings/java-ffm:build"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "java-jni"
++name = "Build Java JNI binding"
++run = "mise run //bindings/java-jni:build"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "dotnet"
++name = "Test .NET binding"
++run = "mise run //bindings/dotnet:test"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "kotlin-native"
++name = "Test Kotlin/Native binding"
++run = "mise run //bindings/kotlin-native:build"
++comment = """
++linux-arm64: no Kotlin/Native host - https://youtrack.jetbrains.com/issue/KT-36871
++windows: no MSVC target - https://youtrack.jetbrains.com/issue/SKIKO-446
++"""
++targets = [
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++]
++
++[[steps]]
++id = "rust-binding"
++name = "Test Rust binding"
++run = "mise run //bindings/rust:ci"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "swift-binding"
++name = "Test Swift binding"
++run = "mise run //bindings/swift:test"
++targets = ["macos-arm64-metal", "macos-arm64-vulkan"]
++
++[[steps]]
++id = "zig-binding"
++name = "Test Zig binding"
++run = "mise run //bindings/zig:ci"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "macos-arm64-egl",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "lwjgl-example"
++name = "Build LWJGL example"
++run = "mise run //examples/lwjgl-map:build"
++targets = [
++  "linux-arm64-vulkan",
++  "linux-x64-vulkan",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++]
++
++[[steps]]
++id = "rust-example"
++name = "Test Rust example"
++run = "mise run //examples/rust-map:ci"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "swift-example"
++name = "Build Swift example"
++run = "mise run //examples/swift-map:build"
++targets = ["macos-arm64-metal"]
++
++[[steps]]
++id = "zig-example"
++name = "Build Zig example"
++run = "mise run //examples/zig-map:build"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
++
++[[steps]]
++id = "zig-readback"
++name = "Run Zig readback example"
++run = "mise run //examples/zig-readback:run"
++targets = [
++  "linux-arm64-egl",
++  "linux-arm64-vulkan",
++  "linux-x64-egl",
++  "linux-x64-vulkan",
++  "macos-arm64-metal",
++  "macos-arm64-vulkan",
++  "macos-arm64-egl",
++  "windows-x64-vulkan",
++  "windows-x64-wgl",
++]
+diff --git a/.github/ci/targets.toml b/.github/ci/targets.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..9b181a79f17c1a32b848fa4fe03b98461176417f
+--- /dev/null
++++ b/.github/ci/targets.toml
+@@ -0,0 +1,46 @@
++# CI variants and their GitHub-hosted runners. Every .mise/config.*.toml file
++# must have exactly one entry here.
++
++[[targets]]
++id = "linux-arm64-egl"
++runner = "ubuntu-24.04-arm"
++
++[[targets]]
++id = "linux-arm64-vulkan"
++runner = "ubuntu-24.04-arm"
++
++[[targets]]
++id = "linux-x64-egl"
++runner = "ubuntu-latest"
++
++[[targets]]
++id = "linux-x64-vulkan"
++runner = "ubuntu-latest"
++
++[[targets]]
++id = "macos-arm64-metal"
++runner = "macos-latest"
++
++[[targets]]
++id = "macos-arm64-vulkan"
++runner = "macos-latest"
++
++[[targets]]
++id = "macos-arm64-egl"
++runner = "macos-latest"
++
++[[targets]]
++id = "ios-arm64-metal"
++runner = "macos-latest"
++
++[[targets]]
++id = "ios-simulator-arm64-metal"
++runner = "macos-latest"
++
++[[targets]]
++id = "windows-x64-vulkan"
++runner = "windows-2022"
++
++[[targets]]
++id = "windows-x64-wgl"
++runner = "windows-2022"
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1ebbac10f84c9123c2e7abfbf3dd4a77b95ba71e..73fb1156f946bd882c99d95201d1b7aa6aa3aa6a 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,3 +1,4 @@
++# Generated by `mise run ci:generate`; edit .github/ci/*.toml instead.
+ name: CI
+ 
+ on:
+@@ -44,76 +45,173 @@ jobs:
+         include:
+           - mise_env: linux-arm64-egl
+             runner: ubuntu-24.04-arm
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust-binding
++              - zig-binding
++              - rust-example
++              - zig-example
++              - zig-readback
+           - mise_env: linux-arm64-vulkan
+             runner: ubuntu-24.04-arm
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust-binding
++              - zig-binding
++              - lwjgl-example
++              - rust-example
++              - zig-example
++              - zig-readback
+           - mise_env: linux-x64-egl
+             runner: ubuntu-latest
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust-binding
++              - zig-binding
++              - rust-example
++              - zig-example
++              - zig-readback
+           - mise_env: linux-x64-vulkan
+             runner: ubuntu-latest
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust-binding
++              - zig-binding
++              - lwjgl-example
++              - rust-example
++              - zig-example
++              - zig-readback
+           - mise_env: macos-arm64-metal
+             runner: macos-latest
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust-binding
++              - swift-binding
++              - zig-binding
++              - rust-example
++              - swift-example
++              - zig-example
++              - zig-readback
+           - mise_env: macos-arm64-vulkan
+             runner: macos-latest
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust-binding
++              - swift-binding
++              - zig-binding
++              - lwjgl-example
++              - rust-example
++              - zig-example
++              - zig-readback
+           - mise_env: macos-arm64-egl
+             runner: macos-latest
++            ci_steps:
++              - native-test
++              - zig-binding
++              - zig-readback
+           - mise_env: ios-arm64-metal
+             runner: macos-latest
++            ci_steps:
++              - native-build
+           - mise_env: ios-simulator-arm64-metal
+             runner: macos-latest
++            ci_steps:
++              - native-build
+           - mise_env: windows-x64-vulkan
+             runner: windows-2022
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust-binding
++              - zig-binding
++              - lwjgl-example
++              - rust-example
++              - zig-example
++              - zig-readback
+           - mise_env: windows-x64-wgl
+             runner: windows-2022
++            ci_steps:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust-binding
++              - zig-binding
++              - rust-example
++              - zig-example
++              - zig-readback
+     steps:
+       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+       - uses: ./.github/actions/setup-ci-deps
+ 
+       - run: mise run configure
+       - name: Build native library
+-        if: ${{ startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'native-build') }}
+         run: mise run build
+       - name: Test native library
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'native-test') }}
+         run: mise run test
+-
+       - name: Build Java FFM binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'java-ffm') }}
+         run: mise run //bindings/java-ffm:build
+       - name: Build Java JNI binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'java-jni') }}
+         run: mise run //bindings/java-jni:build
+       - name: Test .NET binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'dotnet') }}
+         run: mise run //bindings/dotnet:test
+-      # linux-arm64: no Kotlin/Native host — https://youtrack.jetbrains.com/issue/KT-36871
+-      # windows: no MSVC target — https://youtrack.jetbrains.com/issue/SKIKO-446
++      # linux-arm64: no Kotlin/Native host - https://youtrack.jetbrains.com/issue/KT-36871
++      # windows: no MSVC target - https://youtrack.jetbrains.com/issue/SKIKO-446
+       - name: Test Kotlin/Native binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') && !startsWith(matrix.mise_env, 'windows-') && !startsWith(matrix.mise_env, 'linux-arm64-') }}
++        if: ${{ contains(matrix.ci_steps, 'kotlin-native') }}
+         run: mise run //bindings/kotlin-native:build
+       - name: Test Rust binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'rust-binding') }}
+         run: mise run //bindings/rust:ci
+       - name: Test Swift binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && startsWith(matrix.mise_env, 'macos-') }}
++        if: ${{ contains(matrix.ci_steps, 'swift-binding') }}
+         run: mise run //bindings/swift:test
+       - name: Test Zig binding
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'zig-binding') }}
+         run: mise run //bindings/zig:ci
+-
+       - name: Build LWJGL example
+-        if: ${{ contains(matrix.mise_env, 'vulkan') }}
++        if: ${{ contains(matrix.ci_steps, 'lwjgl-example') }}
+         run: mise run //examples/lwjgl-map:build
+       - name: Test Rust example
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'rust-example') }}
+         run: mise run //examples/rust-map:ci
+       - name: Build Swift example
+-        if: ${{ matrix.mise_env == 'macos-arm64-metal' }}
++        if: ${{ contains(matrix.ci_steps, 'swift-example') }}
+         run: mise run //examples/swift-map:build
+       - name: Build Zig example
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'zig-example') }}
+         run: mise run //examples/zig-map:build
+       - name: Run Zig readback example
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.ci_steps, 'zig-readback') }}
+         run: mise run //examples/zig-readback:run
+ 
+   required:
+diff --git a/hk.pkl b/hk.pkl
+index 4be4ec041e0c3856722d3d855a6daa9ed294fe9b..abf4d9641157d4faaf99afed3d8647f1b8eeec9d 100644
+--- a/hk.pkl
++++ b/hk.pkl
+@@ -14,6 +14,16 @@ local lintSteps = new Mapping<String, Step> {
+     glob = List(".github/workflows/*.yml", ".github/workflows/*.yaml")
+     check = "actionlint {{files}}"
+   }
++  ["ci-workflow"] {
++    glob = List(
++      ".github/ci/*.toml",
++      ".github/workflows/ci.yml",
++      "scripts/generate_ci.py",
++      "scripts/test_generate_ci.py",
++    )
++    check = "mise run ci:check"
++    fix = "mise run ci:generate"
++  }
+   ["jvl"] {
+     glob = List("**/*.json", "**/*.jsonc")
+     check = "jvl check {{files}}"
+diff --git a/mise.toml b/mise.toml
+index f9cf3326d0d9d904fd53ad8c9674279b7cdd56f9..093a777251cef7a251f0a182ebe9ee6375924cff 100644
+--- a/mise.toml
++++ b/mise.toml
+@@ -179,6 +179,17 @@ run = "hk fix --all"
+ description = "Update and pin GitHub Actions steps."
+ run = "pnpm dlx actions-up"
+ 
++[tasks."ci:generate"]
++description = "Generate the checked-in CI workflow from support manifests."
++run = "python scripts/generate_ci.py"
++
++[tasks."ci:check"]
++description = "Test the CI generator and verify that its workflow is current."
++run = [
++  "python -m unittest scripts/test_generate_ci.py",
++  "python scripts/generate_ci.py --check",
++]
++
+ [tasks._ktfmt]
+ description = "Called by dprint.jsonc"
+ hide = true
+@@ -191,6 +202,7 @@ run = [
+   # Warm process-plugin cache before hk runs parallel dprint batches.
+   "dprint output-resolved-config > /dev/null",
+   "hk fix --all",
++  "mise run ci:check",
+   "git update-index -q --refresh",
+   # Lockfile drift is common across different mise builds
+   "git diff --exit-code -- . ':(exclude)mise.lock'",
+diff --git a/scripts/generate_ci.py b/scripts/generate_ci.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..71ebb47cf118532ebea8c509dc460dca1641e891
+--- /dev/null
++++ b/scripts/generate_ci.py
+@@ -0,0 +1,302 @@
++#!/usr/bin/env python3
++"""Generate the checked-in CI workflow from target support manifests."""
++
++from __future__ import annotations
++
++import argparse
++import difflib
++import re
++import sys
++import tomllib
++from dataclasses import dataclass
++from pathlib import Path
++from typing import cast
++
++ROOT = Path(__file__).resolve().parents[1]
++TARGETS_MANIFEST = Path(".github/ci/targets.toml")
++STEPS_MANIFEST = Path(".github/ci/steps.toml")
++WORKFLOW = Path(".github/workflows/ci.yml")
++ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
++
++
++class PolicyError(ValueError):
++    """The CI manifests do not describe a valid support policy."""
++
++
++@dataclass(frozen=True)
++class Target:
++    id: str
++    runner: str
++
++
++@dataclass(frozen=True)
++class Step:
++    id: str
++    name: str
++    run: str
++    targets: tuple[str, ...]
++    comment: str | None = None
++
++
++@dataclass(frozen=True)
++class Policy:
++    targets: tuple[Target, ...]
++    steps: tuple[Step, ...]
++
++
++def _load_toml(path: Path) -> dict[str, object]:
++    with path.open("rb") as source:
++        return tomllib.load(source)
++
++
++def _required_string(record: dict[str, object], key: str, context: str) -> str:
++    value = record.get(key)
++    if not isinstance(value, str) or not value:
++        raise PolicyError(f"{context}.{key} must be a non-empty string")
++    return value
++
++
++def _records(
++    document: dict[str, object], key: str, path: Path
++) -> list[dict[str, object]]:
++    value = document.get(key)
++    if not isinstance(value, list) or not value:
++        raise PolicyError(f"{path}: {key} must be a non-empty array of tables")
++    if not all(isinstance(record, dict) for record in value):
++        raise PolicyError(f"{path}: every {key} entry must be a table")
++    return cast(list[dict[str, object]], value)
++
++
++def load_policy(root: Path = ROOT) -> Policy:
++    target_path = root / TARGETS_MANIFEST
++    step_path = root / STEPS_MANIFEST
++    target_records = _records(_load_toml(target_path), "targets", target_path)
++    step_records = _records(_load_toml(step_path), "steps", step_path)
++
++    targets: list[Target] = []
++    target_ids: set[str] = set()
++    for index, record in enumerate(target_records):
++        context = f"{target_path}: targets[{index}]"
++        target_id = _required_string(record, "id", context)
++        if target_id in target_ids:
++            raise PolicyError(f"{context}.id duplicates {target_id!r}")
++        target_ids.add(target_id)
++        targets.append(Target(target_id, _required_string(record, "runner", context)))
++
++    config_ids: set[str] = set()
++    for config_path in sorted((root / ".mise").glob("config.*.toml")):
++        document = _load_toml(config_path)
++        env = document.get("env")
++        if not isinstance(env, dict):
++            raise PolicyError(f"{config_path}: env must be a table")
++        env = cast(dict[str, object], env)
++        variant = env.get("MLN_FFI_VARIANT")
++        if not isinstance(variant, str):
++            raise PolicyError(f"{config_path}: env.MLN_FFI_VARIANT must be a string")
++        expected = config_path.name.removeprefix("config.").removesuffix(".toml")
++        if variant != expected:
++            raise PolicyError(
++                f"{config_path}: MLN_FFI_VARIANT is {variant!r}, expected {expected!r}"
++            )
++        config_ids.add(variant)
++
++    missing_targets = sorted(config_ids - target_ids)
++    missing_configs = sorted(target_ids - config_ids)
++    if missing_targets or missing_configs:
++        details = []
++        if missing_targets:
++            details.append(f"missing CI targets: {', '.join(missing_targets)}")
++        if missing_configs:
++            details.append(f"missing mise configs: {', '.join(missing_configs)}")
++        raise PolicyError("; ".join(details))
++
++    steps: list[Step] = []
++    step_ids: set[str] = set()
++    covered_targets: set[str] = set()
++    for index, record in enumerate(step_records):
++        context = f"{step_path}: steps[{index}]"
++        step_id = _required_string(record, "id", context)
++        if not ID_PATTERN.fullmatch(step_id):
++            raise PolicyError(f"{context}.id must match {ID_PATTERN.pattern!r}")
++        if step_id in step_ids:
++            raise PolicyError(f"{context}.id duplicates {step_id!r}")
++        step_ids.add(step_id)
++
++        supported = record.get("targets")
++        if not isinstance(supported, list) or not supported:
++            raise PolicyError(f"{context}.targets must be a non-empty string array")
++        if not all(isinstance(target, str) for target in supported):
++            raise PolicyError(f"{context}.targets must contain only strings")
++        supported = cast(list[str], supported)
++        if len(supported) != len(set(supported)):
++            raise PolicyError(f"{context}.targets contains duplicates")
++        unknown = sorted(set(supported) - target_ids)
++        if unknown:
++            raise PolicyError(
++                f"{context}.targets contains unknown targets: {', '.join(unknown)}"
++            )
++
++        comment = record.get("comment")
++        if comment is not None and (not isinstance(comment, str) or not comment):
++            raise PolicyError(f"{context}.comment must be a non-empty string")
++        covered_targets.update(supported)
++        steps.append(
++            Step(
++                step_id,
++                _required_string(record, "name", context),
++                _required_string(record, "run", context),
++                tuple(supported),
++                comment,
++            )
++        )
++
++    uncovered = sorted(target_ids - covered_targets)
++    if uncovered:
++        raise PolicyError(f"targets have no CI steps: {', '.join(uncovered)}")
++    return Policy(tuple(targets), tuple(steps))
++
++
++def render_workflow(policy: Policy) -> str:
++    lines = [
++        "# Generated by `mise run ci:generate`; edit .github/ci/*.toml instead.",
++        "name: CI",
++        "",
++        "on:",
++        "  push:",
++        "    branches: [main]",
++        "  pull_request:",
++        "    branches: [main]",
++        "",
++        "permissions:",
++        "  contents: read",
++        "",
++        "concurrency:",
++        "  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}",
++        "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
++        "",
++        "jobs:",
++        "  hygiene:",
++        "    name: hygiene",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 30",
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "      - run: mise run ci:lint",
++        "",
++        "  docs:",
++        "    name: docs",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 60",
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "      - run: mise run //docs:build",
++        "",
++        "  variants:",
++        "    name: variant / ${{ matrix.mise_env }}",
++        "    runs-on: ${{ matrix.runner }}",
++        "    timeout-minutes: 120",
++        "    env:",
++        "      MISE_ENV: ${{ matrix.mise_env }}",
++        "    strategy:",
++        "      fail-fast: false",
++        "      matrix:",
++        "        include:",
++    ]
++    for target in policy.targets:
++        supported_steps = [
++            step.id for step in policy.steps if target.id in step.targets
++        ]
++        lines.extend(
++            [
++                f"          - mise_env: {target.id}",
++                f"            runner: {target.runner}",
++                "            ci_steps:",
++            ]
++        )
++        lines.extend(f"              - {step_id}" for step_id in supported_steps)
++
++    lines.extend(
++        [
++            "    steps:",
++            "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++            "      - uses: ./.github/actions/setup-ci-deps",
++            "",
++            "      - run: mise run configure",
++        ]
++    )
++    for step in policy.steps:
++        if step.comment:
++            lines.extend(f"      # {comment}" for comment in step.comment.splitlines())
++        lines.extend(
++            [
++                f"      - name: {step.name}",
++                f"        if: ${{{{ contains(matrix.ci_steps, '{step.id}') }}}}",
++                f"        run: {step.run}",
++            ]
++        )
++
++    lines.extend(
++        [
++            "",
++            "  required:",
++            "    name: ci-required",
++            "    runs-on: ubuntu-latest",
++            "    timeout-minutes: 5",
++            "    if: ${{ always() }}",
++            "    needs:",
++            "      - hygiene",
++            "      - docs",
++            "      - variants",
++            "    steps:",
++            "      - name: Fail if required jobs failed",
++            "        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}",
++            "        run: |",
++            "          echo '${{ toJSON(needs) }}'",
++            "          exit 1",
++            "",
++            "      - run: true",
++            "",
++        ]
++    )
++    return "\n".join(lines)
++
++
++def check_workflow(path: Path, generated: str) -> bool:
++    existing = path.read_text() if path.exists() else ""
++    if existing == generated:
++        return True
++    sys.stderr.writelines(
++        difflib.unified_diff(
++            existing.splitlines(keepends=True),
++            generated.splitlines(keepends=True),
++            fromfile=str(path),
++            tofile=f"{path} (generated)",
++        )
++    )
++    sys.stderr.write("CI workflow is stale; run `mise run ci:generate`.\n")
++    return False
++
++
++def main() -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument(
++        "--check", action="store_true", help="fail if the workflow is stale"
++    )
++    args = parser.parse_args()
++
++    try:
++        generated = render_workflow(load_policy())
++    except (OSError, tomllib.TOMLDecodeError, PolicyError) as error:
++        parser.error(str(error))
++
++    workflow_path = ROOT / WORKFLOW
++    if args.check:
++        return 0 if check_workflow(workflow_path, generated) else 1
++    workflow_path.write_text(generated)
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/test_generate_ci.py b/scripts/test_generate_ci.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..07465747cddb490b30f9d3b48cb3744a1335acec
+--- /dev/null
++++ b/scripts/test_generate_ci.py
+@@ -0,0 +1,74 @@
++from __future__ import annotations
++
++import importlib.util
++import sys
++import tempfile
++import unittest
++from pathlib import Path
++
++SCRIPT = Path(__file__).with_name("generate_ci.py")
++SPEC = importlib.util.spec_from_file_location("generate_ci", SCRIPT)
++assert SPEC and SPEC.loader
++generate_ci = importlib.util.module_from_spec(SPEC)
++sys.modules[SPEC.name] = generate_ci
++SPEC.loader.exec_module(generate_ci)
++
++
++class GenerateCiTest(unittest.TestCase):
++    def test_checked_in_workflow_matches_manifests(self) -> None:
++        policy = generate_ci.load_policy()
++        generated = generate_ci.render_workflow(policy)
++
++        self.assertEqual(
++            (generate_ci.ROOT / generate_ci.WORKFLOW).read_text(), generated
++        )
++        self.assertIn("mise_env: ios-arm64-metal", generated)
++        self.assertIn("contains(matrix.ci_steps, 'native-build')", generated)
++        self.assertIn("contains(matrix.ci_steps, 'swift-example')", generated)
++
++    def test_unknown_step_target_is_rejected(self) -> None:
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            (root / ".github/ci").mkdir(parents=True)
++            (root / ".mise").mkdir()
++            (root / ".github/ci/targets.toml").write_text(
++                '[[targets]]\nid = "linux-x64-vulkan"\nrunner = "ubuntu-latest"\n'
++            )
++            (root / ".github/ci/steps.toml").write_text(
++                '[[steps]]\nid = "native-test"\nname = "Test native"\n'
++                'run = "mise run test"\ntargets = ["unknown"]\n'
++            )
++            (root / ".mise/config.linux-x64-vulkan.toml").write_text(
++                '[env]\nMLN_FFI_VARIANT = "linux-x64-vulkan"\n'
++            )
++
++            with self.assertRaisesRegex(
++                generate_ci.PolicyError, "unknown targets: unknown"
++            ):
++                generate_ci.load_policy(root)
++
++    def test_mise_variant_without_ci_target_is_rejected(self) -> None:
++        with tempfile.TemporaryDirectory() as directory:
++            root = Path(directory)
++            (root / ".github/ci").mkdir(parents=True)
++            (root / ".mise").mkdir()
++            (root / ".github/ci/targets.toml").write_text(
++                '[[targets]]\nid = "linux-x64-vulkan"\nrunner = "ubuntu-latest"\n'
++            )
++            (root / ".github/ci/steps.toml").write_text(
++                '[[steps]]\nid = "native-test"\nname = "Test native"\n'
++                'run = "mise run test"\ntargets = ["linux-x64-vulkan"]\n'
++            )
++            for variant in ("linux-x64-vulkan", "linux-x64-egl"):
++                (root / f".mise/config.{variant}.toml").write_text(
++                    f'[env]\nMLN_FFI_VARIANT = "{variant}"\n'
++                )
++
++            with self.assertRaisesRegex(
++                generate_ci.PolicyError, "missing CI targets: linux-x64-egl"
++            ):
++                generate_ci.load_policy(root)
++
++
++if __name__ == "__main__":
++    unittest.main()

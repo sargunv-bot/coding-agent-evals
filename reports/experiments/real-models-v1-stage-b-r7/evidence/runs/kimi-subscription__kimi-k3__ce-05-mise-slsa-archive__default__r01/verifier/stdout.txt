@@ -1,0 +1,1 @@
+alternative archive verifier rejected: non-NoAttestations archive verification outcomes are not returned before fallback

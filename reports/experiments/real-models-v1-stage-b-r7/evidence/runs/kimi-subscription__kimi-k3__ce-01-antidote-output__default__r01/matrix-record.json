@@ -1,0 +1,60 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 426.50176,
+        "endpoint_host": "cliproxy.home.sargunv.dev",
+        "finished_at": "2026-07-20T11:02:09.221303+00:00",
+        "model": "kimi-k3",
+        "model_config_sha256": "5fbee02972f8fca5bf1f748a7958223b9721da65f15423d9930b1787560730b5",
+        "patch_path": "model.patch",
+        "provider": "kimi-subscription",
+        "run_id": "20260720T105508Z-ce-01-antidote-output-1360144-1784544908186786646",
+        "scenario": null,
+        "started_at": "2026-07-20T10:55:02.719556+00:00",
+        "task_id": "ce-01-antidote-output",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 562432,
+          "input_tokens": 33949,
+          "output_tokens": 3327,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 4376
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 0.21288227394688874,
+          "exit_code": 1,
+          "expectation_met": false,
+          "expected_pass": true,
+          "outcome": "failed",
+          "reward": {
+            "behavioral": 0,
+            "reward": 0
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-01-antidote-output"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "kimi-subscription__kimi-k3__ce-01-antidote-output__default__r01",
+    "model": "kimi-k3",
+    "provider": "kimi-subscription",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-01-antidote-output"
+  },
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-20T11:02:09.480324+00:00"
+}

@@ -1,0 +1,1863 @@
+diff --git a/gbfs-v1/api/gbfs-v1.api b/gbfs-v1/api/gbfs-v1.api
+index 20a8d09ceddc8459237f8660a63c94add9a37a43..7d676af3ec7c799128cf6a264bb9e7e81884e272 100644
+--- a/gbfs-v1/api/gbfs-v1.api
++++ b/gbfs-v1/api/gbfs-v1.api
+@@ -300,17 +300,17 @@ public final class dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client : java/lang/Aut
+ 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+ 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+ 	public fun close ()V
+-	public final fun getFreeBikeStatus (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getStationInformation (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getStationStatus (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemAlerts (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemCalendar (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemHours (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemInformation (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemManifest (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemPricingPlans (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemRegions (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVersionManifest (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getFreeBikeStatus-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getStationInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getStationStatus-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemAlerts-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemCalendar-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemHours-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemManifest-gIAlu-s (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemPricingPlans-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemRegions-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVersionManifest-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+ }
+ 
+ public final class dev/sargunv/mobilitydata/gbfs/v1/PricingPlan {
+diff --git a/gbfs-v1/api/gbfs-v1.klib.api b/gbfs-v1/api/gbfs-v1.klib.api
+index b273dec5a586b3f06d11079b15071d715cb5ed0e..a182696ad37499e9c2884fa60be0e43bd15e2c1c 100644
+--- a/gbfs-v1/api/gbfs-v1.klib.api
++++ b/gbfs-v1/api/gbfs-v1.klib.api
+@@ -1233,15 +1233,15 @@ final class dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client : kotlin/AutoCloseable
+     constructor <init>(kotlin/Function1<io.ktor.client/HttpClientConfig<*>, kotlin/Unit> = ...) // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.<init>|<init>(kotlin.Function1<io.ktor.client.HttpClientConfig<*>,kotlin.Unit>){}[0]
+ 
+     final fun close() // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.close|close(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getFreeBikeStatus(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/FreeBikeStatus> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getFreeBikeStatus|getFreeBikeStatus(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getStationInformation(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/StationInformation> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getStationInformation|getStationInformation(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getStationStatus(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/StationStatus> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getStationStatus|getStationStatus(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemAlerts(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemAlerts> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemAlerts|getSystemAlerts(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemCalendar(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemCalendar> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemCalendar|getSystemCalendar(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemHours(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemHours> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemHours|getSystemHours(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemInformation(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemInformation> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemPricingPlans(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemPricingPlans> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemPricingPlans|getSystemPricingPlans(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemRegions(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemRegions> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemRegions|getSystemRegions(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getVersionManifest(): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/VersionManifest> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
+-    final suspend fun getSystemManifest(kotlin/String): dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemManifest> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemManifest|getSystemManifest(kotlin.String){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getFreeBikeStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/FreeBikeStatus>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getFreeBikeStatus|getFreeBikeStatus(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getStationInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/StationInformation>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getStationInformation|getStationInformation(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getStationStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/StationStatus>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getStationStatus|getStationStatus(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemAlerts(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemAlerts>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemAlerts|getSystemAlerts(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemCalendar(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemCalendar>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemCalendar|getSystemCalendar(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemHours(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemHours>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemHours|getSystemHours(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemInformation>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemPricingPlans(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemPricingPlans>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemPricingPlans|getSystemPricingPlans(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemRegions(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemRegions>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemRegions|getSystemRegions(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/VersionManifest>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gbfs.v1.Service)(){}[0]
++    final suspend fun getSystemManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemManifest>> // dev.sargunv.mobilitydata.gbfs.v1/GbfsV1Client.getSystemManifest|getSystemManifest(kotlin.String){}[0]
+ }
+diff --git a/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt b/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt
+index d422e979f266023d5dbee02702dddac8803234c8..e2b4dd83b65b5db885297e9531c160cf7792a7d1 100644
+--- a/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt
++++ b/gbfs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v1/GbfsV1Client.kt
+@@ -8,6 +8,7 @@ import io.ktor.client.engine.HttpClientEngine
+ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+ import io.ktor.client.request.get
+ import io.ktor.serialization.kotlinx.json.json
++import kotlin.coroutines.cancellation.CancellationException
+ 
+ /** HTTP client for fetching GBFS v1 feeds. */
+ public class GbfsV1Client internal constructor(private val httpClient: HttpClient) : AutoCloseable {
+@@ -33,8 +34,16 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+     }
+   )
+ 
+-  internal suspend inline fun <reified T : GbfsFeedData> getFeedResponse(url: Url) =
+-    httpClient.get(url).body<GbfsFeedResponse<T>>()
++  internal suspend inline fun <reified T : GbfsFeedData> getFeedResponse(
++    url: () -> Url
++  ): Result<GbfsFeedResponse<T>> =
++    try {
++      Result.success(httpClient.get(url()).body())
++    } catch (exception: CancellationException) {
++      throw exception
++    } catch (exception: Throwable) {
++      Result.failure(exception)
++    }
+ 
+   /**
+    * Fetches the GBFS auto-discovery file from the given URL.
+@@ -44,8 +53,9 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @param discoveryUrl The URL of the gbfs.json auto-discovery file
+    * @return The manifest response containing available feeds
+    */
+-  public suspend fun getSystemManifest(discoveryUrl: Url): GbfsFeedResponse<SystemManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getSystemManifest(
++    discoveryUrl: Url
++  ): Result<GbfsFeedResponse<SystemManifest>> = getFeedResponse { discoveryUrl }
+ 
+   /**
+    * Fetches the list of GBFS versions supported by this system.
+@@ -54,8 +64,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing supported GBFS versions
+    */
+   context(service: Service)
+-  public suspend fun getVersionManifest(): GbfsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GbfsFeedResponse<VersionManifest>> =
++    getFeedResponse { service.feeds.getValue(FeedType.VersionManifest) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+@@ -64,8 +74,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system information
+    */
+   context(service: Service)
+-  public suspend fun getSystemInformation(): GbfsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GbfsFeedResponse<SystemInformation>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemInformation) }
+ 
+   /**
+    * Fetches static information about stations in the system.
+@@ -74,8 +84,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing station information
+    */
+   context(service: Service)
+-  public suspend fun getStationInformation(): GbfsFeedResponse<StationInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationInformation))
++  public suspend fun getStationInformation(): Result<GbfsFeedResponse<StationInformation>> =
++    getFeedResponse { service.feeds.getValue(FeedType.StationInformation) }
+ 
+   /**
+    * Fetches real-time status of stations including available bikes and docks.
+@@ -84,8 +94,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing current station status
+    */
+   context(service: Service)
+-  public suspend fun getStationStatus(): GbfsFeedResponse<StationStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationStatus))
++  public suspend fun getStationStatus(): Result<GbfsFeedResponse<StationStatus>> =
++    getFeedResponse { service.feeds.getValue(FeedType.StationStatus) }
+ 
+   /**
+    * Fetches real-time status of free-floating vehicles not currently docked.
+@@ -94,8 +104,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing available vehicle locations and status
+    */
+   context(service: Service)
+-  public suspend fun getFreeBikeStatus(): GbfsFeedResponse<FreeBikeStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.FreeBikeStatus))
++  public suspend fun getFreeBikeStatus(): Result<GbfsFeedResponse<FreeBikeStatus>> =
++    getFeedResponse { service.feeds.getValue(FeedType.FreeBikeStatus) }
+ 
+   /**
+    * Fetches hours of operation for the system.
+@@ -104,8 +114,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system operating hours
+    */
+   context(service: Service)
+-  public suspend fun getSystemHours(): GbfsFeedResponse<SystemHours> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemHours))
++  public suspend fun getSystemHours(): Result<GbfsFeedResponse<SystemHours>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemHours) }
+ 
+   /**
+    * Fetches the operating calendar for seasonal systems.
+@@ -114,8 +124,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system operating calendar
+    */
+   context(service: Service)
+-  public suspend fun getSystemCalendar(): GbfsFeedResponse<SystemCalendar> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemCalendar))
++  public suspend fun getSystemCalendar(): Result<GbfsFeedResponse<SystemCalendar>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemCalendar) }
+ 
+   /**
+    * Fetches information about geographic regions in the system.
+@@ -124,8 +134,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system regions
+    */
+   context(service: Service)
+-  public suspend fun getSystemRegions(): GbfsFeedResponse<SystemRegions> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemRegions))
++  public suspend fun getSystemRegions(): Result<GbfsFeedResponse<SystemRegions>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemRegions) }
+ 
+   /**
+    * Fetches pricing plans for the system.
+@@ -134,8 +144,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing pricing plan information
+    */
+   context(service: Service)
+-  public suspend fun getSystemPricingPlans(): GbfsFeedResponse<SystemPricingPlans> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans))
++  public suspend fun getSystemPricingPlans(): Result<GbfsFeedResponse<SystemPricingPlans>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemPricingPlans) }
+ 
+   /**
+    * Fetches current system alerts about service disruptions or changes.
+@@ -144,8 +154,8 @@ public class GbfsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing active system alerts
+    */
+   context(service: Service)
+-  public suspend fun getSystemAlerts(): GbfsFeedResponse<SystemAlerts> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts))
++  public suspend fun getSystemAlerts(): Result<GbfsFeedResponse<SystemAlerts>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemAlerts) }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ClientTest.kt b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ClientTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..3628ba51d51b32362e34834d3946b43203f10b63
+--- /dev/null
++++ b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ClientTest.kt
+@@ -0,0 +1,27 @@
++package dev.sargunv.mobilitydata.gbfs.v1
++
++import io.ktor.client.engine.mock.MockEngine
++import io.ktor.client.engine.mock.respondError
++import io.ktor.http.HttpStatusCode
++import kotlin.test.Test
++import kotlin.test.assertIs
++import kotlin.test.assertTrue
++import kotlinx.coroutines.test.runTest
++
++class ClientTest {
++  @Test
++  fun returnsHttpFailures() = runTest {
++    val client = GbfsV1Client(MockEngine { respondError(HttpStatusCode.NotFound) })
++
++    assertTrue(client.getSystemManifest("https://example.com/gbfs.json").isFailure)
++  }
++
++  @Test
++  fun returnsMissingFeedFailures() = runTest {
++    val client = GbfsV1Client(MockEngine { error("request should not be made") })
++
++    val result = context(Service()) { client.getSystemInformation() }
++
++    assertIs<NoSuchElementException>(result.exceptionOrNull())
++  }
++}
+diff --git a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt
+index d38761b09e9111b22c119e9dacd7efeca45fe220..adcedfbc7b3b53530ec09223bb6f8e8d3537c965 100644
+--- a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt
++++ b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/DocsSnippet.kt
+@@ -13,23 +13,24 @@ class DocsSnippet {
+           .getSystemManifest( // (2)!
+             discoveryUrl = "https://data.lime.bike/api/partners/v1/gbfs/seattle/gbfs.json"
+           )
++          .getOrThrow()
+           .data
+ 
+       context(manifest.getService("en")) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrThrow().data // (4)!
+ 
+         println("System: ${systemInfo.name}")
+         println("Operator: ${systemInfo.operator}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val stations = gbfs.getStationInformation().data // (5)!
++        val stations = gbfs.getStationInformation().getOrThrow().data // (5)!
+ 
+         println("\nStations: ${stations.size}")
+         stations.take(3).forEach { station ->
+           println("  - ${station.name} (${station.capacity} bikes)")
+         }
+ 
+-        val freeBikes = gbfs.getFreeBikeStatus().data.bikes // (6)!
++        val freeBikes = gbfs.getFreeBikeStatus().getOrThrow().data.bikes // (6)!
+ 
+         println("\nAvailable bikes: ${freeBikes.size}")
+         freeBikes.take(3).forEach { bike ->
+diff --git a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt
+index 5825cfcde7d53302613030c851a9c9c9dbc86082..383635b839312e2bbd12f4c2b02bbf09d4a86fe3 100644
+--- a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt
++++ b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ProducerTest.kt
+@@ -42,29 +42,29 @@ class ProducerTest {
+   fun publicbikesystem() = runTest {
+     val client = GbfsV1Client(createMockEngine("publicbikesystem"))
+ 
+-    val manifest = client.getSystemManifest("gbfs")
++    val manifest = client.getSystemManifest("gbfs").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getSystemPricingPlans()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getSystemRegions()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getSystemRegions().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun bird() = runTest {
+     val client = GbfsV1Client(createMockEngine("bird"))
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemRegions()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -72,14 +72,14 @@ class ProducerTest {
+   fun bcycle() = runTest {
+     val client = GbfsV1Client(createMockEngine("bcycle"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getSystemRegions()
++      client.getSystemInformation().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getSystemRegions().getOrThrow()
+ 
+       // INVALID: data is empty {}
+       // client.getVersionManifest()
+@@ -93,16 +93,16 @@ class ProducerTest {
+   fun donkey() = runTest {
+     val client = GbfsV1Client(createMockEngine("donkey"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getSystemHours()
+-      client.getSystemRegions()
+-      client.getSystemPricingPlans()
++      client.getSystemInformation().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getSystemHours().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
+     }
+   }
+ 
+@@ -110,13 +110,13 @@ class ProducerTest {
+   fun bolt() = runTest {
+     val client = GbfsV1Client(createMockEngine("bolt"))
+ 
+-    val manifest = client.getSystemManifest("gbfs")
++    val manifest = client.getSystemManifest("gbfs").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getFreeBikeStatus()
+-      client.getSystemPricingPlans()
++      client.getSystemInformation().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
+     }
+   }
+ 
+@@ -124,13 +124,13 @@ class ProducerTest {
+   fun lime() = runTest {
+     val client = GbfsV1Client(createMockEngine("lime"))
+ 
+-    val manifest = client.getSystemManifest("gbfs")
++    val manifest = client.getSystemManifest("gbfs").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getFreeBikeStatus()
+-      client.getStationInformation()
++      client.getSystemInformation().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
++      client.getStationInformation().getOrThrow()
+ 
+       // INVALID: num_bikes_available is named num_vehicles_available
+       // client.getStationStatus()
+diff --git a/gbfs-v2/api/gbfs-v2.api b/gbfs-v2/api/gbfs-v2.api
+index 06299ae65badcba92a9353e401995a8822fd2298..9e6fe1ab210e5bc3144bb7a6998d7121a30bbcbc 100644
+--- a/gbfs-v2/api/gbfs-v2.api
++++ b/gbfs-v2/api/gbfs-v2.api
+@@ -384,19 +384,19 @@ public final class dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client : java/lang/Aut
+ 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+ 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+ 	public fun close ()V
+-	public final fun getFreeBikeStatus (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getGeofencingZones (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getStationInformation (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getStationStatus (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemAlerts (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemCalendar (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemHours (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemInformation (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemManifest (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemPricingPlans (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemRegions (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVehicleTypes (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVersionManifest (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getFreeBikeStatus-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getGeofencingZones-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getStationInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getStationStatus-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemAlerts-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemCalendar-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemHours-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemManifest-gIAlu-s (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemPricingPlans-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemRegions-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVehicleTypes-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVersionManifest-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v2/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+ }
+ 
+ public final class dev/sargunv/mobilitydata/gbfs/v2/GeofencingZone {
+diff --git a/gbfs-v2/api/gbfs-v2.klib.api b/gbfs-v2/api/gbfs-v2.klib.api
+index 8e643a91316d913bc62400a3c7840ad9de733fc6..6de2f0dbcc6a954e0aabcc1820c4b65c4bab544d 100644
+--- a/gbfs-v2/api/gbfs-v2.klib.api
++++ b/gbfs-v2/api/gbfs-v2.klib.api
+@@ -1978,17 +1978,17 @@ final class dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client : kotlin/AutoCloseable
+     constructor <init>(kotlin/Function1<io.ktor.client/HttpClientConfig<*>, kotlin/Unit> = ...) // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.<init>|<init>(kotlin.Function1<io.ktor.client.HttpClientConfig<*>,kotlin.Unit>){}[0]
+ 
+     final fun close() // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.close|close(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getFreeBikeStatus(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/FreeBikeStatus> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getFreeBikeStatus|getFreeBikeStatus(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getGeofencingZones(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/GeofencingZones> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getGeofencingZones|getGeofencingZones(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getStationInformation(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/StationInformation> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getStationInformation|getStationInformation(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getStationStatus(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/StationStatus> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getStationStatus|getStationStatus(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemAlerts(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemAlerts> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemAlerts|getSystemAlerts(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemCalendar(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemCalendar> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemCalendar|getSystemCalendar(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemHours(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemHours> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemHours|getSystemHours(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemInformation(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemInformation> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemPricingPlans(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemPricingPlans> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemPricingPlans|getSystemPricingPlans(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemRegions(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemRegions> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemRegions|getSystemRegions(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getVehicleTypes(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/VehicleTypes> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getVehicleTypes|getVehicleTypes(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getVersionManifest(): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/VersionManifest> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
+-    final suspend fun getSystemManifest(kotlin/String): dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemManifest> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemManifest|getSystemManifest(kotlin.String){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getFreeBikeStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/FreeBikeStatus>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getFreeBikeStatus|getFreeBikeStatus(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getGeofencingZones(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/GeofencingZones>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getGeofencingZones|getGeofencingZones(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getStationInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/StationInformation>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getStationInformation|getStationInformation(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getStationStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/StationStatus>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getStationStatus|getStationStatus(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemAlerts(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemAlerts>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemAlerts|getSystemAlerts(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemCalendar(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemCalendar>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemCalendar|getSystemCalendar(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemHours(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemHours>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemHours|getSystemHours(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemInformation>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemPricingPlans(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemPricingPlans>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemPricingPlans|getSystemPricingPlans(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemRegions(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemRegions>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemRegions|getSystemRegions(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getVehicleTypes(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/VehicleTypes>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getVehicleTypes|getVehicleTypes(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/VersionManifest>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gbfs.v2.Service)(){}[0]
++    final suspend fun getSystemManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemManifest>> // dev.sargunv.mobilitydata.gbfs.v2/GbfsV2Client.getSystemManifest|getSystemManifest(kotlin.String){}[0]
+ }
+diff --git a/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt b/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt
+index a2c159ae19888a8d9fb2b83edfe6ad94da0ea37b..6754520cba7f42daa6ddc10de5601af27350ff54 100644
+--- a/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt
++++ b/gbfs-v2/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v2/GbfsV2Client.kt
+@@ -8,6 +8,7 @@ import io.ktor.client.engine.HttpClientEngine
+ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+ import io.ktor.client.request.get
+ import io.ktor.serialization.kotlinx.json.json
++import kotlin.coroutines.cancellation.CancellationException
+ 
+ /** HTTP client for fetching GBFS v2 feeds. */
+ public class GbfsV2Client internal constructor(private val httpClient: HttpClient) : AutoCloseable {
+@@ -33,8 +34,16 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+     }
+   )
+ 
+-  internal suspend inline fun <reified T : GbfsFeedData> getFeedResponse(url: Url) =
+-    httpClient.get(url).body<GbfsFeedResponse<T>>()
++  internal suspend inline fun <reified T : GbfsFeedData> getFeedResponse(
++    url: () -> Url
++  ): Result<GbfsFeedResponse<T>> =
++    try {
++      Result.success(httpClient.get(url()).body())
++    } catch (exception: CancellationException) {
++      throw exception
++    } catch (exception: Throwable) {
++      Result.failure(exception)
++    }
+ 
+   /**
+    * Fetches the GBFS manifest (auto-discovery file) from the given URL.
+@@ -44,8 +53,9 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @param discoveryUrl The URL of the gbfs.json auto-discovery file
+    * @return The manifest response containing available feeds
+    */
+-  public suspend fun getSystemManifest(discoveryUrl: Url): GbfsFeedResponse<SystemManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getSystemManifest(
++    discoveryUrl: Url
++  ): Result<GbfsFeedResponse<SystemManifest>> = getFeedResponse { discoveryUrl }
+ 
+   /**
+    * Fetches the list of GBFS versions supported by this system.
+@@ -54,8 +64,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing supported GBFS versions
+    */
+   context(service: Service)
+-  public suspend fun getVersionManifest(): GbfsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GbfsFeedResponse<VersionManifest>> =
++    getFeedResponse { service.feeds.getValue(FeedType.VersionManifest) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+@@ -64,8 +74,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system information
+    */
+   context(service: Service)
+-  public suspend fun getSystemInformation(): GbfsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GbfsFeedResponse<SystemInformation>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemInformation) }
+ 
+   /**
+    * Fetches information about vehicle types available in the system.
+@@ -74,8 +84,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing vehicle type definitions
+    */
+   context(service: Service)
+-  public suspend fun getVehicleTypes(): GbfsFeedResponse<VehicleTypes> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes))
++  public suspend fun getVehicleTypes(): Result<GbfsFeedResponse<VehicleTypes>> =
++    getFeedResponse { service.feeds.getValue(FeedType.VehicleTypes) }
+ 
+   /**
+    * Fetches static information about stations in the system.
+@@ -84,8 +94,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing station information
+    */
+   context(service: Service)
+-  public suspend fun getStationInformation(): GbfsFeedResponse<StationInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationInformation))
++  public suspend fun getStationInformation(): Result<GbfsFeedResponse<StationInformation>> =
++    getFeedResponse { service.feeds.getValue(FeedType.StationInformation) }
+ 
+   /**
+    * Fetches real-time status of stations including available bikes and docks.
+@@ -94,8 +104,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing current station status
+    */
+   context(service: Service)
+-  public suspend fun getStationStatus(): GbfsFeedResponse<StationStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationStatus))
++  public suspend fun getStationStatus(): Result<GbfsFeedResponse<StationStatus>> =
++    getFeedResponse { service.feeds.getValue(FeedType.StationStatus) }
+ 
+   /**
+    * Fetches real-time status of free-floating vehicles not currently docked.
+@@ -104,8 +114,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing available vehicle locations and status
+    */
+   context(service: Service)
+-  public suspend fun getFreeBikeStatus(): GbfsFeedResponse<FreeBikeStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.FreeBikeStatus))
++  public suspend fun getFreeBikeStatus(): Result<GbfsFeedResponse<FreeBikeStatus>> =
++    getFeedResponse { service.feeds.getValue(FeedType.FreeBikeStatus) }
+ 
+   /**
+    * Fetches hours of operation for the system.
+@@ -114,8 +124,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system operating hours
+    */
+   context(service: Service)
+-  public suspend fun getSystemHours(): GbfsFeedResponse<SystemHours> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemHours))
++  public suspend fun getSystemHours(): Result<GbfsFeedResponse<SystemHours>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemHours) }
+ 
+   /**
+    * Fetches the operating calendar for seasonal systems.
+@@ -124,8 +134,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system operating calendar
+    */
+   context(service: Service)
+-  public suspend fun getSystemCalendar(): GbfsFeedResponse<SystemCalendar> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemCalendar))
++  public suspend fun getSystemCalendar(): Result<GbfsFeedResponse<SystemCalendar>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemCalendar) }
+ 
+   /**
+    * Fetches information about geographic regions in the system.
+@@ -134,8 +144,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system regions
+    */
+   context(service: Service)
+-  public suspend fun getSystemRegions(): GbfsFeedResponse<SystemRegions> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemRegions))
++  public suspend fun getSystemRegions(): Result<GbfsFeedResponse<SystemRegions>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemRegions) }
+ 
+   /**
+    * Fetches pricing plans for the system.
+@@ -144,8 +154,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing pricing plan information
+    */
+   context(service: Service)
+-  public suspend fun getSystemPricingPlans(): GbfsFeedResponse<SystemPricingPlans> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans))
++  public suspend fun getSystemPricingPlans(): Result<GbfsFeedResponse<SystemPricingPlans>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemPricingPlans) }
+ 
+   /**
+    * Fetches current system alerts about service disruptions or changes.
+@@ -154,8 +164,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing active system alerts
+    */
+   context(service: Service)
+-  public suspend fun getSystemAlerts(): GbfsFeedResponse<SystemAlerts> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts))
++  public suspend fun getSystemAlerts(): Result<GbfsFeedResponse<SystemAlerts>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemAlerts) }
+ 
+   /**
+    * Fetches geofencing zones that define geographic restrictions.
+@@ -164,8 +174,8 @@ public class GbfsV2Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing geofencing zone definitions
+    */
+   context(service: Service)
+-  public suspend fun getGeofencingZones(): GbfsFeedResponse<GeofencingZones> =
+-    getFeedResponse(service.feeds.getValue(FeedType.GeofencingZones))
++  public suspend fun getGeofencingZones(): Result<GbfsFeedResponse<GeofencingZones>> =
++    getFeedResponse { service.feeds.getValue(FeedType.GeofencingZones) }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ClientTest.kt b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ClientTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..e044b8012c3447bd58aa0dbcb54a80f9d78cd021
+--- /dev/null
++++ b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ClientTest.kt
+@@ -0,0 +1,27 @@
++package dev.sargunv.mobilitydata.gbfs.v2
++
++import io.ktor.client.engine.mock.MockEngine
++import io.ktor.client.engine.mock.respondError
++import io.ktor.http.HttpStatusCode
++import kotlin.test.Test
++import kotlin.test.assertIs
++import kotlin.test.assertTrue
++import kotlinx.coroutines.test.runTest
++
++class ClientTest {
++  @Test
++  fun returnsHttpFailures() = runTest {
++    val client = GbfsV2Client(MockEngine { respondError(HttpStatusCode.NotFound) })
++
++    assertTrue(client.getSystemManifest("https://example.com/gbfs.json").isFailure)
++  }
++
++  @Test
++  fun returnsMissingFeedFailures() = runTest {
++    val client = GbfsV2Client(MockEngine { error("request should not be made") })
++
++    val result = context(Service()) { client.getSystemInformation() }
++
++    assertIs<NoSuchElementException>(result.exceptionOrNull())
++  }
++}
+diff --git a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt
+index b3a821c13436ac6f2c9957e3435f8572896756ae..cd6610febf81a19150616e6d2eb3952bd5da5bc8 100644
+--- a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt
++++ b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/DocsSnippet.kt
+@@ -13,21 +13,22 @@ class DocsSnippet {
+           .getSystemManifest( // (2)!
+             discoveryUrl = "https://mds.bird.co/gbfs/v2/public/seattle-washington/gbfs.json"
+           )
++          .getOrThrow()
+           .data
+ 
+       context(manifest.getService("en")) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrThrow().data // (4)!
+ 
+         println("System: ${systemInfo.name}")
+         println("Operator: ${systemInfo.operator}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val vehicleTypes = gbfs.getVehicleTypes().data.vehicleTypes // (5)!
++        val vehicleTypes = gbfs.getVehicleTypes().getOrThrow().data.vehicleTypes // (5)!
+ 
+         println("\nVehicle Types:")
+         vehicleTypes.forEach { type -> println("  - ${type.formFactor}: (${type.propulsionType})") }
+ 
+-        val freeBikes = gbfs.getFreeBikeStatus().data.bikes // (6)!
++        val freeBikes = gbfs.getFreeBikeStatus().getOrThrow().data.bikes // (6)!
+ 
+         println("\nAvailable bikes: ${freeBikes.size}")
+         freeBikes.take(3).forEach { bike ->
+diff --git a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ProducerTest.kt b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ProducerTest.kt
+index 79dbb7f4879c71701820ecd929c1ce9392a1ccba..6ff061f0587fa9dce619c3c6520229db99753f10 100644
+--- a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ProducerTest.kt
++++ b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ProducerTest.kt
+@@ -42,18 +42,18 @@ class ProducerTest {
+   fun publicbikesystem() = runTest {
+     val client = GbfsV2Client(createMockEngine("publicbikesystem"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getSystemPricingPlans()
+-      client.getSystemRegions()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getVersionManifest()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getVersionManifest().getOrThrow()
+     }
+   }
+ 
+@@ -61,19 +61,19 @@ class ProducerTest {
+   fun bird() = runTest {
+     val client = GbfsV2Client(createMockEngine("bird"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemRegions()
+-      client.getSystemPricingPlans()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -81,19 +81,19 @@ class ProducerTest {
+   fun donkey() = runTest {
+     val client = GbfsV2Client(createMockEngine("donkey"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemRegions()
+-      client.getSystemPricingPlans()
+-      client.getSystemHours()
+-      client.getVehicleTypes()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemHours().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -101,18 +101,18 @@ class ProducerTest {
+   fun entur() = runTest {
+     val client = GbfsV2Client(createMockEngine("entur"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("no")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getSystemPricingPlans()
+-      client.getSystemHours()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemHours().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -120,14 +120,14 @@ class ProducerTest {
+   fun lime() = runTest {
+     val client = GbfsV2Client(createMockEngine("lime"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVehicleTypes()
+-      client.getStationInformation()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+ 
+       // INVALID: num_bikes_available is named num_vehicles_available
+       // client.getStationStatus()
+@@ -138,17 +138,17 @@ class ProducerTest {
+   fun mobidata() = runTest {
+     val client = GbfsV2Client(createMockEngine("mobidata"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("de")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getSystemPricingPlans()
+-      client.getSystemAlerts()
+-      client.getVehicleTypes()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemAlerts().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -156,20 +156,20 @@ class ProducerTest {
+   fun neuron() = runTest {
+     val client = GbfsV2Client(createMockEngine("neuron"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVehicleTypes()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+ 
+       // INVALID: station_id is int instead of string
+-      client.getStationInformation()
+-      client.getStationStatus()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
+ 
+       // INVALID: region_id is int instead of string
+-      client.getSystemRegions()
++      client.getSystemRegions().getOrThrow()
+ 
+       // INVALID: rules should be array
+       // client.getGeofencingZones()
+@@ -180,18 +180,18 @@ class ProducerTest {
+   fun nextbike() = runTest {
+     val client = GbfsV2Client(createMockEngine("nextbike"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("de")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getSystemRegions()
+-      client.getSystemPricingPlans()
+-      client.getSystemHours()
+-      client.getVehicleTypes()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemHours().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -199,18 +199,18 @@ class ProducerTest {
+   fun ridedott() = runTest {
+     val client = GbfsV2Client(createMockEngine("ridedott"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemPricingPlans()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ 
+@@ -218,16 +218,16 @@ class ProducerTest {
+   fun zeuss() = runTest {
+     val client = GbfsV2Client(createMockEngine("zeus"))
+ 
+-    val manifest = client.getSystemManifest("gbfs.json")
++    val manifest = client.getSystemManifest("gbfs.json").getOrThrow()
+     val service = manifest.data.getService("en")
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemPricingPlans()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getFreeBikeStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getFreeBikeStatus().getOrThrow()
+     }
+   }
+ }
+diff --git a/gbfs-v3/api/gbfs-v3.api b/gbfs-v3/api/gbfs-v3.api
+index 7d6da36d672805f44b11ed0447f512aaea725c87..f2650ef3fd173e7cde2ebc005384d64715b17580 100644
+--- a/gbfs-v3/api/gbfs-v3.api
++++ b/gbfs-v3/api/gbfs-v3.api
+@@ -413,18 +413,18 @@ public final class dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client : java/lang/Aut
+ 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+ 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+ 	public fun close ()V
+-	public final fun getDatasetManifest (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getGeofencingZones (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getServiceManifest (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getStationInformation (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getStationStatus (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemAlerts (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemInformation (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemPricingPlans (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemRegions (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVehicleStatus (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVehicleTypes (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVersionManifest (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getDatasetManifest-gIAlu-s (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getGeofencingZones-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getServiceManifest-gIAlu-s (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getStationInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getStationStatus-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemAlerts-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemPricingPlans-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemRegions-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVehicleStatus-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVehicleTypes-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVersionManifest-gIAlu-s (Ldev/sargunv/mobilitydata/gbfs/v3/ServiceManifest;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+ }
+ 
+ public final class dev/sargunv/mobilitydata/gbfs/v3/GeofencingZone {
+diff --git a/gbfs-v3/api/gbfs-v3.klib.api b/gbfs-v3/api/gbfs-v3.klib.api
+index 533af3a50c87f94ea19de878d63b38fe623d3260..cf9b445cc3c4109211f6db2bfa32d40674be7b4b 100644
+--- a/gbfs-v3/api/gbfs-v3.klib.api
++++ b/gbfs-v3/api/gbfs-v3.klib.api
+@@ -1858,16 +1858,16 @@ final class dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client : kotlin/AutoCloseable
+     constructor <init>(kotlin/Function1<io.ktor.client/HttpClientConfig<*>, kotlin/Unit> = ...) // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.<init>|<init>(kotlin.Function1<io.ktor.client.HttpClientConfig<*>,kotlin.Unit>){}[0]
+ 
+     final fun close() // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.close|close(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getGeofencingZones(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/GeofencingZones> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getGeofencingZones|getGeofencingZones(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getStationInformation(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/StationInformation> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getStationInformation|getStationInformation(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getStationStatus(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/StationStatus> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getStationStatus|getStationStatus(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemAlerts(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemAlerts> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemAlerts|getSystemAlerts(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemInformation(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemInformation> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemPricingPlans(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemPricingPlans> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemPricingPlans|getSystemPricingPlans(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemRegions(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemRegions> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemRegions|getSystemRegions(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVehicleStatus(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VehicleStatus> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getVehicleStatus|getVehicleStatus(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVehicleTypes(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VehicleTypes> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getVehicleTypes|getVehicleTypes(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVersionManifest(): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VersionManifest> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
+-    final suspend fun getDatasetManifest(kotlin/String): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/DatasetManifest> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getDatasetManifest|getDatasetManifest(kotlin.String){}[0]
+-    final suspend fun getServiceManifest(kotlin/String): dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getServiceManifest|getServiceManifest(kotlin.String){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getGeofencingZones(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/GeofencingZones>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getGeofencingZones|getGeofencingZones(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getStationInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/StationInformation>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getStationInformation|getStationInformation(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getStationStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/StationStatus>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getStationStatus|getStationStatus(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemAlerts(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemAlerts>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemAlerts|getSystemAlerts(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemInformation>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemPricingPlans(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemPricingPlans>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemPricingPlans|getSystemPricingPlans(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemRegions(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemRegions>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getSystemRegions|getSystemRegions(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVehicleStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VehicleStatus>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getVehicleStatus|getVehicleStatus(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVehicleTypes(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VehicleTypes>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getVehicleTypes|getVehicleTypes(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VersionManifest>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gbfs.v3.ServiceManifest)(){}[0]
++    final suspend fun getDatasetManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/DatasetManifest>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getDatasetManifest|getDatasetManifest(kotlin.String){}[0]
++    final suspend fun getServiceManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest>> // dev.sargunv.mobilitydata.gbfs.v3/GbfsV3Client.getServiceManifest|getServiceManifest(kotlin.String){}[0]
+ }
+diff --git a/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt b/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt
+index 81a6a18739a263657e2916456ba787763522bd85..f4c18cf116031bab71e87d4a6751f1fc1b9822b6 100644
+--- a/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt
++++ b/gbfs-v3/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gbfs/v3/GbfsV3Client.kt
+@@ -8,6 +8,7 @@ import io.ktor.client.engine.HttpClientEngine
+ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+ import io.ktor.client.request.get
+ import io.ktor.serialization.kotlinx.json.json
++import kotlin.coroutines.cancellation.CancellationException
+ 
+ /** HTTP client for fetching GBFS v3 feeds. */
+ public class GbfsV3Client internal constructor(private val httpClient: HttpClient) : AutoCloseable {
+@@ -33,8 +34,16 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+     }
+   )
+ 
+-  internal suspend inline fun <reified T : GbfsFeedData> getFeedResponse(url: Url) =
+-    httpClient.get(url).body<GbfsFeedResponse<T>>()
++  internal suspend inline fun <reified T : GbfsFeedData> getFeedResponse(
++    url: () -> Url
++  ): Result<GbfsFeedResponse<T>> =
++    try {
++      Result.success(httpClient.get(url()).body())
++    } catch (exception: CancellationException) {
++      throw exception
++    } catch (exception: Throwable) {
++      Result.failure(exception)
++    }
+ 
+   /**
+    * Fetches the dataset manifest from the given URL.
+@@ -45,8 +54,9 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @param manifestUrl The URL of the manifest.json file
+    * @return The manifest response containing dataset information
+    */
+-  public suspend fun getDatasetManifest(manifestUrl: Url): GbfsFeedResponse<DatasetManifest> =
+-    getFeedResponse(manifestUrl)
++  public suspend fun getDatasetManifest(
++    manifestUrl: Url
++  ): Result<GbfsFeedResponse<DatasetManifest>> = getFeedResponse { manifestUrl }
+ 
+   /**
+    * Fetches the GBFS manifest (auto-discovery file) from the given URL.
+@@ -56,8 +66,9 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @param discoveryUrl The URL of the gbfs.json auto-discovery file
+    * @return The manifest response containing available feeds
+    */
+-  public suspend fun getServiceManifest(discoveryUrl: Url): GbfsFeedResponse<ServiceManifest> =
+-    getFeedResponse(discoveryUrl)
++  public suspend fun getServiceManifest(
++    discoveryUrl: Url
++  ): Result<GbfsFeedResponse<ServiceManifest>> = getFeedResponse { discoveryUrl }
+ 
+   /**
+    * Fetches the list of GBFS versions supported by this system.
+@@ -66,8 +77,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing supported GBFS versions
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getVersionManifest(): GbfsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GbfsFeedResponse<VersionManifest>> =
++    getFeedResponse { service.feeds.getValue(FeedType.VersionManifest) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+@@ -76,8 +87,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system information
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemInformation(): GbfsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GbfsFeedResponse<SystemInformation>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemInformation) }
+ 
+   /**
+    * Fetches information about vehicle types available in the system.
+@@ -86,8 +97,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing vehicle type definitions
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getVehicleTypes(): GbfsFeedResponse<VehicleTypes> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes))
++  public suspend fun getVehicleTypes(): Result<GbfsFeedResponse<VehicleTypes>> =
++    getFeedResponse { service.feeds.getValue(FeedType.VehicleTypes) }
+ 
+   /**
+    * Fetches static information about stations in the system.
+@@ -96,8 +107,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing station information
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getStationInformation(): GbfsFeedResponse<StationInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationInformation))
++  public suspend fun getStationInformation(): Result<GbfsFeedResponse<StationInformation>> =
++    getFeedResponse { service.feeds.getValue(FeedType.StationInformation) }
+ 
+   /**
+    * Fetches real-time status of stations including available bikes and docks.
+@@ -106,8 +117,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing current station status
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getStationStatus(): GbfsFeedResponse<StationStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.StationStatus))
++  public suspend fun getStationStatus(): Result<GbfsFeedResponse<StationStatus>> =
++    getFeedResponse { service.feeds.getValue(FeedType.StationStatus) }
+ 
+   /**
+    * Fetches real-time status of free-floating vehicles not currently docked.
+@@ -116,8 +127,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing available vehicle locations and status
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getVehicleStatus(): GbfsFeedResponse<VehicleStatus> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleStatus))
++  public suspend fun getVehicleStatus(): Result<GbfsFeedResponse<VehicleStatus>> =
++    getFeedResponse { service.feeds.getValue(FeedType.VehicleStatus) }
+ 
+   /**
+    * Fetches information about geographic regions in the system.
+@@ -126,8 +137,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system regions
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemRegions(): GbfsFeedResponse<SystemRegions> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemRegions))
++  public suspend fun getSystemRegions(): Result<GbfsFeedResponse<SystemRegions>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemRegions) }
+ 
+   /**
+    * Fetches pricing plans for the system.
+@@ -136,8 +147,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing pricing plan information
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemPricingPlans(): GbfsFeedResponse<SystemPricingPlans> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemPricingPlans))
++  public suspend fun getSystemPricingPlans(): Result<GbfsFeedResponse<SystemPricingPlans>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemPricingPlans) }
+ 
+   /**
+    * Fetches current system alerts about service disruptions or changes.
+@@ -146,8 +157,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing active system alerts
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getSystemAlerts(): GbfsFeedResponse<SystemAlerts> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemAlerts))
++  public suspend fun getSystemAlerts(): Result<GbfsFeedResponse<SystemAlerts>> =
++    getFeedResponse { service.feeds.getValue(FeedType.SystemAlerts) }
+ 
+   /**
+    * Fetches geofencing zones that define geographic restrictions.
+@@ -156,8 +167,8 @@ public class GbfsV3Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing geofencing zone definitions
+    */
+   context(service: ServiceManifest)
+-  public suspend fun getGeofencingZones(): GbfsFeedResponse<GeofencingZones> =
+-    getFeedResponse(service.feeds.getValue(FeedType.GeofencingZones))
++  public suspend fun getGeofencingZones(): Result<GbfsFeedResponse<GeofencingZones>> =
++    getFeedResponse { service.feeds.getValue(FeedType.GeofencingZones) }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ClientTest.kt b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ClientTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..44894b6e86f8782a97b53279fb3587c5315d7f90
+--- /dev/null
++++ b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ClientTest.kt
+@@ -0,0 +1,27 @@
++package dev.sargunv.mobilitydata.gbfs.v3
++
++import io.ktor.client.engine.mock.MockEngine
++import io.ktor.client.engine.mock.respondError
++import io.ktor.http.HttpStatusCode
++import kotlin.test.Test
++import kotlin.test.assertIs
++import kotlin.test.assertTrue
++import kotlinx.coroutines.test.runTest
++
++class ClientTest {
++  @Test
++  fun returnsHttpFailures() = runTest {
++    val client = GbfsV3Client(MockEngine { respondError(HttpStatusCode.NotFound) })
++
++    assertTrue(client.getServiceManifest("https://example.com/gbfs.json").isFailure)
++  }
++
++  @Test
++  fun returnsMissingFeedFailures() = runTest {
++    val client = GbfsV3Client(MockEngine { error("request should not be made") })
++
++    val result = context(ServiceManifest()) { client.getSystemInformation() }
++
++    assertIs<NoSuchElementException>(result.exceptionOrNull())
++  }
++}
+diff --git a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt
+index 379e42c804115bfe8a602e0b3f5d34c3caabe1e7..c318994d7cc75c60ff3100a72da7546246358e9e 100644
+--- a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt
++++ b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/DocsSnippet.kt
+@@ -14,21 +14,22 @@ class DocsSnippet {
+           .getServiceManifest( // (2)!
+             discoveryUrl = "https://locomotion.app/api/gbfs/3.0/montreal/gbfs"
+           )
++          .getOrThrow()
+           .data
+ 
+       context(service) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrThrow().data // (4)!
+ 
+         println("System: ${systemInfo.name["en-CA"]}")
+         println("Operator: ${systemInfo.operator?.get("en-CA")}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val vehicleTypes = gbfs.getVehicleTypes().data // (5)!
++        val vehicleTypes = gbfs.getVehicleTypes().getOrThrow().data // (5)!
+ 
+         println("\nVehicle Types:")
+         vehicleTypes.forEach { type -> println("  - ${type.formFactor}: (${type.propulsionType})") }
+ 
+-        val freeBikes = gbfs.getVehicleStatus().data // (6)!
++        val freeBikes = gbfs.getVehicleStatus().getOrThrow().data // (6)!
+ 
+         println("\nAvailable bikes: ${freeBikes.size}")
+         freeBikes.take(3).forEach { bike ->
+diff --git a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt
+index 842c69d0f6dea1f423c66eaa9f981a07d271063f..91e9bc8cc5f8c6529eb0784f425d9b9cc8bc4f00 100644
+--- a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt
++++ b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ProducerTest.kt
+@@ -41,112 +41,112 @@ class ProducerTest {
+   @Test
+   fun bolt() = runTest {
+     val client = GbfsV3Client(createMockEngine("bolt"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getVersionManifest()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getSystemInformation()
+-      client.getSystemPricingPlans()
+-      client.getVehicleStatus()
+-      client.getVehicleTypes()
++      client.getVersionManifest().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getVehicleStatus().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun citiz() = runTest {
+     val client = GbfsV3Client(createMockEngine("citiz"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemPricingPlans()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getVehicleStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getVehicleStatus().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun cooltra() = runTest {
+     val client = GbfsV3Client(createMockEngine("cooltra"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getSystemPricingPlans()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getVehicleStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getVehicleStatus().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun cyclocity() = runTest {
+     val client = GbfsV3Client(createMockEngine("cyclocity"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getVehicleTypes()
+-      client.getStationInformation()
+-      client.getStationStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun ecovelo() = runTest {
+     val client = GbfsV3Client(createMockEngine("ecovelo"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemRegions()
+-      client.getSystemPricingPlans()
+-      client.getSystemAlerts()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getVehicleStatus()
+-      client.getVehicleTypes()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemRegions().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemAlerts().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getVehicleStatus().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun flamingo() = runTest {
+     val client = GbfsV3Client(createMockEngine("flamingo"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVersionManifest()
+-      client.getSystemPricingPlans()
+-      client.getSystemAlerts()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getStationInformation()
+-      client.getStationStatus()
+-      client.getVehicleStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVersionManifest().getOrThrow()
++      client.getSystemPricingPlans().getOrThrow()
++      client.getSystemAlerts().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getStationInformation().getOrThrow()
++      client.getStationStatus().getOrThrow()
++      client.getVehicleStatus().getOrThrow()
+     }
+   }
+ 
+   @Test
+   fun ridecheck() = runTest {
+     val client = GbfsV3Client(createMockEngine("ridecheck"))
+-    val service = client.getServiceManifest("gbfs.json").data
++    val service = client.getServiceManifest("gbfs.json").getOrThrow().data
+ 
+     context(service) {
+-      client.getSystemInformation()
+-      client.getVehicleTypes()
+-      client.getGeofencingZones()
+-      client.getVehicleStatus()
++      client.getSystemInformation().getOrThrow()
++      client.getVehicleTypes().getOrThrow()
++      client.getGeofencingZones().getOrThrow()
++      client.getVehicleStatus().getOrThrow()
+     }
+   }
+ }
+diff --git a/gofs-v1/api/gofs-v1.api b/gofs-v1/api/gofs-v1.api
+index e341dccc4d3c2d6d32c995819c12dcfed793ee9c..4ff14e125bb3cab9b232399eb535866fee99c3ad 100644
+--- a/gofs-v1/api/gofs-v1.api
++++ b/gofs-v1/api/gofs-v1.api
+@@ -568,20 +568,20 @@ public final class dev/sargunv/mobilitydata/gofs/v1/GofsV1Client : java/lang/Aut
+ 	public fun <init> (Lkotlin/jvm/functions/Function1;)V
+ 	public synthetic fun <init> (Lkotlin/jvm/functions/Function1;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+ 	public fun close ()V
+-	public final fun getBookingRules (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getCalendars (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getFares (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getOperatingRules (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getRealtimeBookings (Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public static synthetic fun getRealtimeBookings$default (Ldev/sargunv/mobilitydata/gofs/v1/GofsV1Client;Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+-	public final fun getServiceBrands (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemInformation (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getSystemManifest (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVehicleTypes (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getVersionManifest (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public final fun getWaitTimes (Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+-	public static synthetic fun getWaitTimes$default (Ldev/sargunv/mobilitydata/gofs/v1/GofsV1Client;Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+-	public final fun getZones (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getBookingRules-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getCalendars-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getFares-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getOperatingRules-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getRealtimeBookings-tZkwj4A (Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public static synthetic fun getRealtimeBookings-tZkwj4A$default (Ldev/sargunv/mobilitydata/gofs/v1/GofsV1Client;Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Ljava/lang/String;Ljava/lang/String;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
++	public final fun getServiceBrands-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemInformation-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getSystemManifest-gIAlu-s (Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVehicleTypes-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getVersionManifest-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public final fun getWaitTimes-bMdYcbs (Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
++	public static synthetic fun getWaitTimes-bMdYcbs$default (Ldev/sargunv/mobilitydata/gofs/v1/GofsV1Client;Ldev/sargunv/mobilitydata/gofs/v1/Service;DDLjava/lang/Double;Ljava/lang/Double;Ljava/util/List;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
++	public final fun getZones-gIAlu-s (Ldev/sargunv/mobilitydata/gofs/v1/Service;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+ }
+ 
+ public final class dev/sargunv/mobilitydata/gofs/v1/OperatingRule {
+diff --git a/gofs-v1/api/gofs-v1.klib.api b/gofs-v1/api/gofs-v1.klib.api
+index e792e9964da03b9f9783e56aa62a4f0e08348001..35ab076376cee4afcb6204a95753e1ccc089aa65 100644
+--- a/gofs-v1/api/gofs-v1.klib.api
++++ b/gofs-v1/api/gofs-v1.klib.api
+@@ -1206,16 +1206,16 @@ final class dev.sargunv.mobilitydata.gofs.v1/GofsV1Client : kotlin/AutoCloseable
+     constructor <init>(kotlin/Function1<io.ktor.client/HttpClientConfig<*>, kotlin/Unit> = ...) // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.<init>|<init>(kotlin.Function1<io.ktor.client.HttpClientConfig<*>,kotlin.Unit>){}[0]
+ 
+     final fun close() // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.close|close(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getBookingRules(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/BookingRules> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getBookingRules|getBookingRules(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getCalendars(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Calendars> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getCalendars|getCalendars(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getFares(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Fares> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getFares|getFares(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getOperatingRules(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/OperatingRules> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getOperatingRules|getOperatingRules(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getRealtimeBookings(kotlin/Double, kotlin/Double, kotlin/Double? = ..., kotlin/Double? = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/String? = ..., kotlin/String? = ...): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/RealtimeBookings> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getRealtimeBookings|getRealtimeBookings(dev.sargunv.mobilitydata.gofs.v1.Service)(kotlin.Double;kotlin.Double;kotlin.Double?;kotlin.Double?;kotlin.collections.List<kotlin.String>;kotlin.String?;kotlin.String?){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getServiceBrands(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/ServiceBrands> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getServiceBrands|getServiceBrands(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getSystemInformation(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/SystemInformation> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getVehicleTypes(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/VehicleTypes> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getVehicleTypes|getVehicleTypes(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getVersionManifest(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/VersionManifest> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getWaitTimes(kotlin/Double, kotlin/Double, kotlin/Double? = ..., kotlin/Double? = ..., kotlin.collections/List<kotlin/String> = ...): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/WaitTimes> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getWaitTimes|getWaitTimes(dev.sargunv.mobilitydata.gofs.v1.Service)(kotlin.Double;kotlin.Double;kotlin.Double?;kotlin.Double?;kotlin.collections.List<kotlin.String>){}[0]
+-    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getZones(): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Zones> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getZones|getZones(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
+-    final suspend fun getSystemManifest(kotlin/String): dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/SystemManifest> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getSystemManifest|getSystemManifest(kotlin.String){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getBookingRules(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/BookingRules>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getBookingRules|getBookingRules(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getCalendars(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Calendars>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getCalendars|getCalendars(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getFares(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Fares>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getFares|getFares(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getOperatingRules(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/OperatingRules>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getOperatingRules|getOperatingRules(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getRealtimeBookings(kotlin/Double, kotlin/Double, kotlin/Double? = ..., kotlin/Double? = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/String? = ..., kotlin/String? = ...): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/RealtimeBookings>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getRealtimeBookings|getRealtimeBookings(dev.sargunv.mobilitydata.gofs.v1.Service)(kotlin.Double;kotlin.Double;kotlin.Double?;kotlin.Double?;kotlin.collections.List<kotlin.String>;kotlin.String?;kotlin.String?){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getServiceBrands(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/ServiceBrands>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getServiceBrands|getServiceBrands(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/SystemInformation>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getSystemInformation|getSystemInformation(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getVehicleTypes(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/VehicleTypes>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getVehicleTypes|getVehicleTypes(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/VersionManifest>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getVersionManifest|getVersionManifest(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getWaitTimes(kotlin/Double, kotlin/Double, kotlin/Double? = ..., kotlin/Double? = ..., kotlin.collections/List<kotlin/String> = ...): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/WaitTimes>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getWaitTimes|getWaitTimes(dev.sargunv.mobilitydata.gofs.v1.Service)(kotlin.Double;kotlin.Double;kotlin.Double?;kotlin.Double?;kotlin.collections.List<kotlin.String>){}[0]
++    final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getZones(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Zones>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getZones|getZones(dev.sargunv.mobilitydata.gofs.v1.Service)(){}[0]
++    final suspend fun getSystemManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/SystemManifest>> // dev.sargunv.mobilitydata.gofs.v1/GofsV1Client.getSystemManifest|getSystemManifest(kotlin.String){}[0]
+ }
+diff --git a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
+index 54b3fa43c018b45de3754cf8b944fc9845b8475e..7d19431f409866db83b5bdb4430fca6d2c03fcb7 100644
+--- a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
++++ b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
+@@ -10,6 +10,7 @@ import io.ktor.client.request.get
+ import io.ktor.http.URLBuilder
+ import io.ktor.http.Url as KtorUrl
+ import io.ktor.serialization.kotlinx.json.json
++import kotlin.coroutines.cancellation.CancellationException
+ 
+ /** HTTP client for fetching GOFS v1 feeds. */
+ public class GofsV1Client internal constructor(private val httpClient: HttpClient) : AutoCloseable {
+@@ -35,11 +36,20 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+     }
+   )
+ 
+-  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(url: Url) =
+-    httpClient.get(url).body<GofsFeedResponse<T>>()
++  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(
++    url: () -> KtorUrl
++  ): Result<GofsFeedResponse<T>> =
++    try {
++      Result.success(httpClient.get(url()).body())
++    } catch (exception: CancellationException) {
++      throw exception
++    } catch (exception: Throwable) {
++      Result.failure(exception)
++    }
+ 
+-  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(url: KtorUrl) =
+-    httpClient.get(url).body<GofsFeedResponse<T>>()
++  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(
++    url: Url
++  ): Result<GofsFeedResponse<T>> = getFeedResponse { KtorUrl(url) }
+ 
+   /**
+    * Fetches the GOFS manifest (auto-discovery file) from the given URL.
+@@ -49,7 +59,9 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @param discoveryUrl The URL of the gofs.json auto-discovery file
+    * @return The manifest response containing available feeds
+    */
+-  public suspend fun getSystemManifest(discoveryUrl: Url): GofsFeedResponse<SystemManifest> =
++  public suspend fun getSystemManifest(
++    discoveryUrl: Url
++  ): Result<GofsFeedResponse<SystemManifest>> =
+     getFeedResponse(discoveryUrl)
+ 
+   /**
+@@ -59,8 +71,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing supported GOFS versions
+    */
+   context(service: Service)
+-  public suspend fun getVersionManifest(): GofsFeedResponse<VersionManifest> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VersionManifest))
++  public suspend fun getVersionManifest(): Result<GofsFeedResponse<VersionManifest>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.VersionManifest)) }
+ 
+   /**
+    * Fetches system information including name, operator, timezone, and contact details.
+@@ -69,8 +81,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing system information
+    */
+   context(service: Service)
+-  public suspend fun getSystemInformation(): GofsFeedResponse<SystemInformation> =
+-    getFeedResponse(service.feeds.getValue(FeedType.SystemInformation))
++  public suspend fun getSystemInformation(): Result<GofsFeedResponse<SystemInformation>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.SystemInformation)) }
+ 
+   /**
+    * Fetches information about service brands used in the system.
+@@ -79,8 +91,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing service brand definitions
+    */
+   context(service: Service)
+-  public suspend fun getServiceBrands(): GofsFeedResponse<ServiceBrands> =
+-    getFeedResponse(service.feeds.getValue(FeedType.ServiceBrands))
++  public suspend fun getServiceBrands(): Result<GofsFeedResponse<ServiceBrands>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.ServiceBrands)) }
+ 
+   /**
+    * Fetches information about vehicle types available in the system.
+@@ -89,8 +101,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing vehicle type definitions
+    */
+   context(service: Service)
+-  public suspend fun getVehicleTypes(): GofsFeedResponse<VehicleTypes> =
+-    getFeedResponse(service.feeds.getValue(FeedType.VehicleTypes))
++  public suspend fun getVehicleTypes(): Result<GofsFeedResponse<VehicleTypes>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.VehicleTypes)) }
+ 
+   /**
+    * Fetches zone definitions where services operate.
+@@ -99,8 +111,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing zone definitions
+    */
+   context(service: Service)
+-  public suspend fun getZones(): GofsFeedResponse<Zones> =
+-    getFeedResponse(service.feeds.getValue(FeedType.Zones))
++  public suspend fun getZones(): Result<GofsFeedResponse<Zones>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.Zones)) }
+ 
+   /**
+    * Fetches operating rules governing the service.
+@@ -109,8 +121,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing operating rules
+    */
+   context(service: Service)
+-  public suspend fun getOperatingRules(): GofsFeedResponse<OperatingRules> =
+-    getFeedResponse(service.feeds.getValue(FeedType.OperatingRules))
++  public suspend fun getOperatingRules(): Result<GofsFeedResponse<OperatingRules>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.OperatingRules)) }
+ 
+   /**
+    * Fetches calendar definitions for service availability.
+@@ -119,8 +131,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing calendar definitions
+    */
+   context(service: Service)
+-  public suspend fun getCalendars(): GofsFeedResponse<Calendars> =
+-    getFeedResponse(service.feeds.getValue(FeedType.Calendars))
++  public suspend fun getCalendars(): Result<GofsFeedResponse<Calendars>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.Calendars)) }
+ 
+   /**
+    * Fetches fare structures and pricing information.
+@@ -129,8 +141,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing fare information
+    */
+   context(service: Service)
+-  public suspend fun getFares(): GofsFeedResponse<Fares> =
+-    getFeedResponse(service.feeds.getValue(FeedType.Fares))
++  public suspend fun getFares(): Result<GofsFeedResponse<Fares>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.Fares)) }
+ 
+   /**
+    * Fetches wait time information for services.
+@@ -152,30 +164,31 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+     dropOffLat: Double? = null,
+     dropOffLon: Double? = null,
+     brandIds: List<String> = emptyList(),
+-  ): GofsFeedResponse<WaitTimes> {
+-    val url = URLBuilder(service.feeds.getValue(FeedType.WaitTimes))
++  ): Result<GofsFeedResponse<WaitTimes>> =
++    getFeedResponse {
++      val url = URLBuilder(service.feeds.getValue(FeedType.WaitTimes))
+ 
+-    require(
+-      dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
+-    ) {
+-      "Both dropOffLat and dropOffLon must be provided together"
+-    }
++      require(
++        dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
++      ) {
++        "Both dropOffLat and dropOffLon must be provided together"
++      }
+ 
+-    url.parameters.append("pickup_lat", pickupLat.toString())
+-    url.parameters.append("pickup_lon", pickupLon.toString())
++      url.parameters.append("pickup_lat", pickupLat.toString())
++      url.parameters.append("pickup_lon", pickupLon.toString())
+ 
+-    if (dropOffLat != null && dropOffLon != null) {
+-      url.parameters.append("drop_off_lat", dropOffLat.toString())
+-      url.parameters.append("drop_off_lon", dropOffLon.toString())
+-    }
++      if (dropOffLat != null && dropOffLon != null) {
++        url.parameters.append("drop_off_lat", dropOffLat.toString())
++        url.parameters.append("drop_off_lon", dropOffLon.toString())
++      }
+ 
+-    if (brandIds.isNotEmpty()) {
+-      val joined = brandIds.joinToString(",")
+-      url.parameters.append("brand_id", joined)
+-    }
++      if (brandIds.isNotEmpty()) {
++        val joined = brandIds.joinToString(",")
++        url.parameters.append("brand_id", joined)
++      }
+ 
+-    return getFeedResponse(url.build())
+-  }
++      url.build()
++    }
+ 
+   /**
+    * Fetches booking rules for the service.
+@@ -184,8 +197,8 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+    * @return Response containing booking rules
+    */
+   context(service: Service)
+-  public suspend fun getBookingRules(): GofsFeedResponse<BookingRules> =
+-    getFeedResponse(service.feeds.getValue(FeedType.BookingRules))
++  public suspend fun getBookingRules(): Result<GofsFeedResponse<BookingRules>> =
++    getFeedResponse { KtorUrl(service.feeds.getValue(FeedType.BookingRules)) }
+ 
+   /**
+    * Fetches real-time booking information.
+@@ -214,33 +227,34 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+     brandIds: List<String> = emptyList(),
+     pickupAddress: String? = null,
+     dropOffAddress: String? = null,
+-  ): GofsFeedResponse<RealtimeBookings> {
+-    val url = URLBuilder(service.feeds.getValue(FeedType.RealtimeBookings))
++  ): Result<GofsFeedResponse<RealtimeBookings>> =
++    getFeedResponse {
++      val url = URLBuilder(service.feeds.getValue(FeedType.RealtimeBookings))
+ 
+-    require(
+-      dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
+-    ) {
+-      "Both dropOffLat and dropOffLon must be provided together"
+-    }
++      require(
++        dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
++      ) {
++        "Both dropOffLat and dropOffLon must be provided together"
++      }
+ 
+-    url.parameters.append("pickup_lat", pickupLat.toString())
+-    url.parameters.append("pickup_lon", pickupLon.toString())
++      url.parameters.append("pickup_lat", pickupLat.toString())
++      url.parameters.append("pickup_lon", pickupLon.toString())
+ 
+-    if (dropOffLat != null && dropOffLon != null) {
+-      url.parameters.append("drop_off_lat", dropOffLat.toString())
+-      url.parameters.append("drop_off_lon", dropOffLon.toString())
+-    }
++      if (dropOffLat != null && dropOffLon != null) {
++        url.parameters.append("drop_off_lat", dropOffLat.toString())
++        url.parameters.append("drop_off_lon", dropOffLon.toString())
++      }
+ 
+-    if (brandIds.isNotEmpty()) {
+-      val joined = brandIds.joinToString(",")
+-      url.parameters.append("brand_id", joined)
+-    }
++      if (brandIds.isNotEmpty()) {
++        val joined = brandIds.joinToString(",")
++        url.parameters.append("brand_id", joined)
++      }
+ 
+-    if (pickupAddress != null) url.parameters.append("pickup_address", pickupAddress)
+-    if (dropOffAddress != null) url.parameters.append("drop_off_address", dropOffAddress)
++      if (pickupAddress != null) url.parameters.append("pickup_address", pickupAddress)
++      if (dropOffAddress != null) url.parameters.append("drop_off_address", dropOffAddress)
+ 
+-    return getFeedResponse(url.build())
+-  }
++      url.build()
++    }
+ 
+   override fun close(): Unit = httpClient.close()
+ }
+diff --git a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/ClientTest.kt b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/ClientTest.kt
+new file mode 100644
+index 0000000000000000000000000000000000000000..c892101075cc8971300805636d0d14fe58dcb910
+--- /dev/null
++++ b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/ClientTest.kt
+@@ -0,0 +1,40 @@
++package dev.sargunv.mobilitydata.gofs.v1
++
++import io.ktor.client.engine.mock.MockEngine
++import io.ktor.client.engine.mock.respondError
++import io.ktor.http.HttpStatusCode
++import kotlin.test.Test
++import kotlin.test.assertIs
++import kotlin.test.assertTrue
++import kotlinx.coroutines.test.runTest
++
++class ClientTest {
++  @Test
++  fun returnsHttpFailures() = runTest {
++    val client = GofsV1Client(MockEngine { respondError(HttpStatusCode.NotFound) })
++
++    assertTrue(client.getSystemManifest("https://example.com/gofs.json").isFailure)
++  }
++
++  @Test
++  fun returnsMissingFeedFailures() = runTest {
++    val client = GofsV1Client(MockEngine { error("request should not be made") })
++
++    val result = context(Service()) { client.getSystemInformation() }
++
++    assertIs<NoSuchElementException>(result.exceptionOrNull())
++  }
++
++  @Test
++  fun returnsValidationFailures() = runTest {
++    val client = GofsV1Client(MockEngine { error("request should not be made") })
++    val service = Service(FeedType.WaitTimes to "https://example.com/wait_time.json")
++
++    val result =
++      context(service) {
++        client.getWaitTimes(pickupLat = 1.0, pickupLon = 2.0, dropOffLat = 3.0)
++      }
++
++    assertIs<IllegalArgumentException>(result.exceptionOrNull())
++  }
++}
+diff --git a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
+index e201a88923f97978782caef95d4e39e77f55132e..535ebc4829770e9bb8e99b41d1a5967bedb6dd5c 100644
+--- a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
++++ b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
+@@ -13,22 +13,23 @@ class DocsSnippet {
+           .getSystemManifest( // (2)!
+             discoveryUrl = "<discovery url>"
+           )
++          .getOrThrow()
+           .data
+ 
+       context(manifest.getService("en")) { // (3)!
+-        val systemInfo = gbfs.getSystemInformation().data // (4)!
++        val systemInfo = gbfs.getSystemInformation().getOrThrow().data // (4)!
+ 
+         println("System: ${systemInfo.name}")
+         println("Operator: ${systemInfo.operator}")
+         println("Timezone: ${systemInfo.timezone}")
+ 
+-        val serviceBrands = gbfs.getServiceBrands().data // (5)!
++        val serviceBrands = gbfs.getServiceBrands().getOrThrow().data // (5)!
+ 
+         println("\nService Brands:")
+         serviceBrands.forEach { brand -> println("  - ${brand.brandName} (ID: ${brand.brandId})") }
+ 
+         val waitTimes = // (6)!
+-          gbfs.getWaitTimes(pickupLat = 41.8781, pickupLon = -87.6298).data
++          gbfs.getWaitTimes(pickupLat = 41.8781, pickupLon = -87.6298).getOrThrow().data
+ 
+         println("\nWait Times:")
+         waitTimes.forEach { waitTime ->

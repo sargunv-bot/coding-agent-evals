@@ -1,0 +1,29 @@
+In file included from /tests/source_location_behavior.cpp:2:
+/tests/source_location_behavior.cpp: In function 'int main()':
+/tmp/ce04/current_macro.hpp:1:37: error: 'MLN_SOURCE_LOCATION_CURRENT' was not declared in this scope
+    1 | #define CAE_CURRENT_SOURCE_LOCATION MLN_SOURCE_LOCATION_CURRENT
+      |                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tests/source_location_behavior.cpp:15:35: note: in expansion of macro 'CAE_CURRENT_SOURCE_LOCATION'
+   15 |     const auto location = capture(CAE_CURRENT_SOURCE_LOCATION);
+      |                                   ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+/tests/source_location_behavior.cpp:16:64: error: template argument 1 is invalid
+   16 |     using source_location = std::remove_cv_t<decltype(location)>;
+      |                                                                ^
+/tests/source_location_behavior.cpp:21:15: error: 'source_location' does not name a type
+   21 |     constexpr source_location empty{};
+      |               ^~~~~~~~~~~~~~~
+/tests/source_location_behavior.cpp:22:19: error: 'empty' was not declared in this scope; did you mean 'mempcpy'?
+   22 |     static_assert(empty.line() == 0);
+      |                   ^~~~~
+      |                   mempcpy
+/tests/source_location_behavior.cpp:24:48: error: 'source_location' was not declared in this scope; did you mean 'mbgl::util::source_location'?
+   24 |     static_assert(std::is_copy_constructible_v<source_location>);
+      |                                                ^~~~~~~~~~~~~~~
+      |                                                mbgl::util::source_location
+In file included from /tests/source_location_behavior.cpp:1:
+/app/include/mbgl/util/source_location.hpp:56:7: note: 'mbgl::util::source_location' declared here
+   56 | class source_location {
+      |       ^~~~~~~~~~~~~~~
+/tests/source_location_behavior.cpp:24:24: error: template argument 1 is invalid
+   24 |     static_assert(std::is_copy_constructible_v<source_location>);
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

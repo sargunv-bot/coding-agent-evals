@@ -1,0 +1,780 @@
+diff --git a/.github/ci-manifest.toml b/.github/ci-manifest.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..0a998871c68b376def06ff39cc0de44956c801bd
+--- /dev/null
++++ b/.github/ci-manifest.toml
+@@ -0,0 +1,149 @@
++# Declarative CI target support policy.
++#
++# This file is the single source of truth for which mise variants run in CI,
++# which runners they use, and which build/test steps each variant executes.
++# The workflow at .github/workflows/ci.yml is generated from it — do not edit
++# that file by hand.
++#
++# Regenerate after changes:  mise run ci:generate
++# Check for drift:           mise run ci:check-generated
++
++checkout = "actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10"
++checkout_comment = "v6.0.3"
++
++# ── Variant matrix ──────────────────────────────────────────────────────
++
++[[matrix]]
++mise_env = "linux-arm64-egl"
++runner = "ubuntu-24.04-arm"
++
++[[matrix]]
++mise_env = "linux-arm64-vulkan"
++runner = "ubuntu-24.04-arm"
++
++[[matrix]]
++mise_env = "linux-x64-egl"
++runner = "ubuntu-latest"
++
++[[matrix]]
++mise_env = "linux-x64-vulkan"
++runner = "ubuntu-latest"
++
++[[matrix]]
++mise_env = "macos-arm64-metal"
++runner = "macos-latest"
++
++[[matrix]]
++mise_env = "macos-arm64-vulkan"
++runner = "macos-latest"
++
++[[matrix]]
++mise_env = "macos-arm64-egl"
++runner = "macos-latest"
++
++[[matrix]]
++mise_env = "ios-arm64-metal"
++runner = "macos-latest"
++
++[[matrix]]
++mise_env = "ios-simulator-arm64-metal"
++runner = "macos-latest"
++
++[[matrix]]
++mise_env = "windows-x64-vulkan"
++runner = "windows-2022"
++
++[[matrix]]
++mise_env = "windows-x64-wgl"
++runner = "windows-2022"
++
++# ── Steps ───────────────────────────────────────────────────────────────
++#
++# Every step runs by default (no `if` guard).  Set `only` to restrict it to a
++# subset of variants.  The allowed tokens are plain variant names (exact match)
++# or the special groups:
++#
++#   not_ios            – excludes ios-arm64-metal, ios-simulator-arm64-metal
++#   not_macos_arm64_egl – excludes macos-arm64-egl
++#   vulkan_only        – only variants whose name contains "vulkan"
++#   macos_only         – only variants whose name starts with "macos-"
++#   not_windows        – excludes variants whose name starts with "windows-"
++#   not_linux_arm64    – excludes variants whose name starts with "linux-arm64-"
++#
++# Multiple tokens in `only` are AND-ed (all must match).
++# Tokens prefixed with `!` negate that single condition.
++# The `name` key is optional; steps without a name emit a bare `run:` line.
++
++[[steps]]
++run = "mise run configure"
++
++[[steps]]
++name = "Build native library"
++run = "mise run build"
++only = ["!not_ios"]
++
++[[steps]]
++name = "Test native library"
++run = "mise run test"
++only = ["not_ios"]
++
++[[steps]]
++name = "Build Java FFM binding"
++run = "mise run //bindings/java-ffm:build"
++only = ["not_macos_arm64_egl", "not_ios"]
++
++[[steps]]
++name = "Build Java JNI binding"
++run = "mise run //bindings/java-jni:build"
++only = ["not_macos_arm64_egl", "not_ios"]
++
++[[steps]]
++name = "Test .NET binding"
++run = "mise run //bindings/dotnet:test"
++only = ["not_macos_arm64_egl", "not_ios"]
++
++[[steps]]
++name = "Test Kotlin/Native binding"
++run = "mise run //bindings/kotlin-native:build"
++only = ["not_macos_arm64_egl", "not_ios", "not_windows", "not_linux_arm64"]
++comment = "linux-arm64: no Kotlin/Native host — https://youtrack.jetbrains.com/issue/KT-36871\nwindows: no MSVC target — https://youtrack.jetbrains.com/issue/SKIKO-446"
++
++[[steps]]
++name = "Test Rust binding"
++run = "mise run //bindings/rust:ci"
++only = ["not_macos_arm64_egl", "not_ios"]
++
++[[steps]]
++name = "Test Swift binding"
++run = "mise run //bindings/swift:test"
++only = ["not_macos_arm64_egl", "macos_only"]
++
++[[steps]]
++name = "Test Zig binding"
++run = "mise run //bindings/zig:ci"
++only = ["not_ios"]
++
++[[steps]]
++name = "Build LWJGL example"
++run = "mise run //examples/lwjgl-map:build"
++only = ["vulkan_only"]
++
++[[steps]]
++name = "Test Rust example"
++run = "mise run //examples/rust-map:ci"
++only = ["not_macos_arm64_egl", "not_ios"]
++
++[[steps]]
++name = "Build Swift example"
++run = "mise run //examples/swift-map:build"
++only = ["macos-arm64-metal"]
++
++[[steps]]
++name = "Build Zig example"
++run = "mise run //examples/zig-map:build"
++only = ["not_macos_arm64_egl", "not_ios"]
++
++[[steps]]
++name = "Run Zig readback example"
++run = "mise run //examples/zig-readback:run"
++only = ["not_ios"]
+diff --git a/.github/generate-ci.py b/.github/generate-ci.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..507a706bb6beb29a5d6a16f45ca21c471ef65c38
+--- /dev/null
++++ b/.github/generate-ci.py
+@@ -0,0 +1,283 @@
++#!/usr/bin/env python3
++"""Generate .github/workflows/ci.yml from .github/ci-manifest.toml.
++
++Run:  mise run ci:generate
++Check: mise run ci:check-generated
++"""
++
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++try:
++    import tomllib
++except ModuleNotFoundError:
++    import tomli as tomllib  # type: ignore[import-untyped]
++
++MANIFEST = Path(__file__).parent / "ci-manifest.toml"
++OUTFILE = Path(__file__).parent / "workflows" / "ci.yml"
++
++# ── Condition evaluation ────────────────────────────────────────────────
++
++IOS_VARIANTS = {"ios-arm64-metal", "ios-simulator-arm64-metal"}
++
++
++def _matches_token(env: str, token: str) -> bool:
++    """Return True when *env* satisfies a single condition *token*."""
++    negated = token.startswith("!")
++    t = token[1:] if negated else token
++
++    result: bool
++    if t == "not_ios":
++        result = env not in IOS_VARIANTS
++    elif t == "not_macos_arm64_egl":
++        result = env != "macos-arm64-egl"
++    elif t == "vulkan_only":
++        result = "vulkan" in env
++    elif t == "macos_only":
++        result = env.startswith("macos-")
++    elif t == "not_windows":
++        result = not env.startswith("windows-")
++    elif t == "not_linux_arm64":
++        result = not env.startswith("linux-arm64-")
++    else:
++        result = env == t
++
++    return (not result) if negated else result
++
++
++def eval_condition(env: str, tokens: list[str]) -> bool:
++    """Return True when *env* matches **all** *tokens* (AND semantics)."""
++    return all(_matches_token(env, t) for t in tokens)
++
++
++# ── Expression mapping ─────────────────────────────────────────────────
++#
++# Each group token maps to (positive_expr, negative_expr).
++#   - positive_expr: emitted when the bare token appears (e.g. ``not_ios``)
++#   - negative_expr: emitted when the ``!``-prefixed token appears
++#     (e.g. ``!not_ios``)
++#
++# For ``not_ios`` the positive form is ``!startsWith(…, 'ios-')`` and the
++# negative form is ``startsWith(…, 'ios-')`` — the group's name says "not",
++# so a bare token already implies negation of the raw check.
++
++_GROUP_EXPRS: dict[str, tuple[str, str]] = {
++    "not_ios": (
++        "!startsWith(matrix.mise_env, 'ios-')",
++        "startsWith(matrix.mise_env, 'ios-')",
++    ),
++    "not_macos_arm64_egl": (
++        "matrix.mise_env != 'macos-arm64-egl'",
++        "matrix.mise_env == 'macos-arm64-egl'",
++    ),
++    "vulkan_only": (
++        "contains(matrix.mise_env, 'vulkan')",
++        "!contains(matrix.mise_env, 'vulkan')",
++    ),
++    "macos_only": (
++        "startsWith(matrix.mise_env, 'macos-')",
++        "!startsWith(matrix.mise_env, 'macos-')",
++    ),
++    "not_windows": (
++        "!startsWith(matrix.mise_env, 'windows-')",
++        "startsWith(matrix.mise_env, 'windows-')",
++    ),
++    "not_linux_arm64": (
++        "!startsWith(matrix.mise_env, 'linux-arm64-')",
++        "startsWith(matrix.mise_env, 'linux-arm64-')",
++    ),
++}
++
++
++def _token_to_expr(token: str) -> str:
++    """Convert a single condition token to a GitHub Actions expression."""
++    negated = token.startswith("!")
++    bare = token[1:] if negated else token
++
++    if bare in _GROUP_EXPRS:
++        positive_expr, negative_expr = _GROUP_EXPRS[bare]
++        return negative_expr if negated else positive_expr
++
++    # Plain variant name — exact match.
++    op = "!=" if negated else "=="
++    return f"matrix.mise_env {op} '{bare}'"
++
++
++def emit_if(tokens: list[str]) -> str:
++    """Return an ``if:`` line for the given condition tokens, or empty string."""
++    if not tokens:
++        return ""
++    parts = [_token_to_expr(t) for t in tokens]
++    conjunction = " && ".join(parts)
++    return f"if: ${{{{ {conjunction} }}}}"
++
++
++# ── Generation ──────────────────────────────────────────────────────────
++
++# Blank line separators emitted after these steps (logical group boundaries).
++_STEP_BLANK_AFTER = {
++    "Test native library",
++    "Test Zig binding",
++    "Run Zig readback example",
++}
++
++
++def generate(manifest_path: Path) -> str:
++    with open(manifest_path, "rb") as f:
++        manifest = tomllib.load(f)
++
++    checkout = manifest["checkout"]
++    checkout_comment = manifest.get("checkout_comment", "")
++    checkout_ref = f"{checkout} # {checkout_comment}" if checkout_comment else checkout
++    matrix = manifest["matrix"]
++    steps = manifest["steps"]
++
++    # Pre-filter: only keep steps that actually run for at least one variant.
++    active_steps = []
++    for step in steps:
++        tokens = step.get("only", [])
++        if any(eval_condition(e["mise_env"], tokens) for e in matrix):
++            active_steps.append(step)
++
++    lines: list[str] = []
++    w = lines.append
++
++    # ── Header ──
++    w("name: CI")
++    w("")
++    w("on:")
++    w("  push:")
++    w("    branches: [main]")
++    w("  pull_request:")
++    w("    branches: [main]")
++    w("")
++    w("permissions:")
++    w("  contents: read")
++    w("")
++    w("concurrency:")
++    w(
++        "  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
++    )
++    w("  cancel-in-progress: ${{ github.event_name == 'pull_request' }}")
++    w("")
++
++    # ── Jobs ──
++    w("jobs:")
++    w("  hygiene:")
++    w("    name: hygiene")
++    w("    runs-on: ubuntu-latest")
++    w("    timeout-minutes: 30")
++    w("    steps:")
++    w(f"      - uses: {checkout_ref}")
++    w("      - uses: ./.github/actions/setup-ci-deps")
++    w("      - run: mise run ci:lint")
++    w("")
++    w("  docs:")
++    w("    name: docs")
++    w("    runs-on: ubuntu-latest")
++    w("    timeout-minutes: 60")
++    w("    steps:")
++    w(f"      - uses: {checkout_ref}")
++    w("      - uses: ./.github/actions/setup-ci-deps")
++    w("      - run: mise run //docs:build")
++    w("")
++
++    # ── Variants job ──
++    w("  variants:")
++    w("    name: variant / ${{ matrix.mise_env }}")
++    w("    runs-on: ${{ matrix.runner }}")
++    w("    timeout-minutes: 120")
++    w("    env:")
++    w("      MISE_ENV: ${{ matrix.mise_env }}")
++    w("    strategy:")
++    w("      fail-fast: false")
++    w("      matrix:")
++    w("        include:")
++
++    for entry in matrix:
++        w(f"          - mise_env: {entry['mise_env']}")
++        w(f"            runner: {entry['runner']}")
++
++    w("    steps:")
++    w(f"      - uses: {checkout_ref}")
++    w("      - uses: ./.github/actions/setup-ci-deps")
++    w("")
++
++    for i, step in enumerate(active_steps):
++        name = step.get("name")
++        run = step["run"]
++        tokens = step.get("only", [])
++        comment = step.get("comment", "")
++        if_cond = emit_if(tokens)
++
++        # Emit step comment (e.g. Kotlin/Native justification links).
++        if comment:
++            for comment_line in comment.splitlines():
++                w(f"      # {comment_line}")
++
++        if name is not None:
++            w(f"      - name: {name}")
++            if if_cond:
++                w(f"        {if_cond}")
++            w(f"        run: {run}")
++        else:
++            # Unnamed step — bare `run:` line, no `if` guard.
++            w(f"      - run: {run}")
++
++        # Blank line separators between logical groups.
++        if name in _STEP_BLANK_AFTER:
++            w("")
++
++    # ── Required gate job ──
++    w("  required:")
++    w("    name: ci-required")
++    w("    runs-on: ubuntu-latest")
++    w("    timeout-minutes: 5")
++    w("    if: ${{ always() }}")
++    w("    needs:")
++    w("      - hygiene")
++    w("      - docs")
++    w("      - variants")
++    w("    steps:")
++    w("      - name: Fail if required jobs failed")
++    w(
++        "        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}"
++    )
++    w("        run: |")
++    w("          echo '${{ toJSON(needs) }}'")
++    w("          exit 1")
++    w("")
++    w("      - run: true")
++
++    return "\n".join(lines) + "\n"
++
++
++# ── CLI ─────────────────────────────────────────────────────────────────
++
++
++def main() -> None:
++    args = [a for a in sys.argv[1:] if not a.startswith("--")]
++    manifest = Path(args[0]) if args else MANIFEST
++
++    content = generate(manifest)
++
++    if "--check" in sys.argv:
++        if not OUTFILE.exists():
++            print(f"ERROR: {OUTFILE} does not exist. Run `mise run ci:generate` first.")
++            sys.exit(1)
++        existing = OUTFILE.read_text()
++        if content != existing:
++            print(f"ERROR: {OUTFILE} is out of date with {manifest}.")
++            print("Run `mise run ci:generate` to regenerate it.")
++            sys.exit(1)
++        print(f"OK: {OUTFILE} is up to date.")
++        return
++
++    OUTFILE.write_text(content)
++    print(f"Generated {OUTFILE}")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/.github/tests/test_generate_ci.py b/.github/tests/test_generate_ci.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..f19a9ec7baf44a01651139cff3f8addc3b80507a
+--- /dev/null
++++ b/.github/tests/test_generate_ci.py
+@@ -0,0 +1,307 @@
++"""Tests for the CI workflow generator — stdlib unittest only."""
++
++from __future__ import annotations
++
++import importlib.util
++import subprocess
++import sys
++import tomllib
++import unittest
++from pathlib import Path
++
++# Import the generator module (filename has a hyphen, so use importlib).
++_GEN_PATH = Path(__file__).resolve().parent.parent / "generate-ci.py"
++_spec = importlib.util.spec_from_file_location("generate_ci", _GEN_PATH)
++assert _spec is not None and _spec.loader is not None
++_mod = importlib.util.module_from_spec(_spec)
++_spec.loader.exec_module(_mod)
++
++IOS_VARIANTS = _mod.IOS_VARIANTS
++MANIFEST = _mod.MANIFEST
++OUTFILE = _mod.OUTFILE
++_matches_token = _mod._matches_token
++_token_to_expr = _mod._token_to_expr
++emit_if = _mod.emit_if
++eval_condition = _mod.eval_condition
++generate = _mod.generate
++
++# ── Helpers ─────────────────────────────────────────────────────────────
++
++
++def _steps_for_variant(variant: str) -> set[str]:
++    """Return the set of step names that run for *variant*."""
++    with open(MANIFEST, "rb") as f:
++        data = tomllib.load(f)
++    names: set[str] = set()
++    for step in data["steps"]:
++        if eval_condition(variant, step.get("only", [])):
++            # Use the `name` key when present; fall back to "run" command
++            # for unnamed steps (e.g. the bare Configure step).
++            names.add(step.get("name") or step["run"])
++    return names
++
++
++# ── _matches_token ──────────────────────────────────────────────────────
++
++
++class MatchesTokenTest(unittest.TestCase):
++    def test_exact_variant(self) -> None:
++        self.assertTrue(_matches_token("linux-x64-vulkan", "linux-x64-vulkan"))
++        self.assertFalse(_matches_token("linux-x64-egl", "linux-x64-vulkan"))
++
++    def test_negated_variant(self) -> None:
++        self.assertFalse(_matches_token("linux-x64-vulkan", "!linux-x64-vulkan"))
++        self.assertTrue(_matches_token("linux-x64-egl", "!linux-x64-vulkan"))
++
++    def test_not_ios(self) -> None:
++        self.assertTrue(_matches_token("linux-x64-vulkan", "not_ios"))
++        self.assertTrue(_matches_token("macos-arm64-metal", "not_ios"))
++        for ios in IOS_VARIANTS:
++            self.assertFalse(_matches_token(ios, "not_ios"), msg=ios)
++
++    def test_not_ios_negated(self) -> None:
++        for ios in IOS_VARIANTS:
++            self.assertTrue(_matches_token(ios, "!not_ios"), msg=ios)
++        self.assertFalse(_matches_token("linux-x64-vulkan", "!not_ios"))
++
++    def test_not_macos_arm64_egl(self) -> None:
++        self.assertTrue(_matches_token("macos-arm64-metal", "not_macos_arm64_egl"))
++        self.assertFalse(_matches_token("macos-arm64-egl", "not_macos_arm64_egl"))
++
++    def test_vulkan_only(self) -> None:
++        self.assertTrue(_matches_token("linux-x64-vulkan", "vulkan_only"))
++        self.assertTrue(_matches_token("macos-arm64-vulkan", "vulkan_only"))
++        self.assertFalse(_matches_token("linux-x64-egl", "vulkan_only"))
++        self.assertFalse(_matches_token("macos-arm64-metal", "vulkan_only"))
++
++    def test_macos_only(self) -> None:
++        self.assertTrue(_matches_token("macos-arm64-metal", "macos_only"))
++        self.assertTrue(_matches_token("macos-arm64-egl", "macos_only"))
++        self.assertFalse(_matches_token("linux-x64-vulkan", "macos_only"))
++
++    def test_not_windows(self) -> None:
++        self.assertTrue(_matches_token("linux-x64-vulkan", "not_windows"))
++        self.assertFalse(_matches_token("windows-x64-vulkan", "not_windows"))
++
++    def test_not_linux_arm64(self) -> None:
++        self.assertTrue(_matches_token("linux-x64-vulkan", "not_linux_arm64"))
++        self.assertFalse(_matches_token("linux-arm64-vulkan", "not_linux_arm64"))
++
++
++# ── eval_condition ──────────────────────────────────────────────────────
++
++
++class EvalConditionTest(unittest.TestCase):
++    def test_empty_tokens(self) -> None:
++        self.assertTrue(eval_condition("anything", []))
++
++    def test_and_semantics(self) -> None:
++        self.assertTrue(
++            eval_condition("macos-arm64-metal", ["not_ios", "not_macos_arm64_egl"])
++        )
++        self.assertFalse(
++            eval_condition("ios-arm64-metal", ["not_ios", "not_macos_arm64_egl"])
++        )
++        self.assertFalse(
++            eval_condition("macos-arm64-egl", ["not_ios", "not_macos_arm64_egl"])
++        )
++
++
++# ── _token_to_expr ─────────────────────────────────────────────────────
++
++
++class TokenToExprTest(unittest.TestCase):
++    def test_not_ios(self) -> None:
++        self.assertEqual(
++            _token_to_expr("not_ios"), "!startsWith(matrix.mise_env, 'ios-')"
++        )
++        self.assertEqual(
++            _token_to_expr("!not_ios"), "startsWith(matrix.mise_env, 'ios-')"
++        )
++
++    def test_not_macos_arm64_egl(self) -> None:
++        self.assertEqual(
++            _token_to_expr("not_macos_arm64_egl"),
++            "matrix.mise_env != 'macos-arm64-egl'",
++        )
++        self.assertEqual(
++            _token_to_expr("!not_macos_arm64_egl"),
++            "matrix.mise_env == 'macos-arm64-egl'",
++        )
++
++    def test_vulkan_only(self) -> None:
++        self.assertEqual(
++            _token_to_expr("vulkan_only"), "contains(matrix.mise_env, 'vulkan')"
++        )
++        self.assertEqual(
++            _token_to_expr("!vulkan_only"), "!contains(matrix.mise_env, 'vulkan')"
++        )
++
++    def test_exact_variant(self) -> None:
++        self.assertEqual(
++            _token_to_expr("macos-arm64-metal"),
++            "matrix.mise_env == 'macos-arm64-metal'",
++        )
++        self.assertEqual(
++            _token_to_expr("!macos-arm64-metal"),
++            "matrix.mise_env != 'macos-arm64-metal'",
++        )
++
++
++# ── emit_if ─────────────────────────────────────────────────────────────
++
++
++class EmitIfTest(unittest.TestCase):
++    def test_empty(self) -> None:
++        self.assertEqual(emit_if([]), "")
++
++    def test_single_condition(self) -> None:
++        self.assertEqual(
++            emit_if(["not_ios"]),
++            "if: ${{ !startsWith(matrix.mise_env, 'ios-') }}",
++        )
++
++    def test_conjunction_ordering(self) -> None:
++        # not_macos_arm64_egl must come first (matches original ci.yml order).
++        result = emit_if(["not_macos_arm64_egl", "not_ios"])
++        self.assertEqual(
++            result,
++            "if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}",
++        )
++
++    def test_swift_binding_condition(self) -> None:
++        result = emit_if(["not_macos_arm64_egl", "macos_only"])
++        self.assertEqual(
++            result,
++            "if: ${{ matrix.mise_env != 'macos-arm64-egl' && startsWith(matrix.mise_env, 'macos-') }}",
++        )
++
++    def test_kotlin_condition(self) -> None:
++        result = emit_if(
++            ["not_macos_arm64_egl", "not_ios", "not_windows", "not_linux_arm64"]
++        )
++        self.assertEqual(
++            result,
++            "if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') "
++            "&& !startsWith(matrix.mise_env, 'windows-') && !startsWith(matrix.mise_env, 'linux-arm64-') }}",
++        )
++
++
++# ── generate: round-trip ────────────────────────────────────────────────
++
++
++class GenerateRoundTripTest(unittest.TestCase):
++    def test_matches_checked_in_workflow(self) -> None:
++        """The generator must reproduce the checked-in ci.yml exactly."""
++        expected = OUTFILE.read_text()
++        actual = generate(MANIFEST)
++        self.assertEqual(actual, expected)
++
++
++# ── Variant step coverage ───────────────────────────────────────────────
++
++
++class VariantStepCoverageTest(unittest.TestCase):
++    """Each variant runs exactly the steps the policy intends."""
++
++    def test_ios_arm64_metal(self) -> None:
++        # iOS: only configure + build (cross-compile, no host runtime).
++        self.assertEqual(
++            _steps_for_variant("ios-arm64-metal"),
++            {"mise run configure", "Build native library"},
++        )
++
++    def test_ios_simulator(self) -> None:
++        self.assertEqual(
++            _steps_for_variant("ios-simulator-arm64-metal"),
++            {"mise run configure", "Build native library"},
++        )
++
++    def test_macos_arm64_egl(self) -> None:
++        # macos-arm64-egl: native + Zig binding + readback only.
++        self.assertEqual(
++            _steps_for_variant("macos-arm64-egl"),
++            {
++                "mise run configure",
++                "Test native library",
++                "Test Zig binding",
++                "Run Zig readback example",
++            },
++        )
++
++    def test_linux_x64_vulkan_full(self) -> None:
++        # Full desktop variant: everything except Swift and macOS-only example.
++        self.assertEqual(
++            _steps_for_variant("linux-x64-vulkan"),
++            {
++                "mise run configure",
++                "Test native library",
++                "Build Java FFM binding",
++                "Build Java JNI binding",
++                "Test .NET binding",
++                "Test Kotlin/Native binding",
++                "Test Rust binding",
++                "Test Zig binding",
++                "Build LWJGL example",
++                "Test Rust example",
++                "Build Zig example",
++                "Run Zig readback example",
++            },
++        )
++
++    def test_macos_arm64_metal_includes_swift(self) -> None:
++        # macos-arm64-metal: the only variant with Swift binding + example.
++        steps = _steps_for_variant("macos-arm64-metal")
++        self.assertIn("Test Swift binding", steps)
++        self.assertIn("Build Swift example", steps)
++        self.assertNotIn("Build LWJGL example", steps)
++
++    def test_windows_excludes_kotlin(self) -> None:
++        steps = _steps_for_variant("windows-x64-vulkan")
++        self.assertNotIn("Test Kotlin/Native binding", steps)
++
++    def test_linux_arm64_excludes_kotlin(self) -> None:
++        steps = _steps_for_variant("linux-arm64-egl")
++        self.assertNotIn("Test Kotlin/Native binding", steps)
++
++    def test_vulkan_variants_include_lwjgl(self) -> None:
++        for v in ("linux-x64-vulkan", "linux-arm64-vulkan", "macos-arm64-vulkan"):
++            with self.subTest(variant=v):
++                self.assertIn("Build LWJGL example", _steps_for_variant(v))
++
++    def test_non_vulkan_variants_exclude_lwjgl(self) -> None:
++        for v in ("linux-x64-egl", "macos-arm64-metal", "windows-x64-wgl"):
++            with self.subTest(variant=v):
++                self.assertNotIn("Build LWJGL example", _steps_for_variant(v))
++
++    def test_readback_runs_everywhere_except_ios(self) -> None:
++        with open(MANIFEST, "rb") as f:
++            data = tomllib.load(f)
++        for entry in data["matrix"]:
++            v = entry["mise_env"]
++            steps = _steps_for_variant(v)
++            if v.startswith("ios-"):
++                self.assertNotIn("Run Zig readback example", steps, msg=v)
++            else:
++                self.assertIn("Run Zig readback example", steps, msg=v)
++
++
++# ── CLI: --check flag ───────────────────────────────────────────────────
++
++
++class CheckFlagTest(unittest.TestCase):
++    def test_check_passes_when_in_sync(self) -> None:
++        gen_script = str(Path(__file__).resolve().parent.parent / "generate-ci.py")
++        result = subprocess.run(
++            [sys.executable, gen_script, "--check"],
++            capture_output=True,
++            text=True,
++        )
++        self.assertEqual(result.returncode, 0, msg=result.stdout + result.stderr)
++        self.assertIn("up to date", result.stdout)
++
++
++# ── Main ────────────────────────────────────────────────────────────────
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/mise.toml b/mise.toml
+index f9cf3326d0d9d904fd53ad8c9674279b7cdd56f9..ba41bdff4c875b598b77681c4729855ed942c5f1 100644
+--- a/mise.toml
++++ b/mise.toml
+@@ -186,8 +186,18 @@ run = 'java -jar {{ tools["aqua:facebook/ktfmt"].path }}/ktfmt'
+ # ktfmt on windows doesn't work in git bash for some reason
+ shell = '{% if os() == "windows" %}cmd /c{% else %}sh -c -o errexit{% endif %}'
+ 
++[tasks."ci:generate"]
++description = "Regenerate .github/workflows/ci.yml from the manifest."
++run = "python3 .github/generate-ci.py"
++
++[tasks."ci:check-generated"]
++description = "Verify the CI workflow matches the manifest (no drift)."
++run = "python3 .github/generate-ci.py --check"
++
+ [tasks."ci:lint"]
+ run = [
++  # Verify generated CI workflow is in sync with the manifest.
++  "python3 .github/generate-ci.py --check",
+   # Warm process-plugin cache before hk runs parallel dprint batches.
+   "dprint output-resolved-config > /dev/null",
+   "hk fix --all",

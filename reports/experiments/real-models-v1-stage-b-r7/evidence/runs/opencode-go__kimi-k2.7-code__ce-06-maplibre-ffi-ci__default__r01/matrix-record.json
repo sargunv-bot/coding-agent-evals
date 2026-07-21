@@ -1,0 +1,62 @@
+{
+  "attempts": [
+    {
+      "attempt": 1,
+      "kind": "completed",
+      "result": {
+        "agent_completion_status": "completed",
+        "agent_exit_code": 0,
+        "agent_exit_discrepancy": false,
+        "duration_seconds": 1391.946099,
+        "endpoint_host": "opencode.ai",
+        "finished_at": "2026-07-20T09:50:18.574179+00:00",
+        "model": "kimi-k2.7-code",
+        "model_config_sha256": "5a18f532388aa04a84fee6fe8ebc5ed57838e6def307b7bd1c7d53341a74e08f",
+        "patch_path": "model.patch",
+        "provider": "opencode-go",
+        "run_id": "20260720T092711Z-ce-06-maplibre-ffi-ci-1074039-1784539631662555516",
+        "scenario": null,
+        "started_at": "2026-07-20T09:27:06.628097+00:00",
+        "task_id": "ce-06-maplibre-ffi-ci",
+        "trajectory_path": "transcript.jsonl",
+        "usage": {
+          "cached_input_tokens": 6753975,
+          "input_tokens": 380334,
+          "output_tokens": 27579,
+          "provider_reported_cost": 0.0,
+          "reasoning_tokens": 26881
+        },
+        "verification": {
+          "command_stderr": "",
+          "control": "candidate",
+          "duration_seconds": 0.8583038100041449,
+          "exit_code": 0,
+          "expectation_met": true,
+          "expected_pass": true,
+          "outcome": "passed",
+          "reward": {
+            "determinism": 1,
+            "reward": 1,
+            "strictness": 1,
+            "structure": 1
+          },
+          "run_dir": "verifier",
+          "scenario": null,
+          "task_id": "ce-06-maplibre-ffi-ci"
+        }
+      }
+    }
+  ],
+  "cell": {
+    "cell_id": "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__r01",
+    "model": "kimi-k2.7-code",
+    "provider": "opencode-go",
+    "repeat": 1,
+    "scenario": null,
+    "task_id": "ce-06-maplibre-ffi-ci"
+  },
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "schema_version": 1,
+  "state": "completed",
+  "updated_at": "2026-07-20T09:50:18.872516+00:00"
+}

@@ -1,0 +1,91 @@
+{
+  "experiment_id": "real-models-v1-stage-b-r7",
+  "runs": [
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-01-antidote-output__default__r01",
+      "run_id": "20260720T105508Z-ce-01-antidote-output-1360144-1784544908186786646"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-02-horologia-overdue__default__r01",
+      "run_id": "20260720T112608Z-ce-02-horologia-overdue-1487683-1784546768713983934"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-03-jvl-completions__default__r01",
+      "run_id": "20260720T120710Z-ce-03-jvl-completions-1630428-1784549230859861494"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-04-maplibre-source-location__default__r01",
+      "run_id": "20260720T171617Z-ce-04-maplibre-source-location-2545713-1784567777208351795"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-05-mise-slsa-archive__default__r01",
+      "run_id": "20260720T234827Z-ce-05-mise-slsa-archive-3757833-1784591307165393591"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-06-maplibre-ffi-ci__default__r01",
+      "run_id": "20260720T101907Z-ce-06-maplibre-ffi-ci-1225641-1784542747055338417"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-07-mobility-result__all-errors-as-result__r01",
+      "run_id": "20260721T015430Z-ce-07-mobility-result-4175458-1784598870622098029"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "kimi-subscription__kimi-k3__ce-07-mobility-result__validation-fail-fast__r01",
+      "run_id": "20260721T010829Z-ce-07-mobility-result-4022649-1784596109160319812"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-01-antidote-output__default__r01",
+      "run_id": "20260720T105113Z-ce-01-antidote-output-1313516-1784544673926210758"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-02-horologia-overdue__default__r01",
+      "run_id": "20260720T111805Z-ce-02-horologia-overdue-1419028-1784546285761102522"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-03-jvl-completions__default__r01",
+      "run_id": "20260720T115115Z-ce-03-jvl-completions-1549941-1784548275256657565"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-04-maplibre-source-location__default__r01",
+      "run_id": "20260720T165923Z-ce-04-maplibre-source-location-2402533-1784566763825405462"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-06-maplibre-ffi-ci__default__r01",
+      "run_id": "20260720T100807Z-ce-06-maplibre-ffi-ci-1193513-1784542087417850673"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__all-errors-as-result__r01",
+      "run_id": "20260721T013329Z-ce-07-mobility-result-4109158-1784597609767780153"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "openai-subscription__gpt-5.6-sol__ce-07-mobility-result__validation-fail-fast__r01",
+      "run_id": "20260721T004151Z-ce-07-mobility-result-3882428-1784594511080337829"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "opencode-go__kimi-k2.7-code__ce-06-maplibre-ffi-ci__default__r01",
+      "run_id": "20260720T092711Z-ce-06-maplibre-ffi-ci-1074039-1784539631662555516"
+    },
+    {
+      "artifacts": 6,
+      "cell_id": "opencode-go__mimo-v2.5-pro__ce-06-maplibre-ffi-ci__default__r01",
+      "run_id": "20260720T095307Z-ce-06-maplibre-ffi-ci-1149266-1784541187103798116"
+    }
+  ],
+  "schema_version": 1
+}
