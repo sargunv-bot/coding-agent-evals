@@ -1,0 +1,28 @@
+[experiment]
+id = "real-models-v1-behavioral-rerun-ce06"
+description = "Fresh CE-06 runs after candidate-visible workflow-generation contract repair"
+stage = "breadth"
+repeats = 1
+concurrency = 1
+infrastructure_retries = 1
+proctor_model = "openai/gpt-5.6-sol"
+
+[[models]]
+provider = "openai-subscription"
+model = "gpt-5.6-sol"
+
+[[models]]
+provider = "kimi-subscription"
+model = "kimi-k3"
+
+[[models]]
+provider = "opencode-go"
+model = "kimi-k2.7-code"
+
+[[models]]
+provider = "opencode-go"
+model = "mimo-v2.5-pro"
+
+[[cells]]
+task = "ce-06-maplibre-ffi-ci"
+mode = "ask_user"

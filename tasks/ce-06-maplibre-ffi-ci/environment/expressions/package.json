@@ -1,0 +1,9 @@
+{
+  "name": "cae-gha-expression-evaluator",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@actions/expressions": "0.3.60"
+  }
+}

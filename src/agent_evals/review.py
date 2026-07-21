@@ -28,6 +28,8 @@ class ProctorReview:
 
     def validate(self) -> list[str]:
         errors: list[str] = []
+        if self.mergeable is not None and type(self.mergeable) is not bool:
+            errors.append("mergeable must be a boolean")
         for name in (
             "scope_discipline",
             "code_clarity",
@@ -36,7 +38,9 @@ class ProctorReview:
             "security_and_safety",
         ):
             value = getattr(self, name)
-            if value is not None and not 1 <= value <= 5:
+            if self.mergeable is not None and value is None:
+                errors.append(f"completed review requires {name}")
+            elif value is not None and not 1 <= value <= 5:
                 errors.append(f"{name} must be between 1 and 5")
         if self.mergeable is True and self.blockers:
             errors.append("a mergeable patch cannot have blockers")

@@ -1,0 +1,58 @@
+{
+  "gbfs-v1": [
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getFreeBikeStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/FreeBikeStatus>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getStationInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/StationInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getStationStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/StationStatus>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemAlerts(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemAlerts>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemCalendar(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemCalendar>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemHours(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemHours>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemPricingPlans(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemPricingPlans>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getSystemRegions(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemRegions>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v1/Service)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/VersionManifest>>",
+    "final suspend fun getSystemManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v1/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v1/SystemManifest>>"
+  ],
+  "gbfs-v2": [
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getFreeBikeStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/FreeBikeStatus>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getGeofencingZones(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/GeofencingZones>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getStationInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/StationInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getStationStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/StationStatus>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemAlerts(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemAlerts>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemCalendar(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemCalendar>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemHours(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemHours>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemPricingPlans(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemPricingPlans>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getSystemRegions(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemRegions>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getVehicleTypes(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/VehicleTypes>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v2/Service)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/VersionManifest>>",
+    "final suspend fun getSystemManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v2/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v2/SystemManifest>>"
+  ],
+  "gbfs-v3": [
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getGeofencingZones(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/GeofencingZones>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getStationInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/StationInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getStationStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/StationStatus>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemAlerts(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemAlerts>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemPricingPlans(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemPricingPlans>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getSystemRegions(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/SystemRegions>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVehicleStatus(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VehicleStatus>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVehicleTypes(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VehicleTypes>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/VersionManifest>>",
+    "final suspend fun getDatasetManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/DatasetManifest>>",
+    "final suspend fun getServiceManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gbfs.v3/GbfsFeedResponse<dev.sargunv.mobilitydata.gbfs.v3/ServiceManifest>>"
+  ],
+  "gofs-v1": [
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getBookingRules(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/BookingRules>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getCalendars(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Calendars>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getFares(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Fares>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getOperatingRules(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/OperatingRules>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getRealtimeBookings(kotlin/Double, kotlin/Double, kotlin/Double? = ..., kotlin/Double? = ..., kotlin.collections/List<kotlin/String> = ..., kotlin/String? = ..., kotlin/String? = ...): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/RealtimeBookings>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getServiceBrands(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/ServiceBrands>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getSystemInformation(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/SystemInformation>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getVehicleTypes(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/VehicleTypes>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getVersionManifest(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/VersionManifest>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getWaitTimes(kotlin/Double, kotlin/Double, kotlin/Double? = ..., kotlin/Double? = ..., kotlin.collections/List<kotlin/String> = ...): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/WaitTimes>>",
+    "final suspend fun (context(dev.sargunv.mobilitydata.gofs.v1/Service)).getZones(): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/Zones>>",
+    "final suspend fun getSystemManifest(kotlin/String): kotlin/Result<dev.sargunv.mobilitydata.gofs.v1/GofsFeedResponse<dev.sargunv.mobilitydata.gofs.v1/SystemManifest>>"
+  ]
+}

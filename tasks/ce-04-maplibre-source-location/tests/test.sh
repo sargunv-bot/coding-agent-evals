@@ -6,15 +6,8 @@ cd /app
 set +e
 (
   set -e
-  python3 /tests/check_structure.py
-  for compiler in g++ clang++; do
-    for standard in c++17 c++20; do
-      output="/tmp/ce04/${compiler//+/x}-${standard}"
-      "$compiler" -std="$standard" -Wall -Wextra -Werror -I/app/include -I/app/src -I/app \
-        /tests/source_location_behavior.cpp -o "$output"
-      "$output"
-    done
-  done
+  cmake --build build-linux-opengl --target mbgl-core --parallel 2
+  python3 /tests/compile_behavior.py
 ) > /logs/verifier/test-stdout.txt 2>&1
 status=$?
 set -e

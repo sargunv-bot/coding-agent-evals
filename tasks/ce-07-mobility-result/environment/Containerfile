@@ -27,4 +27,10 @@ RUN ./gradlew --no-daemon --stacktrace updateKotlinAbi updateLegacyAbi \
         jvmTest jsNodeTest wasmJsNodeTest linuxX64Test detekt checkKotlinAbi checkLegacyAbi \
     && test -z "$(git status --porcelain)"
 
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
+USER agent
+
 ENV GRADLE_OPTS=-Dorg.gradle.daemon=false

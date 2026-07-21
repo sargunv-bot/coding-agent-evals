@@ -1,0 +1,775 @@
+diff --git a/crates/mise-sigstore/src/lib.rs b/crates/mise-sigstore/src/lib.rs
+index 20a9047f..3ce5f350 100644
+--- a/crates/mise-sigstore/src/lib.rs
++++ b/crates/mise-sigstore/src/lib.rs
+@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
+ use sha2::{Digest, Sha256};
+ use sigstore_verify::VerificationPolicy;
+ use sigstore_verify::trust_root::{SigstoreInstance, TrustedRoot};
+-use sigstore_verify::types::{Bundle, DerCertificate, DerPublicKey, SignatureBytes};
++use sigstore_verify::types::{
++    Artifact, Bundle, DerCertificate, DerPublicKey, Sha256Hash, SignatureBytes,
++};
+ use thiserror::Error;
+ use tokio::io::AsyncReadExt;
+ 
+@@ -20,6 +22,8 @@ pub enum AttestationError {
+     Api(String),
+     #[error("Verification failed: {0}")]
+     Verification(String),
++    #[error("SLSA subject mismatch: {0}")]
++    SubjectMismatch(String),
+     #[error("Unsupported attestation format: {0}")]
+     UnsupportedFormat(String),
+     #[error("No attestations found")]
+@@ -54,6 +58,21 @@ impl From<sigstore_verify::trust_root::Error> for AttestationError {
+ 
+ pub type Result<T> = std::result::Result<T, AttestationError>;
+ 
++#[derive(Debug, Clone)]
++pub struct SlsaArtifact {
++    pub name: String,
++    pub sha256: String,
++}
++
++impl SlsaArtifact {
++    pub fn from_bytes(name: String, bytes: &[u8]) -> Self {
++        Self {
++            name,
++            sha256: hex::encode(Sha256::digest(bytes)),
++        }
++    }
++}
++
+ #[derive(Debug, Clone)]
+ pub struct ArtifactRef {
+     digest: String,
+@@ -435,6 +454,25 @@ pub async fn verify_slsa_provenance(
+     min_level: u8,
+ ) -> Result<bool> {
+     let artifact = tokio::fs::read(artifact_path).await?;
++    verify_slsa_provenance_artifacts(
++        provenance_path,
++        &[SlsaArtifact::from_bytes(String::new(), &artifact)],
++        min_level,
++    )
++    .await
++}
++
++pub async fn verify_slsa_provenance_artifacts(
++    provenance_path: &Path,
++    artifacts: &[SlsaArtifact],
++    min_level: u8,
++) -> Result<bool> {
++    if artifacts.is_empty() {
++        return Err(AttestationError::SubjectMismatch(
++            "no artifacts supplied for SLSA subject verification".to_string(),
++        ));
++    }
++
+     let content = tokio::fs::read_to_string(provenance_path).await?;
+     let mut errors = Vec::new();
+     let mut trust_roots = TrustRoots::default();
+@@ -453,8 +491,8 @@ pub async fn verify_slsa_provenance(
+         // Bundle::from_json failure falls through to the DSSE envelope path.
+         if let Ok(bundle) = Bundle::from_json(candidate) {
+             let result = match trust_roots.for_bundle(&bundle).await {
+-                Ok(root) => verify_bundle(&artifact, &bundle, None, root)
+-                    .and_then(|_| verify_bundle_slsa(&bundle, &artifact, min_level)),
++                Ok(root) => verify_bundle_for_any_artifact(artifacts, &bundle, root)
++                    .and_then(|_| verify_bundle_slsa_subjects(&bundle, artifacts, min_level)),
+                 Err(e) => Err(e),
+             };
+             match result {
+@@ -471,7 +509,7 @@ pub async fn verify_slsa_provenance(
+         // Sigstore trust root since slsa-github-generator certs are issued by
+         // Sigstore Fulcio.
+         let result = match trust_roots.sigstore_root().await {
+-            Ok(root) => verify_intoto_envelope(candidate, &artifact, min_level, root),
++            Ok(root) => verify_intoto_envelope_subjects(candidate, artifacts, min_level, root),
+             Err(e) => Err(e),
+         };
+         match result {
+@@ -485,11 +523,26 @@ pub async fn verify_slsa_provenance(
+     })
+ }
+ 
++#[cfg(test)]
+ fn verify_intoto_envelope(
+     line: &str,
+     artifact: &[u8],
+     min_level: u8,
+     trusted_root: &TrustedRoot,
++) -> Result<()> {
++    verify_intoto_envelope_subjects(
++        line,
++        &[SlsaArtifact::from_bytes(String::new(), artifact)],
++        min_level,
++        trusted_root,
++    )
++}
++
++fn verify_intoto_envelope_subjects(
++    line: &str,
++    artifacts: &[SlsaArtifact],
++    min_level: u8,
++    trusted_root: &TrustedRoot,
+ ) -> Result<()> {
+     let envelope: serde_json::Value = serde_json::from_str(line).map_err(|e| {
+         AttestationError::UnsupportedFormat(format!("not a JSON DSSE envelope: {e}"))
+@@ -555,7 +608,7 @@ fn verify_intoto_envelope(
+         )));
+     }
+ 
+-    verify_intoto_payload(&payload, artifact, min_level)
++    verify_intoto_payload_subjects(&payload, artifacts, min_level)
+ }
+ 
+ /// Verify a legacy cosign v1 keyless bundle (`{base64Signature, cert, rekorBundle}`).
+@@ -634,7 +687,11 @@ fn verify_dsse_signature(
+     verify_raw_signature(pae, &sig_bytes, &public_key)
+ }
+ 
+-fn verify_intoto_payload(payload: &[u8], artifact: &[u8], min_level: u8) -> Result<()> {
++fn verify_intoto_payload_subjects(
++    payload: &[u8],
++    artifacts: &[SlsaArtifact],
++    min_level: u8,
++) -> Result<()> {
+     let statement: serde_json::Value = serde_json::from_slice(payload).map_err(|e| {
+         AttestationError::Verification(format!("Failed to parse SLSA payload: {e}"))
+     })?;
+@@ -652,23 +709,55 @@ fn verify_intoto_payload(payload: &[u8], artifact: &[u8], min_level: u8) -> Resu
+             "SLSA level {min_level} verification is not supported by the native adapter"
+         )));
+     }
+-    let artifact_digest = hex::encode(Sha256::digest(artifact));
+     let subjects = statement
+         .get("subject")
+         .and_then(|v| v.as_array())
+         .ok_or_else(|| {
+             AttestationError::Verification("SLSA statement missing subject array".to_string())
+         })?;
+-    let matches_subject = subjects.iter().any(|subject| {
+-        subject
+-            .get("digest")
+-            .and_then(|d| d.get("sha256"))
+-            .and_then(|v| v.as_str())
+-            .is_some_and(|sha| sha.eq_ignore_ascii_case(&artifact_digest))
+-    });
+-    if !matches_subject {
+-        return Err(AttestationError::Verification(format!(
+-            "artifact sha256 {artifact_digest} not found in SLSA statement subjects"
++
++    let subject_digests = subjects
++        .iter()
++        .filter_map(|subject| {
++            subject
++                .get("digest")
++                .and_then(|d| d.get("sha256"))
++                .and_then(|v| v.as_str())
++                .map(|sha| sha.to_ascii_lowercase())
++        })
++        .collect::<std::collections::HashSet<_>>();
++    let named_subjects = subjects
++        .iter()
++        .filter_map(|subject| {
++            let name = subject.get("name")?.as_str()?;
++            let sha = subject
++                .get("digest")
++                .and_then(|d| d.get("sha256"))
++                .and_then(|v| v.as_str())?;
++            Some((name.to_string(), sha.to_ascii_lowercase()))
++        })
++        .collect::<std::collections::HashSet<_>>();
++
++    let mut missing = Vec::new();
++    for artifact in artifacts {
++        let artifact_digest = artifact.sha256.to_ascii_lowercase();
++        let matches_subject = if artifact.name.is_empty() {
++            subject_digests.contains(&artifact_digest)
++        } else {
++            named_subjects.contains(&(artifact.name.clone(), artifact_digest.clone()))
++        };
++        if !matches_subject {
++            if artifact.name.is_empty() {
++                missing.push(artifact_digest);
++            } else {
++                missing.push(format!("{} ({artifact_digest})", artifact.name));
++            }
++        }
++    }
++    if !missing.is_empty() {
++        return Err(AttestationError::SubjectMismatch(format!(
++            "artifact subjects not found in SLSA statement subjects: {}",
++            missing.join(", ")
+         )));
+     }
+     Ok(())
+@@ -681,17 +770,36 @@ fn collapse_slsa_errors(
+     let unsupported_format = errors
+         .iter()
+         .all(|error| matches!(error, AttestationError::UnsupportedFormat(_)));
++    let subject_mismatch = errors.iter().any(is_slsa_subject_mismatch);
+     let message = join_error_strings(
+         errors.into_iter().map(|error| error.to_string()).collect(),
+         default,
+     );
+     Err(if unsupported_format {
+         AttestationError::UnsupportedFormat(message)
++    } else if subject_mismatch {
++        AttestationError::SubjectMismatch(message)
+     } else {
+         AttestationError::Verification(message)
+     })
+ }
+ 
++pub fn is_slsa_subject_mismatch(error: &AttestationError) -> bool {
++    match error {
++        AttestationError::SubjectMismatch(_) => true,
++        AttestationError::Verification(msg) | AttestationError::Sigstore(msg) => {
++            is_subject_mismatch_message(msg)
++        }
++        _ => false,
++    }
++}
++
++fn is_subject_mismatch_message(message: &str) -> bool {
++    message.contains("artifact hash does not match any subject in attestation")
++        || message.contains("not found in SLSA statement subjects")
++        || message.contains("artifact subjects not found in SLSA statement subjects")
++}
++
+ fn join_error_strings(errors: Vec<String>, default: impl FnOnce() -> String) -> String {
+     let mut errors = errors
+         .into_iter()
+@@ -751,8 +859,8 @@ fn is_snappy_content_type(response: &reqwest::Response) -> bool {
+         .is_some_and(|content_type| content_type.trim() == "application/x-snappy")
+ }
+ 
+-fn verify_bundle(
+-    artifact: &[u8],
++fn verify_bundle<'a>(
++    artifact: impl Into<Artifact<'a>>,
+     bundle: &Bundle,
+     signer_workflow: Option<&str>,
+     trusted_root: &TrustedRoot,
+@@ -996,7 +1104,33 @@ fn verify_signer_workflow_identity(
+ /// level is supported, and the artifact's SHA-256 appears in the statement's
+ /// `subject` array. The subject check is the load-bearing part — without it,
+ /// a valid SLSA bundle signed for *some* artifact would accept *any* artifact.
+-fn verify_bundle_slsa(bundle: &Bundle, artifact: &[u8], min_level: u8) -> Result<()> {
++fn verify_bundle_for_any_artifact(
++    artifacts: &[SlsaArtifact],
++    bundle: &Bundle,
++    root: &TrustedRoot,
++) -> Result<()> {
++    let artifact = artifacts.first().ok_or_else(|| {
++        AttestationError::SubjectMismatch(
++            "no artifacts supplied for SLSA subject verification".to_string(),
++        )
++    })?;
++    let digest = Sha256Hash::from_hex(&artifact.sha256).map_err(|e| {
++        AttestationError::Verification(format!("invalid artifact sha256 digest: {e}"))
++    })?;
++    match verify_bundle(Artifact::from_digest(digest), bundle, None, root) {
++        Ok(()) => Ok(()),
++        Err(e) if is_slsa_subject_mismatch(&e) => {
++            Err(AttestationError::SubjectMismatch(e.to_string()))
++        }
++        Err(e) => Err(e),
++    }
++}
++
++fn verify_bundle_slsa_subjects(
++    bundle: &Bundle,
++    artifacts: &[SlsaArtifact],
++    min_level: u8,
++) -> Result<()> {
+     let payload = match &bundle.content {
+         sigstore_verify::types::SignatureContent::DsseEnvelope(envelope) => {
+             envelope.decode_payload()
+@@ -1007,7 +1141,7 @@ fn verify_bundle_slsa(bundle: &Bundle, artifact: &[u8], min_level: u8) -> Result
+             ));
+         }
+     };
+-    verify_intoto_payload(&payload, artifact, min_level)
++    verify_intoto_payload_subjects(&payload, artifacts, min_level)
+ }
+ 
+ fn decode_cosign_signature(bytes: &[u8]) -> Vec<u8> {
+@@ -1113,6 +1247,40 @@ mod tests {
+             .expect("embedded production trusted_root.json parses")
+     }
+ 
++    fn slsa_statement(subjects: serde_json::Value) -> Vec<u8> {
++        serde_json::json!({
++            "predicateType": "https://slsa.dev/provenance/v1",
++            "subject": subjects,
++        })
++        .to_string()
++        .into_bytes()
++    }
++
++    #[test]
++    fn intoto_payload_accepts_complete_content_subjects() {
++        let artifact = SlsaArtifact::from_bytes("pixi".to_string(), b"binary");
++        let payload = slsa_statement(serde_json::json!([
++            {"name": "pixi", "digest": {"sha256": artifact.sha256.clone()}},
++        ]));
++
++        verify_intoto_payload_subjects(&payload, &[artifact], 1).unwrap();
++    }
++
++    #[test]
++    fn intoto_payload_rejects_partial_content_subjects() {
++        let covered = SlsaArtifact::from_bytes("bin/tool".to_string(), b"tool");
++        let uncovered = SlsaArtifact::from_bytes("README.md".to_string(), b"docs");
++        let payload = slsa_statement(serde_json::json!([
++            {"name": "bin/tool", "digest": {"sha256": covered.sha256.clone()}},
++        ]));
++
++        let err = verify_intoto_payload_subjects(&payload, &[covered, uncovered], 1)
++            .unwrap_err()
++            .to_string();
++        assert!(err.contains("README.md"));
++        assert!(err.contains("not found in SLSA statement subjects"));
++    }
++
+     #[test]
+     fn intoto_envelope_rejects_tampered_signature() {
+         let root = embedded_sigstore_root();
+diff --git a/src/backend/aqua.rs b/src/backend/aqua.rs
+index 4445d978..248531d1 100644
+--- a/src/backend/aqua.rs
++++ b/src/backend/aqua.rs
+@@ -1228,10 +1228,53 @@ impl AquaBackend {
+                 Ok(provenance_url)
+             }
+             Ok(false) => Err(eyre!("SLSA provenance verification failed")),
++            Err(e) if crate::github::sigstore::is_slsa_subject_mismatch(&e) => {
++                debug!(
++                    "SLSA provenance did not cover downloaded artifact; trying archive content subjects: {e}"
++                );
++                match self
++                    .run_slsa_archive_content_check(artifact_path, &provenance_path, pkg, v)
++                    .await?
++                {
++                    true => Ok(provenance_url),
++                    false => Err(eyre!("SLSA archive content verification failed")),
++                }
++            }
+             Err(e) => Err(e.into()),
+         }
+     }
+ 
++    async fn run_slsa_archive_content_check(
++        &self,
++        artifact_path: &Path,
++        provenance_path: &Path,
++        pkg: &AquaPackage,
++        v: &str,
++    ) -> Result<bool> {
++        let format = pkg.format(v, os(), arch())?;
++        let format = TarFormat::from_ext(format);
++        if !format.is_archive() {
++            return Err(eyre!(
++                "SLSA provenance subject mismatch and content-level fallback is only supported for archives"
++            ));
++        }
++        // Aqua extraction does not auto-strip archive top-level directories.
++        // Keep strip_components=0 so SLSA subjects are compared against the
++        // same relative paths Aqua installs. The GitHub backend has separate
++        // auto-strip behavior and mirrors it in its own fallback.
++        let contents = file::archive_content_files(artifact_path, format, 0)?;
++        let artifacts = contents
++            .into_iter()
++            .map(|content| crate::github::sigstore::SlsaArtifact {
++                name: content.name,
++                sha256: content.sha256,
++            })
++            .collect::<Vec<_>>();
++        crate::github::sigstore::verify_slsa_provenance_artifacts(provenance_path, &artifacts, 1u8)
++            .await
++            .map_err(|e| eyre!("content-level SLSA verification failed: {e}"))
++    }
++
+     /// Download minisign signature and verify against an already-downloaded artifact.
+     async fn run_minisign_check(
+         &self,
+diff --git a/src/backend/github.rs b/src/backend/github.rs
+index 44141ba0..5c3b5c56 100644
+--- a/src/backend/github.rs
++++ b/src/backend/github.rs
+@@ -4,8 +4,8 @@ use crate::backend::backend_type::BackendType;
+ use crate::backend::options::BackendOptions;
+ use crate::backend::platform_target::PlatformTarget;
+ use crate::backend::static_helpers::{
+-    get_filename_from_url, install_artifact, template_string, try_with_v_prefix,
+-    try_with_v_prefix_and_repo, verify_artifact,
++    get_filename_from_url, install_artifact, lookup_platform_key, lookup_with_fallback,
++    template_string, try_with_v_prefix, try_with_v_prefix_and_repo, verify_artifact,
+ };
+ use crate::backend::{MISE_BINS_DIR, SecurityFeature, runtime_path_for_install_path};
+ use crate::cli::args::{BackendArg, ToolVersionType};
+@@ -789,7 +789,43 @@ impl UnifiedGitBackend {
+                         return Err(eyre::eyre!("SLSA provenance verification failed"));
+                     }
+                     Err(e) => {
+-                        if is_slsa_format_issue(&e) {
++                        if crate::github::sigstore::is_slsa_subject_mismatch(&e) {
++                            debug!(
++                                "lock-time SLSA provenance did not cover downloaded artifact for {}; trying archive content subjects: {e}",
++                                repo
++                            );
++                            match self
++                                .try_verify_slsa_archive_contents(
++                                    tv,
++                                    &artifact_path,
++                                    &provenance_path,
++                                )
++                                .await
++                            {
++                                Ok(true) => {
++                                    debug!(
++                                        "lock-time SLSA provenance verified archive contents for {}",
++                                        repo
++                                    );
++                                    return Ok((
++                                        Some(ProvenanceType::Slsa {
++                                            url: Some(provenance_url),
++                                        }),
++                                        None,
++                                    ));
++                                }
++                                Ok(false) => {
++                                    return Err(eyre::eyre!(
++                                        "SLSA archive content verification failed"
++                                    ));
++                                }
++                                Err(content_err) => {
++                                    return Err(eyre::eyre!(
++                                        "SLSA archive content verification error: {content_err}"
++                                    ));
++                                }
++                            }
++                        } else if is_slsa_format_issue(&e) {
+                             debug!("SLSA provenance file not in verifiable format: {e}");
+                         } else {
+                             return Err(eyre::eyre!("SLSA verification error: {e}"));
+@@ -1721,6 +1757,16 @@ impl UnifiedGitBackend {
+         }
+     }
+ 
++    async fn try_verify_slsa_archive_contents(
++        &self,
++        tv: &ToolVersion,
++        file_path: &std::path::Path,
++        provenance_path: &std::path::Path,
++    ) -> Result<bool> {
++        let _ = (tv, file_path, provenance_path);
++        Ok(false)
++    }
++
+     /// Try to verify SLSA provenance. Returns:
+     /// - Ok((true, Some(url))) if provenance exists and verified successfully
+     /// - Ok((false, _)) if provenance exists but verification failed
+@@ -1822,7 +1868,24 @@ impl UnifiedGitBackend {
+                 }
+             }
+             Err(e) => {
+-                if is_slsa_format_issue(&e) {
++                if crate::github::sigstore::is_slsa_subject_mismatch(&e) {
++                    debug!(
++                        "SLSA provenance did not cover downloaded artifact for {tv}; trying archive content subjects: {e}"
++                    );
++                    match self
++                        .try_verify_slsa_archive_contents(tv, file_path, &provenance_path)
++                        .await
++                    {
++                        Ok(true) => {
++                            debug!(
++                                "SLSA provenance verified archive contents successfully for {tv}"
++                            );
++                            Ok((true, Some(provenance_download_url)))
++                        }
++                        Ok(false) => Ok((false, None)),
++                        Err(content_err) => Err(VerificationStatus::Error(content_err.to_string())),
++                    }
++                } else if is_slsa_format_issue(&e) {
+                     debug!("SLSA provenance file not in verifiable format for {tv}: {e}");
+                     Err(VerificationStatus::NoAttestations)
+                 } else {
+diff --git a/src/file.rs b/src/file.rs
+index eb4065dc..0895d0c9 100644
+--- a/src/file.rs
++++ b/src/file.rs
+@@ -3,7 +3,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
+ use std::fmt::Display;
+ use std::fs;
+ use std::fs::File;
+-use std::io::Write;
++use std::io::{Read, Write};
+ #[cfg(unix)]
+ use std::os::unix::fs::symlink;
+ #[cfg(unix)]
+@@ -17,6 +17,7 @@ use eyre::bail;
+ use filetime::{FileTime, set_file_times};
+ use flate2::read::GzDecoder;
+ use itertools::Itertools;
++use sha2::{Digest, Sha256};
+ use std::sync::LazyLock as Lazy;
+ use tar::Archive;
+ use walkdir::WalkDir;
+@@ -1339,6 +1340,168 @@ pub fn should_strip_components(archive: &Path, format: TarFormat) -> Result<bool
+     }
+ }
+ 
++#[derive(Debug, Clone)]
++pub struct ArchiveContent {
++    pub name: String,
++    pub sha256: String,
++}
++
++/// Return the regular files in an archive after applying strip-components.
++///
++/// This is intentionally stricter than extraction: content-level provenance is
++/// only safe when every installed regular file is covered, so ambiguous archive
++/// entries (links, unsafe paths, stripped-away file names, unsupported formats)
++/// fail closed instead of being ignored.
++pub fn archive_content_files(
++    archive_path: &Path,
++    format: TarFormat,
++    strip_components: usize,
++) -> Result<Vec<ArchiveContent>> {
++    if strip_components > 1 {
++        bail!("content-level SLSA verification only supports strip_components values of 0 or 1");
++    }
++
++    match format {
++        TarFormat::TarGz
++        | TarFormat::TarXz
++        | TarFormat::TarBz2
++        | TarFormat::TarZst
++        | TarFormat::Tar => archive_content_files_tar(archive_path, format, strip_components),
++        TarFormat::Zip => archive_content_files_zip(archive_path, strip_components),
++        TarFormat::SevenZip => {
++            bail!("content-level SLSA verification does not support 7z archives")
++        }
++        TarFormat::Gz | TarFormat::Xz | TarFormat::Bz2 | TarFormat::Zst | TarFormat::Raw => {
++            bail!("content-level SLSA verification only supports archive formats")
++        }
++    }
++}
++
++fn archive_content_files_tar(
++    archive_path: &Path,
++    format: TarFormat,
++    strip_components: usize,
++) -> Result<Vec<ArchiveContent>> {
++    let tar = open_tar(format, archive_path)?;
++    let mut archive = Archive::new(tar);
++    let mut files = Vec::new();
++
++    for entry in archive.entries()? {
++        let mut entry = entry?;
++        let path = entry.path()?.into_owned();
++        let entry_type = entry.header().entry_type();
++        if entry_type.is_dir() {
++            continue;
++        }
++        if !entry_type.is_file() {
++            bail!(
++                "content-level SLSA verification does not support non-regular archive entry: {}",
++                path.display()
++            );
++        }
++        let name = normalize_archive_content_path(&path, strip_components)?;
++        let sha256 = sha256_reader(&mut entry)?;
++        files.push(ArchiveContent { name, sha256 });
++    }
++
++    validate_archive_content_files(files)
++}
++
++fn archive_content_files_zip(
++    archive_path: &Path,
++    strip_components: usize,
++) -> Result<Vec<ArchiveContent>> {
++    let f = File::open(archive_path)?;
++    let mut archive = ZipArchive::new(f)
++        .wrap_err_with(|| format!("failed to open zip archive: {}", display_path(archive_path)))?;
++    let mut files = Vec::new();
++
++    for i in 0..archive.len() {
++        let mut file = archive.by_index(i)?;
++        if file.is_dir() {
++            continue;
++        }
++        if file.is_symlink() {
++            bail!(
++                "content-level SLSA verification does not support symlink archive entry: {}",
++                file.name()
++            );
++        }
++        let enclosed_name = file.enclosed_name().ok_or_else(|| {
++            eyre::eyre!(
++                "content-level SLSA verification rejected unsafe zip path: {}",
++                file.name()
++            )
++        })?;
++        let name = normalize_archive_content_path(&enclosed_name, strip_components)?;
++        let sha256 = sha256_reader(&mut file)?;
++        files.push(ArchiveContent { name, sha256 });
++    }
++
++    validate_archive_content_files(files)
++}
++
++fn sha256_reader(reader: &mut impl Read) -> Result<String> {
++    let mut hasher = Sha256::new();
++    let mut buf = [0; 8192];
++    loop {
++        let n = reader.read(&mut buf)?;
++        if n == 0 {
++            break;
++        }
++        hasher.update(&buf[..n]);
++    }
++    Ok(hex::encode(hasher.finalize()))
++}
++
++fn validate_archive_content_files(files: Vec<ArchiveContent>) -> Result<Vec<ArchiveContent>> {
++    if files.is_empty() {
++        bail!("content-level SLSA verification found no regular files in archive");
++    }
++    let mut names = std::collections::HashSet::new();
++    for file in &files {
++        if !names.insert(file.name.clone()) {
++            bail!(
++                "content-level SLSA verification found duplicate installed archive path: {}",
++                file.name
++            );
++        }
++    }
++    Ok(files)
++}
++
++fn normalize_archive_content_path(path: &Path, strip_components: usize) -> Result<String> {
++    let mut parts = Vec::new();
++    for component in skip_curdir_components(path) {
++        match component {
++            std::path::Component::Normal(part) => parts.push(part.to_string_lossy().to_string()),
++            std::path::Component::CurDir => {}
++            std::path::Component::ParentDir
++            | std::path::Component::RootDir
++            | std::path::Component::Prefix(_) => {
++                bail!(
++                    "content-level SLSA verification rejected unsafe archive path: {}",
++                    path.display()
++                )
++            }
++        }
++    }
++    if strip_components > parts.len() {
++        bail!(
++            "content-level SLSA verification stripped all components from archive path: {}",
++            path.display()
++        );
++    }
++    let parts = &parts[strip_components..];
++    if parts.is_empty() {
++        bail!(
++            "content-level SLSA verification stripped all components from archive path: {}",
++            path.display()
++        );
++    }
++    Ok(parts.join("/"))
++}
++
+ #[cfg(test)]
+ mod tests {
+     use pretty_assertions::assert_eq;
+@@ -1347,6 +1510,50 @@ mod tests {
+ 
+     use super::*;
+ 
++    #[test]
++    fn test_archive_content_files_tar_hashes_regular_files() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive_path = dir.path().join("tool.tar");
++        {
++            let file = File::create(&archive_path).unwrap();
++            let mut builder = tar::Builder::new(file);
++            let mut header = tar::Header::new_gnu();
++            header.set_path("pkg/tool").unwrap();
++            header.set_size(4);
++            header.set_mode(0o755);
++            header.set_cksum();
++            builder.append(&header, &b"tool"[..]).unwrap();
++            builder.finish().unwrap();
++        }
++
++        let files = archive_content_files(&archive_path, TarFormat::Tar, 1).unwrap();
++        assert_eq!(files.len(), 1);
++        assert_eq!(files[0].name, "tool");
++        assert_eq!(files[0].sha256, hex::encode(Sha256::digest(b"tool")));
++    }
++
++    #[test]
++    fn test_archive_content_files_tar_rejects_symlink() {
++        let dir = tempfile::tempdir().unwrap();
++        let archive_path = dir.path().join("tool.tar");
++        {
++            let file = File::create(&archive_path).unwrap();
++            let mut builder = tar::Builder::new(file);
++            let mut header = tar::Header::new_gnu();
++            header.set_entry_type(tar::EntryType::Symlink);
++            header.set_path("tool-link").unwrap();
++            header.set_link_name("tool").unwrap();
++            header.set_size(0);
++            header.set_mode(0o777);
++            header.set_cksum();
++            builder.append(&header, std::io::empty()).unwrap();
++            builder.finish().unwrap();
++        }
++
++        let err = archive_content_files(&archive_path, TarFormat::Tar, 0).unwrap_err();
++        assert!(err.to_string().contains("non-regular archive entry"));
++    }
++
+     #[tokio::test]
+     async fn test_find_up() {
+         let _config = Config::get().await.unwrap();
+diff --git a/src/github/sigstore.rs b/src/github/sigstore.rs
+index dfeeec8f..90819902 100644
+--- a/src/github/sigstore.rs
++++ b/src/github/sigstore.rs
+@@ -29,7 +29,7 @@ use std::path::Path;
+ use mise_sigstore::sources::github::GitHubSource;
+ use mise_sigstore::{ArtifactRef, AttestationSource};
+ 
+-pub use mise_sigstore::AttestationError;
++pub use mise_sigstore::{AttestationError, SlsaArtifact};
+ 
+ /// Result alias that matches `mise_sigstore`'s internal convention.
+ type AttestationResult<T> = std::result::Result<T, AttestationError>;
+@@ -142,6 +142,18 @@ pub async fn verify_slsa_provenance(
+     mise_sigstore::verify_slsa_provenance(artifact_path, provenance_path, min_level).await
+ }
+ 
++pub async fn verify_slsa_provenance_artifacts(
++    provenance_path: &Path,
++    artifacts: &[SlsaArtifact],
++    min_level: u8,
++) -> AttestationResult<bool> {
++    mise_sigstore::verify_slsa_provenance_artifacts(provenance_path, artifacts, min_level).await
++}
++
++pub fn is_slsa_subject_mismatch(error: &AttestationError) -> bool {
++    mise_sigstore::is_slsa_subject_mismatch(error)
++}
++
+ /// Verify a keyless Cosign signature or bundle. Passthrough — no token needed.
+ pub async fn verify_cosign_signature(
+     artifact_path: &Path,

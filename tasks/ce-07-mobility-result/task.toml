@@ -3,7 +3,7 @@ schema_version = "1.3"
 name = "personal/ce-07-mobility-result"
 description = "Migrate multiplatform HTTP APIs to explicit Result semantics."
 authors = [{ name = "Sargun Vohra" }]
-keywords = ["kotlin", "ktor", "api-migration", "interactive", "historical-replay", "sealed-transfer"]
+keywords = ["kotlin", "ktor", "api-migration", "historical-replay"]
 
 [metadata]
 task_id = "ce-07-mobility-result"
@@ -14,9 +14,8 @@ repository_url = "https://github.com/sargunv/mobility-data-kt"
 upstream_primary_pr_url = "https://github.com/sargunv/mobility-data-kt/pull/53"
 base_commit_hash = "541fc977a939501693a195057d0d1ce39188b522"
 gold_commit_hash = "1334676fae7409daa93cd6316285c24b5a7af571"
-track = "historical-replay+sealed-transfer"
+track = "historical-replay"
 upstream_license = "Apache-2.0"
-interaction_scenarios = ["validation-fail-fast", "all-errors-as-result"]
 
 [verifier]
 environment_mode = "separate"

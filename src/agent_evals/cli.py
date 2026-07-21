@@ -16,6 +16,7 @@ from .proctor import ProctorQueue
 from .providers import load_routes, resolve_model
 from .report import write_experiment_report
 from .review import ProctorReview
+from .review_packets import finalize_review, prepare_review_packets
 from .task import TaskSpec, TaskValidationError, discover_tasks
 
 
@@ -136,6 +137,18 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--proctor", default="Hermes Agent")
     review.add_argument("--proctor-model", required=True)
     review.add_argument("--output", type=Path, required=True)
+
+    review_packets = commands.add_parser("review-packets")
+    review_packets.add_argument("experiment_id")
+    review_packets.add_argument("--output", type=Path, required=True)
+    review_packets.add_argument("--mapping", type=Path, required=True)
+
+    review_finalize = commands.add_parser("review-finalize")
+    review_finalize.add_argument("packet_id")
+    review_finalize.add_argument("--mapping", type=Path, required=True)
+    review_finalize.add_argument("--response", type=Path, required=True)
+    review_finalize.add_argument("--proctor", default="Hermes Agent")
+    review_finalize.add_argument("--proctor-model", required=True)
     return parser
 
 
@@ -253,6 +266,24 @@ def main(argv: list[str] | None = None) -> int:
         )
         review.write(args.output)
         _print({"output": str(args.output)})
+        return 0
+    if args.command == "review-packets":
+        _print(prepare_review_packets(repo, args.experiment_id, args.output, args.mapping))
+        return 0
+    if args.command == "review-finalize":
+        review = finalize_review(
+            repo,
+            args.mapping,
+            args.packet_id,
+            args.response,
+            proctor=args.proctor,
+            proctor_model=args.proctor_model,
+        )
+        _print({"output": str(repo / next(
+            entry["review_path"]
+            for entry in json.loads(args.mapping.read_text())["packets"]
+            if entry["packet_id"] == args.packet_id
+        )), "review": asdict(review)})
         return 0
     raise AssertionError(args.command)
 
