@@ -23,7 +23,15 @@ async function fixture() {
 
 describe('labels and review semantics', () => {
   it('humanizes enums and stable model slugs', () => { expect(humanizeEnum('ask_user')).toBe('Ask user'); expect(humanizeEnum('validation-fail-fast')).toBe('Validation fail-fast'); expect(modelSlug('OpenCode Go','Kimi/K2')).toBe('opencode-go--kimi-k2'); expect(duration(2564.3)).toBe('42m 44s'); });
-  it('uses pending, not-ready, and reviewed states without overriding verification', () => { expect(reviewState('completed').kind).toBe('pending'); expect(reviewState('partial').label).toBe('Not ready'); const state=reviewState('completed',{score:5}); expect(state.kind).toBe('reviewed'); expect(state.explanation).toContain('cannot override'); });
+  it('distinguishes queued, withheld, disabled, not-ready, and reviewed states', () => {
+    expect(reviewState('completed').kind).toBe('pending');
+    expect(reviewState('completed', {}, 'withheld').label).toContain('validity audit');
+    expect(reviewState('completed', {}, 'disabled').kind).toBe('not-applicable');
+    expect(reviewState('partial', {}, 'withheld').label).toBe('Not ready');
+    const state=reviewState('completed',{score:5},'withheld');
+    expect(state.kind).toBe('reviewed');
+    expect(state.explanation).toContain('cannot override');
+  });
 });
 describe('path and provenance safety', () => {
   it('rejects traversal, absolute, and non-HTTP links', () => { expect(() => safeRelativePath('../x')).toThrow(); expect(() => safeRelativePath('/x')).toThrow(); expect(() => validateHttpUrl('javascript:alert(1)','url')).toThrow(); });

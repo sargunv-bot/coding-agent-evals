@@ -8,7 +8,7 @@ import { reviewState } from './review';
 import { containedFile, safeRelativePath, validateHttpUrl } from './safety';
 import { parseTranscript } from './transcript';
 import { extractObservedChecks } from './observed';
-import type { Artifact, Experiment, Model, Run, SiteData, Task, TaskMetadata, Warning } from './types';
+import type { Artifact, Experiment, Model, ReviewPolicy, Run, SiteData, Task, TaskMetadata, Warning } from './types';
 
 const ALLOWED_ARTIFACTS = new Set(['instruction.txt','matrix-record.json','model.patch','opencode.json','transcript.jsonl','verifier/stdout.txt','proctor-review.json','artifacts.json']);
 const utf8 = async (file: string) => readFile(file, 'utf8');
@@ -58,6 +58,8 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
   for (const experimentId of await dirs(reportsRoot)) {
     const ew: Warning[] = []; const reportDir = path.join(reportsRoot, experimentId);
     const manifest = await optionalToml(path.join(dataRoot, 'experiments', `${experimentId}.toml`), ew, experimentId);
+    const exp = asRecord(manifest?.experiment);
+    const reviewPolicy: ReviewPolicy = ['withheld', 'disabled'].includes(exp.review_policy) ? exp.review_policy : 'required';
     const resultDoc = await optionalJson(path.join(reportDir, 'results.json'), ew, experimentId);
     const rows = Array.isArray(resultDoc?.rows) ? resultDoc.rows : [];
     const byCell = new Map<string, any>(rows.filter((r: any) => typeof r?.cell_id === 'string').map((r: any) => [r.cell_id, r]));
@@ -100,10 +102,10 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
         tokens: { input: Number(row.input_tokens ?? usage.input_tokens) || 0, cachedInput: Number(row.cached_input_tokens ?? usage.cached_input_tokens) || 0, output: Number(row.output_tokens ?? usage.output_tokens) || 0, reasoning: Number(row.reasoning_tokens ?? usage.reasoning_tokens) || 0 },
         artifacts, instruction, patch, transcript: parsed.events, transcriptTruncated: parsed.truncated, transcriptWarnings: parsed.warnings, verifierOutput,
         observed: extractObservedChecks(String(row.task_id || 'unknown-task'), verifierOutput, typeof row.deterministic_pass === 'boolean' ? row.deterministic_pass : undefined),
-        reviewState: reviewState(state, asRecord(review)), warnings: rw };
+        reviewState: reviewState(state, asRecord(review), reviewPolicy), warnings: rw };
       runs.push(run); allRuns.push(run); ew.push(...rw);
     }
-    const exp = asRecord(manifest?.experiment); const plannedCells = (Array.isArray(manifest?.models) ? manifest.models.length : 0) * (Array.isArray(manifest?.cells) ? manifest.cells.length : 0) * Number(exp.repeats || 1);
+    const plannedCells = (Array.isArray(manifest?.models) ? manifest.models.length : 0) * (Array.isArray(manifest?.cells) ? manifest.cells.length : 0) * Number(exp.repeats || 1);
     experiments.push({ id: experimentId, description: exp.description, stage: exp.stage, plannedCells, runs, warnings: ew }); warnings.push(...ew);
   }
   for (const run of allRuns) run.taskTitle = taskMap.get(run.taskId)?.title || run.taskId;
