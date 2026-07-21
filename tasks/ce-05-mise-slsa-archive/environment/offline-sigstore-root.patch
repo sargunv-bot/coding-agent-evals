@@ -1,0 +1,10 @@
+--- a/src/tuf.rs
++++ b/src/tuf.rs
+@@ -476,7 +476,7 @@
+     /// ```
+     pub async fn production() -> Result<Self> {
+-        Self::from_tuf(TufConfig::production()).await
++        Self::from_embedded(SigstoreInstance::PublicGood)
+     }
+ 
+     /// Fetch the trusted root from Sigstore's staging TUF repository

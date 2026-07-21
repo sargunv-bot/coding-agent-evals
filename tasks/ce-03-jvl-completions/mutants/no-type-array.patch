@@ -1,3 +1,23 @@
+diff --git a/src/lsp.rs b/src/lsp.rs
+index 6f54314..9604825 100644
+--- a/src/lsp.rs
++++ b/src/lsp.rs
+@@ -1050,6 +1050,7 @@ fn build_value_items(
+         }))
+     };
+ 
++    let mut seen_labels = HashSet::new();
+     values
+         .iter()
+         .flat_map(|v| match v {
+@@ -1096,6 +1097,7 @@ fn build_value_items(
+                 }]
+             }
+         })
++        .filter(|item| seen_labels.insert(item.label.clone()))
+         .collect()
+ }
+ 
 diff --git a/src/schema.rs b/src/schema.rs
 index e442a5c..e9ff653 100644
 --- a/src/schema.rs

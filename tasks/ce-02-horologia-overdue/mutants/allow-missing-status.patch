@@ -1,0 +1,25 @@
+diff --git a/server/internal/taskengine/overdue_action_validate.go b/server/internal/taskengine/overdue_action_validate.go
+index 0296398..bcdc711 100644
+--- a/server/internal/taskengine/overdue_action_validate.go
++++ b/server/internal/taskengine/overdue_action_validate.go
+@@ -18,8 +18,9 @@ func ValidateOverdueActionRule(
+ 	if !action.Valid {
+ 		return nil // no rule, nothing to validate
+ 	}
+-	if recurrenceType == dbgen.RecurrenceTypeOneOff || recurrenceType == dbgen.RecurrenceTypeOnDependency {
+-		return types.ValidationError("overdue_action_rule is only valid on recurring tasks")
++	if action.OverdueAction == dbgen.OverdueActionAdvanceRecurrence &&
++		(recurrenceType == dbgen.RecurrenceTypeOneOff || recurrenceType == dbgen.RecurrenceTypeOnDependency) {
++		return types.ValidationError("advance_recurrence overdue action is only valid on recurring tasks")
+ 	}
+ 	if !hasDue {
+ 		return types.ValidationError("overdue_action_rule requires a due date")
+@@ -31,8 +32,5 @@ func ValidateOverdueActionRule(
+ 				"the accumulating cron handles missed occurrences automatically",
+ 		)
+ 	}
+-	if action.OverdueAction == dbgen.OverdueActionSetStatus && !statusName.Valid {
+-		return types.ValidationError("overdue_action_rule.status is required when action is set_status")
+-	}
+ 	return nil
+ }

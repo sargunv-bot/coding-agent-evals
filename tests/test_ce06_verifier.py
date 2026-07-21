@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import json
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from types import ModuleType
+from unittest.mock import patch
 
 VERIFIER_PATH = (
     Path(__file__).parents[1]
@@ -19,18 +23,34 @@ sys.modules.setdefault("yaml", ModuleType("yaml"))
 SPEC.loader.exec_module(VERIFIER)
 
 
-def test_discovers_json_manifest_generator_and_validate_mode(tmp_path: Path) -> None:
-    generator = tmp_path / ".github" / "tools" / "generate-ci-workflow.py"
-    generator.parent.mkdir(parents=True)
-    generator.write_text(
-        "# Generate .github/workflows/ci.yml from the JSON manifest.\n"
-        "parser.add_argument('--validate')\n"
-    )
+def test_uses_declared_contributor_commands() -> None:
+    assert VERIFIER.GENERATE_COMMAND == ["mise", "run", "ci:generate-workflow"]
+    assert VERIFIER.CHECK_COMMAND == [
+        "mise",
+        "run",
+        "ci:generate-workflow",
+        "--",
+        "--check",
+    ]
 
-    assert VERIFIER.find_generator(tmp_path) == generator
-    generate, check = VERIFIER.generator_commands(generator)
-    assert generate[-1] == str(generator)
-    assert check[-1] == "--validate"
+
+def test_discovers_candidate_policy_manifests_without_assuming_paths() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.name", "test"], cwd=root, check=True)
+        subprocess.run(["git", "config", "user.email", "test@invalid"], cwd=root, check=True)
+        (root / "mise.toml").write_text("[tasks]\n")
+        (root / "README.md").write_text("base\n")
+        subprocess.run(["git", "add", "."], cwd=root, check=True)
+        subprocess.run(["git", "commit", "-qm", "base"], cwd=root, check=True)
+
+        (root / "mise.toml").write_text("[tasks]\nci = 'generate'\n")
+        manifest = root / "policy" / "targets.json"
+        manifest.parent.mkdir()
+        manifest.write_text('{"targets": []}\n')
+
+        assert VERIFIER.candidate_manifest_paths(root) == [Path("policy/targets.json")]
 
 
 def test_aggregates_feature_matrices_into_target_policy() -> None:
@@ -67,45 +87,45 @@ def test_aggregates_feature_matrices_into_target_policy() -> None:
     }
 
 
-def test_enables_steps_from_declarative_matrix_membership() -> None:
-    row = {"steps": ["test_native", "rust_binding"]}
-
-    assert VERIFIER.enabled(
-        {"if": "${{ contains(matrix.steps, 'test_native') }}"}, row
+def test_enabled_delegates_expression_and_matrix_context() -> None:
+    expression = (
+        "${{ contains(fromJSON('[\"linux-x64-vulkan\"]'), matrix.mise_env) }}"
     )
-    assert not VERIFIER.enabled(
-        {"if": '${{ contains(matrix.steps, "swift_binding") }}'}, row
+    row = {"mise_env": "linux-x64-vulkan"}
+    with patch.object(VERIFIER, "evaluate_expression", return_value=True) as evaluate:
+        assert VERIFIER.enabled({"if": expression}, row)
+    evaluate.assert_called_once_with(expression, {"matrix": row})
+
+
+def test_unconditional_step_is_enabled_without_expression_evaluation() -> None:
+    with patch.object(VERIFIER, "evaluate_expression") as evaluate:
+        assert VERIFIER.enabled({}, {"mise_env": "linux-x64-vulkan"})
+    evaluate.assert_not_called()
+
+
+def test_expression_evaluator_uses_official_helper_protocol() -> None:
+    completed = subprocess.CompletedProcess(
+        args=["node"], returncode=0, stdout='{"enabled":true}\n', stderr=""
     )
+    with patch.object(VERIFIER.subprocess, "run", return_value=completed) as run:
+        assert VERIFIER.evaluate_expression("${{ matrix.enabled }}", {"matrix": {"enabled": True}})
+
+    assert run.call_args.args[0] == ["node", "/opt/gha-expressions/evaluate_expression.mjs"]
+    request = json.loads(run.call_args.kwargs["input"])
+    assert request == {
+        "expression": "${{ matrix.enabled }}",
+        "context": {"matrix": {"enabled": True}},
+    }
 
 
-def test_evaluates_generated_string_conditions_semantically() -> None:
-    ios = {"mise_env": "ios-arm64-metal"}
-    linux_vulkan = {"mise_env": "linux-x64-vulkan"}
-
-    assert VERIFIER.enabled({"if": "${{ startsWith(matrix.mise_env, 'ios-') }}"}, ios)
-    assert not VERIFIER.enabled({"if": "${{ !startsWith(matrix.mise_env, 'ios-') }}"}, ios)
-    assert VERIFIER.enabled(
-        {
-            "if": "${{ matrix.mise_env != 'macos-arm64-egl' "
-            "&& !startsWith(matrix.mise_env, 'ios-') }}"
-        },
-        linux_vulkan,
+def test_expression_evaluator_rejects_parser_errors() -> None:
+    completed = subprocess.CompletedProcess(
+        args=["node"], returncode=1, stdout="", stderr="Unexpected symbol"
     )
-    assert VERIFIER.enabled(
-        {"if": "${{ contains(matrix.mise_env, '-vulkan') }}"}, linux_vulkan
-    )
-    assert not VERIFIER.enabled(
-        {"if": "${{ matrix.mise_env == 'macos-arm64-metal' }}"}, linux_vulkan
-    )
-
-
-def test_rejects_unknown_generated_condition() -> None:
-    try:
-        VERIFIER.enabled(
-            {"if": "${{ endsWith(matrix.mise_env, '-metal') }}"},
-            {"mise_env": "ios-arm64-metal"},
-        )
-    except AssertionError as error:
-        assert "unsupported generated variant condition" in str(error)
-    else:
-        raise AssertionError("unknown condition was accepted")
+    with patch.object(VERIFIER.subprocess, "run", return_value=completed):
+        try:
+            VERIFIER.evaluate_expression("${{ invalid( }}", {"matrix": {}})
+        except AssertionError as error:
+            assert "Unexpected symbol" in str(error)
+        else:
+            raise AssertionError("invalid expression was accepted")

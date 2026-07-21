@@ -1,7 +1,7 @@
 FROM docker.io/library/rust@sha256:7274e0edb5b47eda8053b350ebf3d489f7e0f65d2d7e77b16076299c7c047c28
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git clang libclang-14-dev cmake pkg-config ripgrep \
+    && apt-get install -y --no-install-recommends ca-certificates curl git clang libclang-14-dev cmake patch pkg-config ripgrep \
     && rm -rf /var/lib/apt/lists/* \
     && rustup component add clippy rustfmt
 RUN useradd --create-home --shell /bin/bash agent
@@ -17,14 +17,30 @@ RUN git init --quiet /app \
     && git -C /app commit --quiet -m 'benchmark base'
 
 WORKDIR /app
-RUN cargo fetch --locked \
-    && cargo fmt --check \
+RUN cargo fetch --locked
+COPY tasks/ce-05-mise-slsa-archive/environment/offline-sigstore-root.patch /tmp/offline-sigstore-root.patch
+RUN crate=/usr/local/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/sigstore-trust-root-0.7.0 \
+    && patch --directory="$crate" --strip=1 --input=/tmp/offline-sigstore-root.patch
+RUN cargo fmt --check \
     && cargo build --locked --all-features \
     && cargo clippy --locked -p mise-sigstore --all-targets -- -D warnings \
     && cargo clippy --locked --bin mise -- -D warnings \
     && cargo test --no-run --locked -p mise-sigstore \
     && cargo test --no-run --locked --bin mise \
     && chown -R agent:agent /app /usr/local/cargo
+
+RUN mkdir -p /opt/ce05-fixtures \
+    && curl --fail --location --retry 3 \
+      https://github.com/astral-sh/uv/releases/download/0.11.30/dist-manifest.json \
+      --output /opt/ce05-fixtures/dist-manifest.json \
+    && printf '%s  %s\n' \
+      1ffc1aef24d13b7d39a5cc27d74482ab6807193ba6cda547116f3fa45180c114 \
+      /opt/ce05-fixtures/dist-manifest.json \
+      | sha256sum --check --strict \
+    && chmod 0444 /opt/ce05-fixtures/dist-manifest.json
+COPY tasks/ce-05-mise-slsa-archive/environment/fixtures/uv-0.11.30-dist-manifest.slsa.bundle.json \
+  /opt/ce05-fixtures/provenance.intoto.jsonl
+RUN chmod 0444 /opt/ce05-fixtures/provenance.intoto.jsonl
 
 USER agent
 ENV HOME=/home/agent CARGO_NET_OFFLINE=true LIBCLANG_PATH=/usr/lib/llvm-14/lib

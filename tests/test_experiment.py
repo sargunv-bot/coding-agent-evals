@@ -55,7 +55,6 @@ mode = "ask_user"
 
 [[cells]]
 task = "ce-07-mobility-result"
-scenario = "all-errors-as-result"
 mode = "ask_user"
 """
         )
@@ -83,10 +82,9 @@ task = "ce-01-antidote-output"
 """
             )
 
-    def test_requires_scenario_for_scenario_task(self) -> None:
-        with self.assertRaisesRegex(ExperimentValidationError, "requires an explicit scenario"):
-            self._load(
-                """
+    def test_unified_task_does_not_require_scenario(self) -> None:
+        spec = self._load(
+            """
 [experiment]
 id = "missing-scenario"
 stage = "smoke"
@@ -99,7 +97,8 @@ model = "model-a"
 [[cells]]
 task = "ce-07-mobility-result"
 """
-            )
+        )
+        self.assertIsNone(spec.cells[0].scenario)
 
     def test_full_info_requires_actual_initial_information(self) -> None:
         with self.assertRaisesRegex(ExperimentValidationError, "requires a scenario or"):
