@@ -1597,10 +1597,10 @@ index 330fad3..5016fec 100644
          implementation(libs.kotlinx.io.core)
        }
 diff --git a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
-index 54b3fa4..b4c6c0f 100644
+index 54b3fa4..8598849 100644
 --- a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
 +++ b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
-@@ -35,11 +35,13 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+@@ -35,11 +35,23 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
      }
    )
  
@@ -1608,17 +1608,27 @@ index 54b3fa4..b4c6c0f 100644
 -    httpClient.get(url).body<GofsFeedResponse<T>>()
 +  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(
 +    url: Url
-+  ): Result<GofsFeedResponse<T>> = runCatching { httpClient.get(url).body<GofsFeedResponse<T>>() }
++  ): Result<GofsFeedResponse<T>> =
++    try {
++      Result.success(httpClient.get(url).body<GofsFeedResponse<T>>())
++    } catch (error: Throwable) {
++      Result.failure(error)
++    }
  
 -  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(url: KtorUrl) =
 -    httpClient.get(url).body<GofsFeedResponse<T>>()
 +  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(
 +    url: KtorUrl
-+  ): Result<GofsFeedResponse<T>> = runCatching { httpClient.get(url).body<GofsFeedResponse<T>>() }
++  ): Result<GofsFeedResponse<T>> =
++    try {
++      Result.success(httpClient.get(url).body<GofsFeedResponse<T>>())
++    } catch (error: Throwable) {
++      Result.failure(error)
++    }
  
    /**
     * Fetches the GOFS manifest (auto-discovery file) from the given URL.
-@@ -47,90 +49,101 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+@@ -47,90 +59,101 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
     * The manifest contains URLs for all available feeds in all supported languages.
     *
     * @param discoveryUrl The URL of the gofs.json auto-discovery file
@@ -1747,7 +1757,7 @@ index 54b3fa4..b4c6c0f 100644
  
    /**
     * Fetches wait time information for services.
-@@ -143,7 +156,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+@@ -143,7 +166,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
     * @param dropOffLat Latitude where the user will be dropped off (optional)
     * @param dropOffLon Longitude where the user will be dropped off (optional)
     * @param brandIds List of brand IDs to filter wait times (optional)
@@ -1756,14 +1766,14 @@ index 54b3fa4..b4c6c0f 100644
     */
    context(service: Service)
    public suspend fun getWaitTimes(
-@@ -152,40 +165,41 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+@@ -152,40 +175,43 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
      dropOffLat: Double? = null,
      dropOffLon: Double? = null,
      brandIds: List<String> = emptyList(),
 -  ): GofsFeedResponse<WaitTimes> {
 -    val url = URLBuilder(service.feeds.getValue(FeedType.WaitTimes))
 -
-+  ): Result<GofsFeedResponse<WaitTimes>> = runCatching {
++  ): Result<GofsFeedResponse<WaitTimes>> {
      require(
        dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
      ) {
@@ -1772,6 +1782,7 @@ index 54b3fa4..b4c6c0f 100644
  
 -    url.parameters.append("pickup_lat", pickupLat.toString())
 -    url.parameters.append("pickup_lon", pickupLon.toString())
++    return runCatching {
 +      val url = URLBuilder(service.feeds.getValue(FeedType.WaitTimes))
  
 -    if (dropOffLat != null && dropOffLon != null) {
@@ -1789,16 +1800,16 @@ index 54b3fa4..b4c6c0f 100644
 +        url.parameters.append("drop_off_lat", dropOffLat.toString())
 +        url.parameters.append("drop_off_lon", dropOffLon.toString())
 +      }
- 
--    return getFeedResponse(url.build())
--  }
++
 +      if (brandIds.isNotEmpty()) {
 +        val joined = brandIds.joinToString(",")
 +        url.parameters.append("brand_id", joined)
 +      }
-+
+ 
+-    return getFeedResponse(url.build())
 +      getFeedResponse<WaitTimes>(url.build()).getOrThrow()
 +    }
+   }
  
    /**
     * Fetches booking rules for the service.
@@ -1816,7 +1827,7 @@ index 54b3fa4..b4c6c0f 100644
  
    /**
     * Fetches real-time booking information.
-@@ -203,7 +217,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+@@ -203,7 +229,7 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
     * @param brandIds List of brand IDs to filter wait times (optional)
     * @param pickupAddress Full address where the user will be picked up (optional)
     * @param dropOffAddress Full address where the user will be dropped off (optional)
@@ -1825,14 +1836,14 @@ index 54b3fa4..b4c6c0f 100644
     */
    context(service: Service)
    public suspend fun getRealtimeBookings(
-@@ -214,33 +228,33 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
+@@ -214,32 +240,34 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
      brandIds: List<String> = emptyList(),
      pickupAddress: String? = null,
      dropOffAddress: String? = null,
 -  ): GofsFeedResponse<RealtimeBookings> {
 -    val url = URLBuilder(service.feeds.getValue(FeedType.RealtimeBookings))
 -
-+  ): Result<GofsFeedResponse<RealtimeBookings>> = runCatching {
++  ): Result<GofsFeedResponse<RealtimeBookings>> {
      require(
        dropOffLat == null && dropOffLon == null || (dropOffLat != null && dropOffLon != null)
      ) {
@@ -1841,6 +1852,7 @@ index 54b3fa4..b4c6c0f 100644
  
 -    url.parameters.append("pickup_lat", pickupLat.toString())
 -    url.parameters.append("pickup_lon", pickupLon.toString())
++    return runCatching {
 +      val url = URLBuilder(service.feeds.getValue(FeedType.RealtimeBookings))
  
 -    if (dropOffLat != null && dropOffLon != null) {
@@ -1867,15 +1879,14 @@ index 54b3fa4..b4c6c0f 100644
 +      }
  
 -    return getFeedResponse(url.build())
--  }
 +      if (pickupAddress != null) url.parameters.append("pickup_address", pickupAddress)
 +      if (dropOffAddress != null) url.parameters.append("drop_off_address", dropOffAddress)
 +
 +      getFeedResponse<RealtimeBookings>(url.build()).getOrThrow()
 +    }
+   }
  
    override fun close(): Unit = httpClient.close()
- }
 diff --git a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt
 index e201a88..535ebc4 100644
 --- a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/DocsSnippet.kt

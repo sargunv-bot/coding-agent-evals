@@ -3,7 +3,7 @@ FROM docker.io/library/ubuntu@sha256:4fbb8e6a8395de5a7550b33509421a2bafbc0aab6c0
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        build-essential ca-certificates ccache clang clang-format cmake git glslang-dev \
+        build-essential ca-certificates ccache clang clang-format clang-tidy cmake git glslang-dev \
         libbz2-dev libcurl4-openssl-dev libglfw3-dev libicu-dev libjpeg-dev libopengl0 libpng-dev \
         libsqlite3-dev libuv1-dev libwebp-dev libx11-xcb-dev libxcursor-dev libxi-dev libxinerama-dev \
         llvm mesa-vulkan-drivers ninja-build pkg-config python3 ripgrep \
@@ -24,4 +24,5 @@ WORKDIR /app
 USER agent
 ENV HOME=/home/agent
 RUN cmake --preset linux-opengl -DMLN_WITH_CLANG_TIDY=OFF -DMLN_WITH_COVERAGE=OFF \
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     && cmake --build build-linux-opengl --target mbgl-core --parallel 2

@@ -1,0 +1,25 @@
+# Behavioral verifier audit — 2026-07-21
+
+## Standard
+
+A verifier may grade only requirements disclosed in the candidate-visible task. It should establish those requirements through observable behavior at an existing public or production boundary. Structural checks are acceptable only for explicitly stated structural constraints that cannot be established behaviorally, and should use the language/build tooling rather than source-text patterns. Candidate source must not be searched for gold identifiers, helper names, macro spellings, or equivalent implementation fingerprints.
+
+Calibration requires a no-op rejection, repeated gold acceptance, and semantic mutants for each independently claimed property. Calibration must fail if the candidate image lacks the contributor tools needed by the disclosed workflow.
+
+## Findings
+
+| Task | Prior verifier | Finding | Repair |
+| --- | --- | --- | --- |
+| CE-01 Antidote output | Zsh integration fixture with a fake `git` executable | Behavioral and implementation-independent, but it graded update paths beyond the generated-plugin-script failure described by the task. | Scope both prompt and fixture to the clone path that can contaminate generated script stdout; assert stderr diagnostics and failure propagation. Rerun prior cells because the prompt changed materially. |
+| CE-02 Horologia overdue | Go package tests through task/service behavior | Behavioral and aligned with the prompt. No candidate-source inspection or gold symbol dependency found. | No verifier rewrite. Re-run no-op/gold/mutants under the common calibration protocol. |
+| CE-03 JVL completions | Rust package/LSP tests using JSON Schema inputs and completion outputs | Behavioral and aligned, but coverage missed duplicate labels produced by semantically equal `const` and `enum` branches. | Add cross-kind and repeat-order LSP assertions. Deduplicate at the observable completion-label boundary. Re-run no-op/gold/mutants. |
+| CE-04 MapLibre source location | Regex/source inspection to discover a candidate macro plus a synthetic include | Invalid. It required an object-like macro spelling, rejected valid namespaced and function-like implementations, and did not compile the actual production call site. | Rebuild `mbgl-core`; compile and execute `SYM_GUARD_LOC` under C++20, and include the reusable source-location header with the standard feature unavailable under C++17, using GCC and Clang with real CMake flags. Do not require a fallback type name, namespace, constructor, or private macro. Strip `-DNDEBUG` so native assertions execute. Enforce “do not extend `std`” with `clang-tidy` (`cert-dcl58-cpp`), not regex. |
+| CE-05 mise SLSA archive | Source-regex dispatcher selecting candidate-defined private identifiers | Invalid. It encoded known implementation families and could not verify arbitrary correct implementations. | Replace it with offline CLI verification of deterministic archives and a genuine frozen SLSA-v1 bundle. Patch the pinned trust-root dependency in the image to use its embedded production root, avoiding runtime TUF/network access. No candidate-source discovery is permitted. |
+| CE-06 MapLibre FFI CI | Generator command discovery from source and a hand-written subset of GitHub expression syntax | Invalid. It rejected valid `contains(fromJSON(...), matrix.mise_env)` syntax, guessed contributor commands, omitted mise from the image, and claimed manifest strictness without malformed-manifest tests. | Disclose fixed mise generate/check commands and install pinned mise. Evaluate `if:` expressions with `@actions/expressions` in a pinned Node image. Discover policy manifests from the candidate diff by behavioral dependency probing, then test malformed syntax and unknown fields. Rerun all cells because the contributor-interface prompt changed materially. |
+| CE-07 Mobility Result | Two contradictory scenario policies | Deterministic tests were behavioral, but the task contract was underdetermined: both “all errors become `Result.failure`” and “programmer misuse remains fail-fast” were plausible. | Define one contract: caller/precondition misuse throws before network; transport, HTTP, and decoding errors return `Result.failure`. Remove the counterfactual scenario from future scoring and retain its patch as a semantic mutant. Rerun prior failures under the clarified prompt. |
+
+## Review workflow
+
+The prior campaign removed the clarification queue and changed final review policy in the same revision, but those are independent concerns. Explicit prompts remove the need for live clarification on these tasks; they do not remove the required post-run qualitative review.
+
+Future final review must use opaque, model-blind packets containing the candidate-visible prompt, candidate diff, changed tests, deterministic result/logs, and sufficient base-repository context. Packet-to-run mapping must remain outside the reviewer packet. Imported reviews must validate against the existing `ProctorReview` schema and cannot override deterministic grading.

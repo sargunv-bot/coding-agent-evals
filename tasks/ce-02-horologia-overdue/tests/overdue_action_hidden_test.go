@@ -1,51 +1,70 @@
 package taskengine
 
 import (
+    "fmt"
     "testing"
 
     "github.com/jackc/pgx/v5/pgtype"
     dbgen "github.com/sargunv/tend/server/internal/database/gen"
 )
 
-func hiddenAction(a dbgen.OverdueAction) dbgen.NullOverdueAction {
-    return dbgen.NullOverdueAction{OverdueAction: a, Valid: true}
+func hiddenAction(action dbgen.OverdueAction) dbgen.NullOverdueAction {
+    return dbgen.NullOverdueAction{OverdueAction: action, Valid: true}
 }
 
 func TestHiddenOverdueActionBehaviorMatrix(t *testing.T) {
+    recurrences := []dbgen.RecurrenceType{
+        dbgen.RecurrenceTypeOneOff,
+        dbgen.RecurrenceTypeCompletionBased,
+        dbgen.RecurrenceTypeFixedNonAccumulating,
+        dbgen.RecurrenceTypeFixedAccumulating,
+        dbgen.RecurrenceTypeOnDependency,
+    }
+    actions := []dbgen.OverdueAction{
+        dbgen.OverdueActionSetStatus,
+        dbgen.OverdueActionClearDueDate,
+        dbgen.OverdueActionAdvanceRecurrence,
+    }
     status := pgtype.Text{String: "done", Valid: true}
     noStatus := pgtype.Text{}
-    cases := []struct {
-        name       string
-        action     dbgen.NullOverdueAction
-        status     pgtype.Text
-        recurrence dbgen.RecurrenceType
-        hasDue     bool
-        wantErr    bool
-    }{
-        {"absent rule remains valid", dbgen.NullOverdueAction{}, noStatus, dbgen.RecurrenceTypeOneOff, false, false},
-        {"set status one off", hiddenAction(dbgen.OverdueActionSetStatus), status, dbgen.RecurrenceTypeOneOff, true, false},
-        {"set status dependency", hiddenAction(dbgen.OverdueActionSetStatus), status, dbgen.RecurrenceTypeOnDependency, true, false},
-        {"clear due one off", hiddenAction(dbgen.OverdueActionClearDueDate), noStatus, dbgen.RecurrenceTypeOneOff, true, false},
-        {"clear due dependency", hiddenAction(dbgen.OverdueActionClearDueDate), noStatus, dbgen.RecurrenceTypeOnDependency, true, false},
-        {"advance one off rejected", hiddenAction(dbgen.OverdueActionAdvanceRecurrence), noStatus, dbgen.RecurrenceTypeOneOff, true, true},
-        {"advance dependency rejected", hiddenAction(dbgen.OverdueActionAdvanceRecurrence), noStatus, dbgen.RecurrenceTypeOnDependency, true, true},
-        {"advance completion based", hiddenAction(dbgen.OverdueActionAdvanceRecurrence), noStatus, dbgen.RecurrenceTypeCompletionBased, true, false},
-        {"advance fixed accumulating rejected", hiddenAction(dbgen.OverdueActionAdvanceRecurrence), noStatus, dbgen.RecurrenceTypeFixedAccumulating, true, true},
-        {"set status needs due", hiddenAction(dbgen.OverdueActionSetStatus), status, dbgen.RecurrenceTypeOneOff, false, true},
-        {"clear due needs due", hiddenAction(dbgen.OverdueActionClearDueDate), noStatus, dbgen.RecurrenceTypeOnDependency, false, true},
-        {"advance needs due", hiddenAction(dbgen.OverdueActionAdvanceRecurrence), noStatus, dbgen.RecurrenceTypeCompletionBased, false, true},
-        {"set status needs status", hiddenAction(dbgen.OverdueActionSetStatus), noStatus, dbgen.RecurrenceTypeOneOff, true, true},
+
+    if err := ValidateOverdueActionRule(pgtype.Int4{}, dbgen.NullOverdueAction{}, noStatus, dbgen.RecurrenceTypeOneOff, false); err != nil {
+        t.Fatalf("absent rule must remain valid: %v", err)
     }
 
-    for _, tc := range cases {
-        t.Run(tc.name, func(t *testing.T) {
-            err := ValidateOverdueActionRule(pgtype.Int4{}, tc.action, tc.status, tc.recurrence, tc.hasDue)
-            if tc.wantErr && err == nil {
-                t.Fatal("expected validation rejection, got nil")
-            }
-            if !tc.wantErr && err != nil {
-                t.Fatalf("unexpected validation rejection: %v", err)
-            }
-        })
+    for _, recurrence := range recurrences {
+        for _, action := range actions {
+            name := fmt.Sprintf("%s/%s", recurrence, action)
+            t.Run(name, func(t *testing.T) {
+                actionStatus := noStatus
+                if action == dbgen.OverdueActionSetStatus {
+                    actionStatus = status
+                }
+                wantValid := action != dbgen.OverdueActionAdvanceRecurrence ||
+                    recurrence == dbgen.RecurrenceTypeCompletionBased ||
+                    recurrence == dbgen.RecurrenceTypeFixedNonAccumulating
+                err := ValidateOverdueActionRule(pgtype.Int4{}, hiddenAction(action), actionStatus, recurrence, true)
+                if wantValid && err != nil {
+                    t.Fatalf("unexpected rejection: %v", err)
+                }
+                if !wantValid && err == nil {
+                    t.Fatal("expected rejection")
+                }
+
+                if err := ValidateOverdueActionRule(pgtype.Int4{}, hiddenAction(action), actionStatus, recurrence, false); err == nil {
+                    t.Fatal("a configured overdue action without a due date must be rejected")
+                }
+            })
+        }
+
+        if err := ValidateOverdueActionRule(
+            pgtype.Int4{},
+            hiddenAction(dbgen.OverdueActionSetStatus),
+            noStatus,
+            recurrence,
+            true,
+        ); err == nil {
+            t.Fatal("set_status without a target status must be rejected")
+        }
     }
 }

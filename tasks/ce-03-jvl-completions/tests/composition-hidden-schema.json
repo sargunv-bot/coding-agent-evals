@@ -20,6 +20,12 @@
         { "type": "object", "properties": { "right": { "type": "boolean" } } }
       ]
     },
+    "any_object": {
+      "anyOf": [
+        { "type": "object", "properties": { "north": { "type": "boolean" } } },
+        { "type": "object", "properties": { "south": { "type": "boolean" } } }
+      ]
+    },
     "nested": {
       "type": "object",
       "properties": {
@@ -38,6 +44,13 @@
         { "enum": ["same", "left"] },
         { "enum": ["same", "right"] }
       ]
-    }
+    },
+    "cross_kind_deduplicated": {
+      "anyOf": [
+        { "const": "same" },
+        { "enum": ["same", "other"] }
+      ]
+    },
+    "decoy_sibling": { "enum": ["must-not-leak"] }
   }
 }

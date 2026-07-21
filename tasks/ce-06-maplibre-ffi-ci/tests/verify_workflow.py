@@ -2,12 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import pathlib
-import re
 import shutil
 import subprocess
-import sys
 import tempfile
 
 import yaml
@@ -26,6 +25,9 @@ VARIANTS = {
     "windows-x64-vulkan": "windows-2022",
     "windows-x64-wgl": "windows-2022",
 }
+
+GENERATE_COMMAND = ["mise", "run", "ci:generate-workflow"]
+CHECK_COMMAND = [*GENERATE_COMMAND, "--", "--check"]
 
 
 def expected_commands(variant: str) -> set[str]:
@@ -61,48 +63,18 @@ def digest(path: pathlib.Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def find_generator(root: pathlib.Path) -> pathlib.Path:
-    preferred = root / ".mise/tasks/ci/generate-workflow"
-    if preferred.is_file():
-        return preferred
-    candidates = []
-    for path in root.rglob("*"):
-        if not path.is_file() or path.name.startswith("test_"):
-            continue
-        relative = path.relative_to(root)
-        if path.suffix not in {"", ".py", ".sh"} or ".git" in relative.parts:
-            continue
-        try:
-            text = path.read_text()
-        except UnicodeDecodeError:
-            continue
-        lowered = text.lower()
-        if ".github" in text and "ci.yml" in text and "manifest" in lowered:
-            candidates.append(path)
-    if len(candidates) != 1:
-        raise AssertionError(f"expected one discoverable workflow generator, got {candidates}")
-    return candidates[0]
-
-
-def generator_commands(generator: pathlib.Path) -> tuple[list[str], list[str]]:
-    text = generator.read_text()
-    base = [sys.executable, str(generator)]
-    if 'add_parser("generate"' in text and 'add_parser("check"' in text:
-        return base + ["generate"], base + ["check"]
-    if "--check" in text:
-        return base, base + ["--check"]
-    if "--validate" in text:
-        return base, base + ["--validate"]
-    raise AssertionError("generator has no discoverable non-mutating drift-check mode")
-
-
 def run(command: list[str], *, cwd: pathlib.Path, expect_success: bool) -> subprocess.CompletedProcess[str]:
     result = subprocess.run(
         command,
         cwd=cwd,
         text=True,
         capture_output=True,
-        env=os.environ | {"PYTHONDONTWRITEBYTECODE": "1"},
+        env=os.environ
+        | {
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "MISE_AUTO_INSTALL": "0",
+            "MISE_TRUSTED_CONFIG_PATHS": str(cwd),
+        },
     )
     if (result.returncode == 0) != expect_success:
         raise AssertionError(
@@ -112,61 +84,101 @@ def run(command: list[str], *, cwd: pathlib.Path, expect_success: bool) -> subpr
     return result
 
 
+def candidate_manifest_paths(source: pathlib.Path) -> list[pathlib.Path]:
+    changed = subprocess.run(
+        ["git", "diff", "--name-only", "--diff-filter=AM", "HEAD"],
+        cwd=source,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.splitlines()
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        cwd=source,
+        text=True,
+        capture_output=True,
+        check=True,
+    ).stdout.splitlines()
+    ignored = {"mise.toml", "mise.lock", "pyproject.toml", "uv.lock"}
+    return [
+        pathlib.Path(line)
+        for line in sorted(set(changed + untracked))
+        if pathlib.Path(line).suffix in {".toml", ".json", ".yaml", ".yml"}
+        and pathlib.Path(line).as_posix() not in ignored
+        and not pathlib.Path(line).as_posix().startswith(".github/workflows/")
+        and not pathlib.Path(line).as_posix().startswith(".github/actions/")
+    ]
+
+
+def unknown_field_bytes(path: pathlib.Path, original: bytes) -> bytes:
+    if path.suffix == ".toml":
+        return original + b"\ncae_unknown_field = true\n"
+    document = yaml.safe_load(original) if path.suffix in {".yaml", ".yml"} else json.loads(original)
+    assert isinstance(document, dict), path
+    document["cae_unknown_field"] = True
+    if path.suffix in {".yaml", ".yml"}:
+        return yaml.safe_dump(document, sort_keys=False).encode()
+    return (json.dumps(document, indent=2) + "\n").encode()
+
+
+def malformed_bytes(path: pathlib.Path, original: bytes) -> bytes:
+    if path.suffix == ".toml":
+        return original + b"\n[[[\n"
+    if path.suffix == ".json":
+        return original + b"{\n"
+    return original + b"\n: invalid\n"
+
+
+def assert_manifest_strictness(source: pathlib.Path, fixture: pathlib.Path, canonical: str) -> None:
+    workflow = fixture / ".github/workflows/ci.yml"
+    dependencies: list[pathlib.Path] = []
+    for relative in candidate_manifest_paths(source):
+        path = fixture / relative
+        if not path.is_file():
+            continue
+        original = path.read_bytes()
+        path.unlink()
+        result = subprocess.run(GENERATE_COMMAND, cwd=fixture, text=True, capture_output=True)
+        changed = workflow.is_file() and workflow.read_text() != canonical
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(original)
+        run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
+        if result.returncode != 0 or changed:
+            dependencies.append(relative)
+
+    assert dependencies, "no candidate manifest was behaviorally connected to workflow generation"
+    for relative in dependencies:
+        path = fixture / relative
+        original = path.read_bytes()
+        for mutation in (unknown_field_bytes, malformed_bytes):
+            path.write_bytes(mutation(path, original))
+            run(GENERATE_COMMAND, cwd=fixture, expect_success=False)
+            path.write_bytes(original)
+        run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
+        assert workflow.read_text() == canonical
+
+
+def evaluate_expression(expression: str, context: dict[str, object]) -> bool:
+    result = subprocess.run(
+        ["node", "/opt/gha-expressions/evaluate_expression.mjs"],
+        input=json.dumps({"expression": expression, "context": context}),
+        text=True,
+        capture_output=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(f"invalid GitHub Actions expression {expression!r}: {result.stderr.strip()}")
+    response = json.loads(result.stdout)
+    assert isinstance(response.get("enabled"), bool), response
+    return response["enabled"]
+
+
 def enabled(step: dict[str, object], matrix: dict[str, object]) -> bool:
     condition = step.get("if")
     if condition is None:
         return True
     if not isinstance(condition, str):
         raise AssertionError(f"unsupported step condition: {condition!r}")
-    prefix = "${{ matrix."
-    if condition.startswith(prefix) and condition.endswith(" }}"):
-        key = condition[len(prefix) : -3].strip()
-        if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
-            value = matrix.get(key)
-            assert isinstance(value, bool), (key, value)
-            return value
-    membership = re.fullmatch(
-        r"\$\{\{\s*contains\(matrix\.([A-Za-z_][A-Za-z0-9_]*),\s*(['\"])([^'\"]+)\2\)\s*}}",
-        condition,
-    )
-    if membership:
-        key, _, item = membership.groups()
-        value = matrix.get(key)
-        if isinstance(value, list) and all(isinstance(entry, str) for entry in value):
-            return item in value
-
-    expression = condition.removeprefix("${{").removesuffix("}}").strip()
-    clauses = [clause.strip() for clause in expression.split("&&")]
-    if clauses and all(clauses):
-        results = []
-        for clause in clauses:
-            comparison = re.fullmatch(
-                r"matrix\.mise_env\s*(!=|==)\s*(['\"])([^'\"]+)\2",
-                clause,
-            )
-            if comparison:
-                operator, _, expected = comparison.groups()
-                actual = matrix.get("mise_env")
-                assert isinstance(actual, str), actual
-                results.append(actual == expected if operator == "==" else actual != expected)
-                continue
-
-            string_call = re.fullmatch(
-                r"(!?)(startsWith|contains)\(matrix\.mise_env,\s*(['\"])([^'\"]+)\3\)",
-                clause,
-            )
-            if string_call:
-                negate, operation, _, argument = string_call.groups()
-                actual = matrix.get("mise_env")
-                assert isinstance(actual, str), actual
-                result = actual.startswith(argument) if operation == "startsWith" else argument in actual
-                results.append(not result if negate else result)
-                continue
-            break
-        else:
-            return all(results)
-
-    raise AssertionError(f"unsupported generated variant condition: {condition}")
+    return evaluate_expression(condition, {"matrix": matrix})
 
 
 def workflow_policy(document: dict[str, object]) -> dict[str, tuple[str, set[str]]]:
@@ -281,26 +293,25 @@ def main() -> None:
     with tempfile.TemporaryDirectory() as directory:
         fixture = pathlib.Path(directory) / "repo"
         shutil.copytree(source, fixture, symlinks=True, ignore=shutil.ignore_patterns(".git"))
-        generator = find_generator(fixture)
-        generate, check = generator_commands(generator)
         workflow = fixture / ".github/workflows/ci.yml"
 
         before = digest(workflow)
-        run(check, cwd=fixture, expect_success=True)
+        run(CHECK_COMMAND, cwd=fixture, expect_success=True)
         assert digest(workflow) == before, "check modified the checked-in workflow"
-        run(generate, cwd=fixture, expect_success=True)
+        run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
         assert digest(workflow) == before, "checked-in workflow is not canonical"
-        run(generate, cwd=fixture, expect_success=True)
+        run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
         assert digest(workflow) == before, "generation is nondeterministic"
         validate_workflow(fixture)
+        assert_manifest_strictness(source, fixture, workflow.read_text())
 
         text = workflow.read_text()
         assert "mise run test" in text
         workflow.write_text(text.replace("mise run test", "mise run test-drift", 1))
         drifted = digest(workflow)
-        run(check, cwd=fixture, expect_success=False)
+        run(CHECK_COMMAND, cwd=fixture, expect_success=False)
         assert digest(workflow) == drifted, "failed check mutated the workflow"
-        run(generate, cwd=fixture, expect_success=True)
+        run(GENERATE_COMMAND, cwd=fixture, expect_success=True)
         assert digest(workflow) == before, "generation did not repair workflow drift"
         validate_workflow(fixture)
 

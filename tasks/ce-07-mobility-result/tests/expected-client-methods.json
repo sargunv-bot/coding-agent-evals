@@ -1,0 +1,58 @@
+{
+  "gbfs-v1": [
+    "getFreeBikeStatus",
+    "getStationInformation",
+    "getStationStatus",
+    "getSystemAlerts",
+    "getSystemCalendar",
+    "getSystemHours",
+    "getSystemInformation",
+    "getSystemManifest",
+    "getSystemPricingPlans",
+    "getSystemRegions",
+    "getVersionManifest"
+  ],
+  "gbfs-v2": [
+    "getFreeBikeStatus",
+    "getGeofencingZones",
+    "getStationInformation",
+    "getStationStatus",
+    "getSystemAlerts",
+    "getSystemCalendar",
+    "getSystemHours",
+    "getSystemInformation",
+    "getSystemManifest",
+    "getSystemPricingPlans",
+    "getSystemRegions",
+    "getVehicleTypes",
+    "getVersionManifest"
+  ],
+  "gbfs-v3": [
+    "getDatasetManifest",
+    "getGeofencingZones",
+    "getServiceManifest",
+    "getStationInformation",
+    "getStationStatus",
+    "getSystemAlerts",
+    "getSystemInformation",
+    "getSystemPricingPlans",
+    "getSystemRegions",
+    "getVehicleStatus",
+    "getVehicleTypes",
+    "getVersionManifest"
+  ],
+  "gofs-v1": [
+    "getBookingRules",
+    "getCalendars",
+    "getFares",
+    "getOperatingRules",
+    "getRealtimeBookings",
+    "getServiceBrands",
+    "getSystemInformation",
+    "getSystemManifest",
+    "getVehicleTypes",
+    "getVersionManifest",
+    "getWaitTimes",
+    "getZones"
+  ]
+}

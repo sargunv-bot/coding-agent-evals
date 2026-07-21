@@ -63,6 +63,17 @@ async fn hidden_oneof_merges_object_properties() {
 }
 
 #[tokio::test]
+async fn hidden_anyof_merges_only_branch_properties() {
+    let labels = property_labels("any_object").await;
+    for expected in ["north", "south"] {
+        assert!(labels.contains(&expected.into()), "missing {expected}: {labels:?}");
+    }
+    for forbidden in ["alpha", "left", "decoy_sibling"] {
+        assert!(!labels.contains(&forbidden.into()), "leaked {forbidden}: {labels:?}");
+    }
+}
+
+#[tokio::test]
 async fn hidden_nested_anyof_and_null() {
     let body = r#""nested": {"choice": null}"#;
     let content = document(body);
@@ -96,4 +107,26 @@ async fn hidden_composed_values_are_deduplicated_deterministically() {
         assert!(labels.contains(&expected.into()), "missing {expected}: {labels:?}");
     }
     assert_eq!(labels.iter().filter(|label| label.as_str() == r#""same""#).count(), 1, "{labels:?}");
+
+    let repeated = value_labels("deduplicated").await;
+    assert_eq!(labels, repeated, "completion order changed across fresh servers");
+}
+
+#[tokio::test]
+async fn hidden_cross_kind_values_deduplicate_by_final_label() {
+    let labels = value_labels("cross_kind_deduplicated").await;
+    assert!(labels.contains(&r#""same""#.into()), "{labels:?}");
+    assert!(labels.contains(&r#""other""#.into()), "{labels:?}");
+    assert_eq!(labels.iter().filter(|label| label.as_str() == r#""same""#).count(), 1, "{labels:?}");
+}
+
+#[tokio::test]
+async fn hidden_existing_property_is_not_suggested_again() {
+    let body = r#""all_object": {"alpha": true, }"#;
+    let content = document(body);
+    let needle = r#"true, "#;
+    let cursor = content.find(needle).unwrap() + needle.len();
+    let labels = complete(&content, cursor).await;
+    assert!(!labels.contains(&"alpha".into()), "existing key leaked: {labels:?}");
+    assert!(labels.contains(&"beta".into()), "missing unused key: {labels:?}");
 }

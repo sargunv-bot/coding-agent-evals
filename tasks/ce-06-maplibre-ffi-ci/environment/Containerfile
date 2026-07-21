@@ -1,9 +1,31 @@
+FROM docker.io/library/node@sha256:8607a9064d4a571140998ae9e52a3b3fcf9cff361d04642d5971e6cd76d39e27 AS gha-expressions
+COPY tasks/ce-06-maplibre-ffi-ci/environment/expressions/package.json tasks/ce-06-maplibre-ffi-ci/environment/expressions/package-lock.json /opt/gha-expressions/
+COPY tasks/ce-06-maplibre-ffi-ci/environment/expressions/evaluate_expression.mjs /opt/gha-expressions/evaluate_expression.mjs
+RUN npm ci --prefix /opt/gha-expressions --ignore-scripts --omit=dev \
+    && printf '%s\n' '{"expression":"${{ contains(fromJSON('\''[\"linux-x64-vulkan\"]'\''), matrix.mise_env) }}","context":{"matrix":{"mise_env":"linux-x64-vulkan"}}}' \
+      | node /opt/gha-expressions/evaluate_expression.mjs \
+      | grep -F '"enabled":true'
+
 FROM docker.io/library/python@sha256:db5942d111df72110e7a67da3fc5159e83ac85cd24808b91bdc4769e166ed1b7
 
-ENV UV_CACHE_DIR=/opt/uv-cache
+COPY --from=gha-expressions /usr/local/bin/node /usr/local/bin/node
+COPY --from=gha-expressions /opt/gha-expressions /opt/gha-expressions
+ENV MISE_DATA_DIR=/opt/mise-data UV_CACHE_DIR=/opt/uv-cache
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates git ripgrep \
+    && apt-get install -y --no-install-recommends ca-certificates curl gcc git ripgrep \
     && rm -rf /var/lib/apt/lists/* \
+    && curl --fail --location --retry 3 \
+      https://github.com/jdx/mise/releases/download/v2026.7.5/mise-v2026.7.5-linux-x64-musl \
+      --output /usr/local/bin/mise \
+    && printf '%s  %s\n' \
+      cddf6d610f40a6e3c3e5a59e860b9e72e46b159ad254b9bda95e007ba32fbb28 \
+      /usr/local/bin/mise \
+      | sha256sum --check --strict \
+    && chmod 0555 /usr/local/bin/mise \
+    && mise --version \
+    && mkdir -p /opt/mise-data/installs/python/3.14.4/bin \
+    && ln -s /usr/local/bin/python3 /opt/mise-data/installs/python/3.14.4/bin/python \
+    && ln -s /usr/local/bin/python3 /opt/mise-data/installs/python/3.14.4/bin/python3 \
     && pip install --no-cache-dir uv==0.11.11 \
     && uv pip install --system pydantic==2.13.4 pyyaml==6.0.3
 RUN useradd --create-home --shell /bin/bash agent

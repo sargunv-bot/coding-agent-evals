@@ -417,42 +417,6 @@ index 5825cfc..383635b 100644
  
        // INVALID: num_bikes_available is named num_vehicles_available
        // client.getStationStatus()
-diff --git a/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ResultErrorHandlingTest.kt b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ResultErrorHandlingTest.kt
-new file mode 100644
-index 0000000..410f3f4
---- /dev/null
-+++ b/gbfs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v1/ResultErrorHandlingTest.kt
-@@ -0,0 +1,30 @@
-+package dev.sargunv.mobilitydata.gbfs.v1
-+
-+import io.ktor.client.engine.mock.MockEngine
-+import io.ktor.client.engine.mock.respondError
-+import io.ktor.http.HttpStatusCode
-+import kotlin.test.Test
-+import kotlin.test.assertTrue
-+import kotlinx.coroutines.test.runTest
-+
-+class ResultErrorHandlingTest {
-+  @Test
-+  fun networkErrorReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.InternalServerError) }
-+    val client = GbfsV1Client(engine)
-+
-+    val result = client.getSystemManifest("https://example.com/gbfs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for network error")
-+  }
-+
-+  @Test
-+  fun notFoundReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.NotFound) }
-+    val client = GbfsV1Client(engine)
-+
-+    val result = client.getSystemManifest("https://example.com/gbfs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for 404 error")
-+  }
-+}
 diff --git a/gbfs-v2/api/gbfs-v2.api b/gbfs-v2/api/gbfs-v2.api
 index 06299ae..9e6fe1a 100644
 --- a/gbfs-v2/api/gbfs-v2.api
@@ -1055,42 +1019,6 @@ index 79dbb7f..6ff061f 100644
      }
    }
  }
-diff --git a/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ResultErrorHandlingTest.kt b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ResultErrorHandlingTest.kt
-new file mode 100644
-index 0000000..166402d
---- /dev/null
-+++ b/gbfs-v2/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v2/ResultErrorHandlingTest.kt
-@@ -0,0 +1,30 @@
-+package dev.sargunv.mobilitydata.gbfs.v2
-+
-+import io.ktor.client.engine.mock.MockEngine
-+import io.ktor.client.engine.mock.respondError
-+import io.ktor.http.HttpStatusCode
-+import kotlin.test.Test
-+import kotlin.test.assertTrue
-+import kotlinx.coroutines.test.runTest
-+
-+class ResultErrorHandlingTest {
-+  @Test
-+  fun networkErrorReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.InternalServerError) }
-+    val client = GbfsV2Client(engine)
-+
-+    val result = client.getSystemManifest("https://example.com/gbfs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for network error")
-+  }
-+
-+  @Test
-+  fun notFoundReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.NotFound) }
-+    val client = GbfsV2Client(engine)
-+
-+    val result = client.getSystemManifest("https://example.com/gbfs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for 404 error")
-+  }
-+}
 diff --git a/gbfs-v3/api/gbfs-v3.api b/gbfs-v3/api/gbfs-v3.api
 index 7d6da36..f2650ef 100644
 --- a/gbfs-v3/api/gbfs-v3.api
@@ -1575,42 +1503,6 @@ index 842c69d..91e9bc8 100644
      }
    }
  }
-diff --git a/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ResultErrorHandlingTest.kt b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ResultErrorHandlingTest.kt
-new file mode 100644
-index 0000000..d16092b
---- /dev/null
-+++ b/gbfs-v3/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gbfs/v3/ResultErrorHandlingTest.kt
-@@ -0,0 +1,30 @@
-+package dev.sargunv.mobilitydata.gbfs.v3
-+
-+import io.ktor.client.engine.mock.MockEngine
-+import io.ktor.client.engine.mock.respondError
-+import io.ktor.http.HttpStatusCode
-+import kotlin.test.Test
-+import kotlin.test.assertTrue
-+import kotlinx.coroutines.test.runTest
-+
-+class ResultErrorHandlingTest {
-+  @Test
-+  fun networkErrorReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.InternalServerError) }
-+    val client = GbfsV3Client(engine)
-+
-+    val result = client.getServiceManifest("https://example.com/gbfs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for network error")
-+  }
-+
-+  @Test
-+  fun notFoundReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.NotFound) }
-+    val client = GbfsV3Client(engine)
-+
-+    val result = client.getServiceManifest("https://example.com/gbfs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for 404 error")
-+  }
-+}
 diff --git a/gofs-v1/api/gofs-v1.api b/gofs-v1/api/gofs-v1.api
 index e341dcc..4ff14e1 100644
 --- a/gofs-v1/api/gofs-v1.api
@@ -1705,7 +1597,7 @@ index 330fad3..5016fec 100644
          implementation(libs.kotlinx.io.core)
        }
 diff --git a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
-index 54b3fa4..574ff71 100644
+index 54b3fa4..45fdf21 100644
 --- a/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
 +++ b/gofs-v1/src/ktorMain/kotlin/dev/sargunv/mobilitydata/gofs/v1/GofsV1Client.kt
 @@ -35,11 +35,13 @@ public class GofsV1Client internal constructor(private val httpClient: HttpClien
@@ -1716,13 +1608,13 @@ index 54b3fa4..574ff71 100644
 -    httpClient.get(url).body<GofsFeedResponse<T>>()
 +  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(
 +    url: Url
-+  ): Result<GofsFeedResponse<T>> = runCatching { httpClient.get(url).body<GofsFeedResponse<T>>() }
++  ): Result<GofsFeedResponse<T>> = Result.success(httpClient.get(url).body<GofsFeedResponse<T>>())
  
 -  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(url: KtorUrl) =
 -    httpClient.get(url).body<GofsFeedResponse<T>>()
 +  internal suspend inline fun <reified T : GofsFeedData> getFeedResponse(
 +    url: KtorUrl
-+  ): Result<GofsFeedResponse<T>> = runCatching { httpClient.get(url).body<GofsFeedResponse<T>>() }
++  ): Result<GofsFeedResponse<T>> = Result.success(httpClient.get(url).body<GofsFeedResponse<T>>())
  
    /**
     * Fetches the GOFS manifest (auto-discovery file) from the given URL.
@@ -2016,54 +1908,3 @@ index e201a88..535ebc4 100644
  
          println("\nWait Times:")
          waitTimes.forEach { waitTime ->
-diff --git a/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/ResultErrorHandlingTest.kt b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/ResultErrorHandlingTest.kt
-new file mode 100644
-index 0000000..8274902
---- /dev/null
-+++ b/gofs-v1/src/ktorTest/kotlin/dev/sargunv/mobilitydata/gofs/v1/ResultErrorHandlingTest.kt
-@@ -0,0 +1,45 @@
-+package dev.sargunv.mobilitydata.gofs.v1
-+
-+import io.ktor.client.engine.mock.MockEngine
-+import io.ktor.client.engine.mock.respondError
-+import io.ktor.http.HttpStatusCode
-+import kotlin.test.Test
-+import kotlin.test.assertFailsWith
-+import kotlin.test.assertTrue
-+import kotlinx.coroutines.test.runTest
-+
-+class ResultErrorHandlingTest {
-+  @Test
-+  fun networkErrorReturnsFailure() = runTest {
-+    val engine = MockEngine { respondError(HttpStatusCode.InternalServerError) }
-+    val client = GofsV1Client(engine)
-+
-+    val result = client.getSystemManifest("https://example.com/gofs.json")
-+
-+    assertTrue(result.isFailure, "Expected failure for network error")
-+  }
-+
-+  @Test
-+  fun waitTimesStillThrowOnInvalidArguments() = runTest {
-+    val client = GofsV1Client(MockEngine { error("unexpected network call") })
-+    val service = Service()
-+
-+    context(service) {
-+      assertFailsWith<IllegalArgumentException> {
-+        client.getWaitTimes(pickupLat = 41.8781, pickupLon = -87.6298, dropOffLat = 41.9)
-+      }
-+    }
-+  }
-+
-+  @Test
-+  fun realtimeBookingsStillThrowOnInvalidArguments() = runTest {
-+    val client = GofsV1Client(MockEngine { error("unexpected network call") })
-+    val service = Service()
-+
-+    context(service) {
-+      assertFailsWith<IllegalArgumentException> {
-+        client.getRealtimeBookings(pickupLat = 41.8781, pickupLon = -87.6298, dropOffLat = 41.9)
-+      }
-+    }
-+  }
-+}
