@@ -1,0 +1,17 @@
+{
+  "command_stderr": "",
+  "control": "candidate",
+  "duration_seconds": 684.2829861149658,
+  "exit_code": 1,
+  "expectation_met": false,
+  "expected_pass": true,
+  "outcome": "failed",
+  "reward": {
+    "fallback": 0,
+    "manifests": 0,
+    "native": 0,
+    "reward": 0
+  },
+  "scenario": null,
+  "task_id": "ce-04-maplibre-source-location"
+}

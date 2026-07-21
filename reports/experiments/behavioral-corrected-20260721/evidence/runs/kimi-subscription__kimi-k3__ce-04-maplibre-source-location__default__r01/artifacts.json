@@ -1,0 +1,37 @@
+[
+  {
+    "bytes": 275,
+    "path": "instruction.txt",
+    "sha256": "1b1f33ef0167d14aee5dc975b35643bb0cec3f97758cc38ba17f6174697f96a1"
+  },
+  {
+    "bytes": 2166,
+    "path": "matrix-record.json",
+    "sha256": "ed2e18d8e5818c57bd23424082e647c8ee4e06981cff7ea6adaaa582b7fa4987"
+  },
+  {
+    "bytes": 12808,
+    "path": "model.patch",
+    "sha256": "eb3e7fc5237e03f0bba5864dc330ccf80736a876f1cf2eed5e6c703931bdcf32"
+  },
+  {
+    "bytes": 387,
+    "path": "opencode.json",
+    "sha256": "5fbee02972f8fca5bf1f748a7958223b9721da65f15423d9930b1787560730b5"
+  },
+  {
+    "bytes": 3497,
+    "path": "proctor-review.json",
+    "sha256": "425aa40b5f495d8890fec806c725abf40e93d01bf1074dfb5a1280b9debbdc22"
+  },
+  {
+    "bytes": 223398,
+    "path": "transcript.jsonl",
+    "sha256": "54ad818f45654a2db3937128071e9285fda30cf6e91a9329f8c9ede51067431a"
+  },
+  {
+    "bytes": 346,
+    "path": "verifier/stdout.txt",
+    "sha256": "c5fb4106b438c706efa535ebdae920cea4da739e7db1e01b4de7036171523611"
+  }
+]

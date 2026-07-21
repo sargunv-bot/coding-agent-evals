@@ -1,0 +1,14 @@
+{
+  "experiment_id": "behavioral-corrected-20260721",
+  "fresh_source_experiments": [
+    "real-models-v1-behavioral-rerun-ce01",
+    "real-models-v1-behavioral-rerun-ce06",
+    "real-models-v1-behavioral-rerun-ce07"
+  ],
+  "preserved_patch_source_experiments": [
+    "real-models-v1-stage-b-r7",
+    "real-models-v1-stage-b-r8"
+  ],
+  "schema_version": 1,
+  "verifier_commit": "d9ba1521692ddd91b738fd57a63eb1b6cce86617"
+}

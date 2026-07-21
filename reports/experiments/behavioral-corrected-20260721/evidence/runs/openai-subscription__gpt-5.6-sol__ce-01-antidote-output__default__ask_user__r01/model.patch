@@ -1,0 +1,53 @@
+diff --git a/functions/antidote-script b/functions/antidote-script
+index d9e0cb43d3d8d388360160b34d63b57dec09179d..2efa9846fb7b9726f98568ca03e552cd480cce69 100644
+--- a/functions/antidote-script
++++ b/functions/antidote-script
+@@ -87,7 +87,7 @@
+   if [[ "$bundle_type" == (repo|url|sshurl) ]] && [[ ! -e "$bundle_path" ]]; then
+     local giturl=$(__antidote_tourl $bundle)
+     print -ru2 "# antidote cloning $bundle_name..."
+-    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path
++    git clone --quiet --recurse-submodules --shallow-submodules $o_branch $giturl $bundle_path >&2
+     [[ $? -eq 0 ]] || return 1
+   fi
+ 
+diff --git a/tests/test_cmd_script.md b/tests/test_cmd_script.md
+index a5760475788c63a828b1e0b73c75e1413e579a7c..1a985377f02ac7c1ccaea486a576c1494c46d166 100644
+--- a/tests/test_cmd_script.md
++++ b/tests/test_cmd_script.md
+@@ -95,6 +95,35 @@ Clone a missing plugin.
+ %
+ ```
+ 
++Keep git wrapper output out of generated plugin scripts.
++
++```zsh
++% function git { print 'wrapper progress'; print -ru2 'wrapper diagnostic'; mockgit "$@" }
++% antidote-script fakeuser/fakerepo >$T_TEMPDIR/plugin.zsh 2>$T_TEMPDIR/git.log
++% cat $T_TEMPDIR/plugin.zsh | subenv ANTIDOTE_HOME
++fpath+=( "$ANTIDOTE_HOME/fakeuser/fakerepo" )
++source "$ANTIDOTE_HOME/fakeuser/fakerepo/fakerepo.plugin.zsh"
++% cat $T_TEMPDIR/git.log
++# antidote cloning fakeuser/fakerepo...
++wrapper progress
++wrapper diagnostic
++%
++```
++
++Git failures still fail script generation without writing to stdout.
++
++```zsh
++% function git { print 'wrapper progress'; print -ru2 'wrapper diagnostic'; return 23 }
++% antidote-script missing/repo >$T_TEMPDIR/plugin.zsh 2>$T_TEMPDIR/git.log  #=> --exit 1
++% test ! -s $T_TEMPDIR/plugin.zsh  #=> --exit 0
++% cat $T_TEMPDIR/git.log
++# antidote cloning missing/repo...
++wrapper progress
++wrapper diagnostic
++% t_reset
++%
++```
++
+ ### kind:zsh
+ 
+ ```zsh

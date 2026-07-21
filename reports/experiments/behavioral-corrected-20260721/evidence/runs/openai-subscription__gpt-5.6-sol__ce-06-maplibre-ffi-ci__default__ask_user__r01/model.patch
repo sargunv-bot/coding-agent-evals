@@ -1,0 +1,1036 @@
+diff --git a/.github/ci/generate_workflow.py b/.github/ci/generate_workflow.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..29d7fffa37f4166edd0da3de16472fd34ca73b4f
+--- /dev/null
++++ b/.github/ci/generate_workflow.py
+@@ -0,0 +1,344 @@
++#!/usr/bin/env python3
++"""Generate the checked-in CI workflow from declarative target manifests."""
++
++from __future__ import annotations
++
++import argparse
++import difflib
++import re
++import sys
++import tomllib
++from dataclasses import dataclass
++from pathlib import Path
++
++REPO_ROOT = Path(__file__).resolve().parents[2]
++TARGETS_PATH = REPO_ROOT / ".github/ci/targets.toml"
++WORKLOADS_PATH = REPO_ROOT / ".github/ci/workloads.toml"
++OUTPUT_PATH = REPO_ROOT / ".github/workflows/ci.yml"
++ID_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
++RUNNER_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9.-]*$")
++
++
++@dataclass(frozen=True)
++class Workload:
++    id: str
++    name: str
++    command: str
++    comments: tuple[str, ...] = ()
++
++
++@dataclass(frozen=True)
++class Target:
++    id: str
++    runner: str
++    target_triple: str
++    render_backend: str
++    zig_target: str
++    workloads: tuple[str, ...]
++    opengl_context_provider: str | None = None
++
++
++def load_manifests(
++    targets_path: Path = TARGETS_PATH,
++    workloads_path: Path = WORKLOADS_PATH,
++) -> tuple[list[Target], list[Workload]]:
++    with targets_path.open("rb") as source:
++        targets_data = tomllib.load(source)
++    with workloads_path.open("rb") as source:
++        workloads_data = tomllib.load(source)
++
++    targets = [
++        Target(
++            **{
++                **target,
++                "workloads": tuple(target.get("workloads", [])),
++            }
++        )
++        for target in targets_data.get("targets", [])
++    ]
++    workloads = [
++        Workload(
++            **{
++                **workload,
++                "comments": tuple(workload.get("comments", [])),
++            }
++        )
++        for workload in workloads_data.get("workloads", [])
++    ]
++    return targets, workloads
++
++
++def validate_manifests(
++    targets: list[Target],
++    workloads: list[Workload],
++    repo_root: Path = REPO_ROOT,
++) -> None:
++    errors: list[str] = []
++    target_ids = [target.id for target in targets]
++    workload_ids = [workload.id for workload in workloads]
++
++    if not targets:
++        errors.append("targets.toml must declare at least one target")
++    if not workloads:
++        errors.append("workloads.toml must declare at least one workload")
++    errors.extend(_duplicate_errors("target", target_ids))
++    errors.extend(_duplicate_errors("workload", workload_ids))
++    for target in targets:
++        if not ID_PATTERN.fullmatch(target.id):
++            errors.append(f"target id {target.id!r} is not YAML-safe")
++        if not RUNNER_PATTERN.fullmatch(target.runner):
++            errors.append(f"target {target.id!r} has invalid runner {target.runner!r}")
++    for workload in workloads:
++        if not ID_PATTERN.fullmatch(workload.id):
++            errors.append(f"workload id {workload.id!r} is not YAML-safe")
++        for field_name, value in (
++            ("name", workload.name),
++            ("command", workload.command),
++        ):
++            if not _is_safe_plain_scalar(value):
++                errors.append(
++                    f"workload {workload.id!r} has unsafe {field_name} {value!r}"
++                )
++        if any("\n" in comment or "\r" in comment for comment in workload.comments):
++            errors.append(f"workload {workload.id!r} has a multiline comment")
++
++    mise_target_ids = {
++        path.name.removeprefix("config.").removesuffix(".toml")
++        for path in (repo_root / ".mise").glob("config.*.toml")
++    }
++    undeclared_targets = mise_target_ids - set(target_ids)
++    if undeclared_targets:
++        errors.append(
++            "mise variants missing from CI policy: "
++            + ", ".join(sorted(undeclared_targets))
++        )
++
++    known_workloads = set(workload_ids)
++    used_workloads: set[str] = set()
++    for target in targets:
++        if not target.workloads:
++            errors.append(f"target {target.id!r} must declare at least one workload")
++        unknown = set(target.workloads) - known_workloads
++        if unknown:
++            errors.append(
++                f"target {target.id!r} references unknown workloads: "
++                + ", ".join(sorted(unknown))
++            )
++        if len(target.workloads) != len(set(target.workloads)):
++            errors.append(f"target {target.id!r} repeats a workload")
++        used_workloads.update(target.workloads)
++
++        if target.render_backend == "opengl" and not target.opengl_context_provider:
++            errors.append(f"target {target.id!r} must declare opengl_context_provider")
++        if target.render_backend != "opengl" and target.opengl_context_provider:
++            errors.append(
++                f"target {target.id!r} declares an OpenGL provider for "
++                f"backend {target.render_backend!r}"
++            )
++
++        config_path = repo_root / f".mise/config.{target.id}.toml"
++        if not config_path.is_file():
++            errors.append(
++                f"target {target.id!r} has no {config_path.relative_to(repo_root)}"
++            )
++            continue
++        with config_path.open("rb") as source:
++            env = tomllib.load(source).get("env", {})
++        expected_env = {
++            "MLN_FFI_VARIANT": target.id,
++            "MLN_FFI_TARGET_TRIPLE": target.target_triple,
++            "MLN_FFI_RENDER_BACKEND": target.render_backend,
++            "MLN_FFI_ZIG_TARGET": target.zig_target,
++        }
++        if target.opengl_context_provider:
++            expected_env["MLN_FFI_OPENGL_CONTEXT_PROVIDER"] = (
++                target.opengl_context_provider
++            )
++        for key, expected in expected_env.items():
++            actual = env.get(key)
++            if actual != expected:
++                errors.append(
++                    f"target {target.id!r} expects {key}={expected!r}, "
++                    f"but {config_path.relative_to(repo_root)} has {actual!r}"
++                )
++
++    unused_workloads = known_workloads - used_workloads
++    if unused_workloads:
++        errors.append("unused workloads: " + ", ".join(sorted(unused_workloads)))
++
++    if errors:
++        raise ValueError("Invalid CI manifests:\n- " + "\n- ".join(errors))
++
++
++def _duplicate_errors(kind: str, values: list[str]) -> list[str]:
++    duplicates = sorted({value for value in values if values.count(value) > 1})
++    if not duplicates:
++        return []
++    return [f"duplicate {kind} ids: {', '.join(duplicates)}"]
++
++
++def _is_safe_plain_scalar(value: str) -> bool:
++    return (
++        bool(value)
++        and "\n" not in value
++        and "\r" not in value
++        and " #" not in value
++        and ": " not in value
++    )
++
++
++def render_workflow(targets: list[Target], workloads: list[Workload]) -> str:
++    lines = [
++        "# Generated by `mise run ci:generate-workflow`; do not edit by hand.",
++        "# Source: .github/ci/targets.toml and .github/ci/workloads.toml",
++        "name: CI",
++        "",
++        "on:",
++        "  push:",
++        "    branches: [main]",
++        "  pull_request:",
++        "    branches: [main]",
++        "",
++        "permissions:",
++        "  contents: read",
++        "",
++        "concurrency:",
++        "  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}",
++        "  cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
++        "",
++        "jobs:",
++        "  hygiene:",
++        "    name: hygiene",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 30",
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "      - run: mise run ci:lint",
++        "",
++        "  docs:",
++        "    name: docs",
++        "    runs-on: ubuntu-latest",
++        "    timeout-minutes: 60",
++        "    steps:",
++        "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++        "      - uses: ./.github/actions/setup-ci-deps",
++        "      - run: mise run //docs:build",
++        "",
++        "  variants:",
++        "    name: variant / ${{ matrix.mise_env }}",
++        "    runs-on: ${{ matrix.runner }}",
++        "    timeout-minutes: 120",
++        "    env:",
++        "      MISE_ENV: ${{ matrix.mise_env }}",
++        "    strategy:",
++        "      fail-fast: false",
++        "      matrix:",
++        "        include:",
++    ]
++    for target in targets:
++        lines.extend(
++            [
++                f"          - mise_env: {target.id}",
++                f"            runner: {target.runner}",
++                "            workloads:",
++            ]
++        )
++        lines.extend(f"              - {workload}" for workload in target.workloads)
++
++    lines.extend(
++        [
++            "    steps:",
++            "      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3",
++            "      - uses: ./.github/actions/setup-ci-deps",
++            "",
++            "      - run: mise run configure",
++        ]
++    )
++    for index, workload in enumerate(workloads):
++        lines.extend(f"      # {comment}" for comment in workload.comments)
++        lines.extend(
++            [
++                f"      - name: {workload.name}",
++                f"        if: ${{{{ contains(matrix.workloads, '{workload.id}') }}}}",
++                f"        run: {workload.command}",
++            ]
++        )
++        if index in {1, 8}:
++            lines.append("")
++
++    lines.extend(
++        [
++            "",
++            "  required:",
++            "    name: ci-required",
++            "    runs-on: ubuntu-latest",
++            "    timeout-minutes: 5",
++            "    if: ${{ always() }}",
++            "    needs:",
++            "      - hygiene",
++            "      - docs",
++            "      - variants",
++            "    steps:",
++            "      - name: Fail if required jobs failed",
++            "        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}",
++            "        run: |",
++            "          echo '${{ toJSON(needs) }}'",
++            "          exit 1",
++            "",
++            "      - run: true",
++            "",
++        ]
++    )
++    return "\n".join(lines)
++
++
++def check_output(expected: str, output_path: Path = OUTPUT_PATH) -> bool:
++    actual = output_path.read_text(encoding="utf-8") if output_path.exists() else ""
++    if actual == expected:
++        return True
++    try:
++        output_label = str(output_path.relative_to(REPO_ROOT))
++    except ValueError:
++        output_label = str(output_path)
++    diff = difflib.unified_diff(
++        actual.splitlines(),
++        expected.splitlines(),
++        fromfile=output_label,
++        tofile="generated workflow",
++        lineterm="",
++    )
++    print("\n".join(diff), file=sys.stderr)
++    print(
++        "CI workflow is out of date. Run `mise run ci:generate-workflow`.",
++        file=sys.stderr,
++    )
++    return False
++
++
++def main(argv: list[str] | None = None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument(
++        "--check",
++        action="store_true",
++        help="Check for drift without changing the generated workflow.",
++    )
++    args = parser.parse_args(argv)
++
++    try:
++        targets, workloads = load_manifests()
++        validate_manifests(targets, workloads)
++    except (OSError, tomllib.TOMLDecodeError, TypeError, ValueError) as error:
++        print(error, file=sys.stderr)
++        return 1
++
++    generated = render_workflow(targets, workloads)
++    if args.check:
++        return 0 if check_output(generated) else 1
++
++    OUTPUT_PATH.write_text(generated, encoding="utf-8", newline="\n")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/.github/ci/targets.toml b/.github/ci/targets.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..f38491cd0c39716c060d834c5fce0b9db8dce497
+--- /dev/null
++++ b/.github/ci/targets.toml
+@@ -0,0 +1,94 @@
++# CI target support policy. Generate .github/workflows/ci.yml with
++# `mise run ci:generate-workflow`.
++
++[[targets]]
++id = "linux-arm64-egl"
++runner = "ubuntu-24.04-arm"
++target_triple = "linux-arm64"
++render_backend = "opengl"
++opengl_context_provider = "egl"
++zig_target = "aarch64-linux-gnu"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "rust", "zig", "rust-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "linux-arm64-vulkan"
++runner = "ubuntu-24.04-arm"
++target_triple = "linux-arm64"
++render_backend = "vulkan"
++zig_target = "aarch64-linux-gnu"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "rust", "zig", "lwjgl-map", "rust-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "linux-x64-egl"
++runner = "ubuntu-latest"
++target_triple = "linux-x64"
++render_backend = "opengl"
++opengl_context_provider = "egl"
++zig_target = "x86_64-linux-gnu"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "kotlin-native", "rust", "zig", "rust-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "linux-x64-vulkan"
++runner = "ubuntu-latest"
++target_triple = "linux-x64"
++render_backend = "vulkan"
++zig_target = "x86_64-linux-gnu"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "kotlin-native", "rust", "zig", "lwjgl-map", "rust-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "macos-arm64-metal"
++runner = "macos-latest"
++target_triple = "macos-arm64"
++render_backend = "metal"
++zig_target = "aarch64-macos"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "kotlin-native", "rust", "swift", "zig", "rust-example", "swift-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "macos-arm64-vulkan"
++runner = "macos-latest"
++target_triple = "macos-arm64"
++render_backend = "vulkan"
++zig_target = "aarch64-macos"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "kotlin-native", "rust", "swift", "zig", "lwjgl-map", "rust-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "macos-arm64-egl"
++runner = "macos-latest"
++target_triple = "macos-arm64"
++render_backend = "opengl"
++opengl_context_provider = "egl"
++zig_target = "aarch64-macos"
++workloads = ["native-test", "zig", "zig-readback"]
++
++[[targets]]
++id = "ios-arm64-metal"
++runner = "macos-latest"
++target_triple = "ios-arm64"
++render_backend = "metal"
++zig_target = "aarch64-ios"
++workloads = ["native-build"]
++
++[[targets]]
++id = "ios-simulator-arm64-metal"
++runner = "macos-latest"
++target_triple = "ios-simulator-arm64"
++render_backend = "metal"
++zig_target = "aarch64-ios-simulator"
++workloads = ["native-build"]
++
++[[targets]]
++id = "windows-x64-vulkan"
++runner = "windows-2022"
++target_triple = "windows-x64"
++render_backend = "vulkan"
++zig_target = "x86_64-windows-msvc"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "rust", "zig", "lwjgl-map", "rust-example", "zig-map", "zig-readback"]
++
++[[targets]]
++id = "windows-x64-wgl"
++runner = "windows-2022"
++target_triple = "windows-x64"
++render_backend = "opengl"
++opengl_context_provider = "wgl"
++zig_target = "x86_64-windows-msvc"
++workloads = ["native-test", "java-ffm", "java-jni", "dotnet", "rust", "zig", "rust-example", "zig-map", "zig-readback"]
+diff --git a/.github/ci/test_generate_workflow.py b/.github/ci/test_generate_workflow.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..75eed5021478f2965672dd93449da5c6096b63e4
+--- /dev/null
++++ b/.github/ci/test_generate_workflow.py
+@@ -0,0 +1,252 @@
++from __future__ import annotations
++
++import contextlib
++import io
++import tempfile
++import unittest
++from pathlib import Path
++
++import generate_workflow
++
++
++EXPECTED_TARGET_WORKLOADS = {
++    "linux-arm64-egl": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "rust",
++        "zig",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "linux-arm64-vulkan": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "rust",
++        "zig",
++        "lwjgl-map",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "linux-x64-egl": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "kotlin-native",
++        "rust",
++        "zig",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "linux-x64-vulkan": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "kotlin-native",
++        "rust",
++        "zig",
++        "lwjgl-map",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "macos-arm64-metal": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "kotlin-native",
++        "rust",
++        "swift",
++        "zig",
++        "rust-example",
++        "swift-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "macos-arm64-vulkan": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "kotlin-native",
++        "rust",
++        "swift",
++        "zig",
++        "lwjgl-map",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "macos-arm64-egl": {"native-test", "zig", "zig-readback"},
++    "ios-arm64-metal": {"native-build"},
++    "ios-simulator-arm64-metal": {"native-build"},
++    "windows-x64-vulkan": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "rust",
++        "zig",
++        "lwjgl-map",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++    "windows-x64-wgl": {
++        "native-test",
++        "java-ffm",
++        "java-jni",
++        "dotnet",
++        "rust",
++        "zig",
++        "rust-example",
++        "zig-map",
++        "zig-readback",
++    },
++}
++
++EXPECTED_TARGETS = [
++    ("linux-arm64-egl", "ubuntu-24.04-arm", "linux-arm64", "opengl", "egl"),
++    (
++        "linux-arm64-vulkan",
++        "ubuntu-24.04-arm",
++        "linux-arm64",
++        "vulkan",
++        None,
++    ),
++    ("linux-x64-egl", "ubuntu-latest", "linux-x64", "opengl", "egl"),
++    ("linux-x64-vulkan", "ubuntu-latest", "linux-x64", "vulkan", None),
++    ("macos-arm64-metal", "macos-latest", "macos-arm64", "metal", None),
++    (
++        "macos-arm64-vulkan",
++        "macos-latest",
++        "macos-arm64",
++        "vulkan",
++        None,
++    ),
++    ("macos-arm64-egl", "macos-latest", "macos-arm64", "opengl", "egl"),
++    ("ios-arm64-metal", "macos-latest", "ios-arm64", "metal", None),
++    (
++        "ios-simulator-arm64-metal",
++        "macos-latest",
++        "ios-simulator-arm64",
++        "metal",
++        None,
++    ),
++    ("windows-x64-vulkan", "windows-2022", "windows-x64", "vulkan", None),
++    ("windows-x64-wgl", "windows-2022", "windows-x64", "opengl", "wgl"),
++]
++
++EXPECTED_WORKLOADS = [
++    ("native-build", "Build native library", "mise run build"),
++    ("native-test", "Test native library", "mise run test"),
++    ("java-ffm", "Build Java FFM binding", "mise run //bindings/java-ffm:build"),
++    ("java-jni", "Build Java JNI binding", "mise run //bindings/java-jni:build"),
++    ("dotnet", "Test .NET binding", "mise run //bindings/dotnet:test"),
++    (
++        "kotlin-native",
++        "Test Kotlin/Native binding",
++        "mise run //bindings/kotlin-native:build",
++    ),
++    ("rust", "Test Rust binding", "mise run //bindings/rust:ci"),
++    ("swift", "Test Swift binding", "mise run //bindings/swift:test"),
++    ("zig", "Test Zig binding", "mise run //bindings/zig:ci"),
++    ("lwjgl-map", "Build LWJGL example", "mise run //examples/lwjgl-map:build"),
++    ("rust-example", "Test Rust example", "mise run //examples/rust-map:ci"),
++    (
++        "swift-example",
++        "Build Swift example",
++        "mise run //examples/swift-map:build",
++    ),
++    ("zig-map", "Build Zig example", "mise run //examples/zig-map:build"),
++    (
++        "zig-readback",
++        "Run Zig readback example",
++        "mise run //examples/zig-readback:run",
++    ),
++]
++
++
++class GenerateWorkflowTests(unittest.TestCase):
++    def setUp(self) -> None:
++        self.targets, self.workloads = generate_workflow.load_manifests()
++
++    def test_manifests_are_valid(self) -> None:
++        generate_workflow.validate_manifests(self.targets, self.workloads)
++
++    def test_target_workloads_preserve_current_ci_policy(self) -> None:
++        actual = {target.id: set(target.workloads) for target in self.targets}
++        self.assertEqual(EXPECTED_TARGET_WORKLOADS, actual)
++
++    def test_target_order_and_runners_preserve_current_ci_policy(self) -> None:
++        actual = [
++            (
++                target.id,
++                target.runner,
++                target.target_triple,
++                target.render_backend,
++                target.opengl_context_provider,
++            )
++            for target in self.targets
++        ]
++        self.assertEqual(EXPECTED_TARGETS, actual)
++
++    def test_workload_steps_preserve_current_ci_behavior(self) -> None:
++        actual = [
++            (workload.id, workload.name, workload.command)
++            for workload in self.workloads
++        ]
++        self.assertEqual(EXPECTED_WORKLOADS, actual)
++
++    def test_render_is_deterministic_and_current(self) -> None:
++        first = generate_workflow.render_workflow(self.targets, self.workloads)
++        second = generate_workflow.render_workflow(self.targets, self.workloads)
++        self.assertEqual(first, second)
++        self.assertTrue(generate_workflow.check_output(first))
++
++    def test_render_uses_exact_workload_membership(self) -> None:
++        rendered = generate_workflow.render_workflow(self.targets, self.workloads)
++        for workload in self.workloads:
++            self.assertIn(
++                f"if: ${{{{ contains(matrix.workloads, '{workload.id}') }}}}",
++                rendered,
++            )
++
++    def test_check_output_does_not_mutate_drifted_file(self) -> None:
++        with tempfile.TemporaryDirectory() as temporary_directory:
++            output_path = Path(temporary_directory) / "ci.yml"
++            output_path.write_text("drifted\n", encoding="utf-8")
++            with contextlib.redirect_stderr(io.StringIO()):
++                self.assertFalse(
++                    generate_workflow.check_output("generated\n", output_path)
++                )
++            self.assertEqual("drifted\n", output_path.read_text(encoding="utf-8"))
++
++    def test_target_requires_a_workload(self) -> None:
++        target = self.targets[0]
++        empty_target = generate_workflow.Target(
++            id=target.id,
++            runner=target.runner,
++            target_triple=target.target_triple,
++            render_backend=target.render_backend,
++            zig_target=target.zig_target,
++            workloads=(),
++            opengl_context_provider=target.opengl_context_provider,
++        )
++        with self.assertRaisesRegex(ValueError, "at least one workload"):
++            generate_workflow.validate_manifests(
++                [empty_target, *self.targets[1:]], self.workloads
++            )
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/.github/ci/workloads.toml b/.github/ci/workloads.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..d9c1c8353f0feab3c492184044010da878146aa3
+--- /dev/null
++++ b/.github/ci/workloads.toml
+@@ -0,0 +1,75 @@
++# Ordered CI workload definitions. Target applicability lives in targets.toml.
++
++[[workloads]]
++id = "native-build"
++name = "Build native library"
++command = "mise run build"
++
++[[workloads]]
++id = "native-test"
++name = "Test native library"
++command = "mise run test"
++
++[[workloads]]
++id = "java-ffm"
++name = "Build Java FFM binding"
++command = "mise run //bindings/java-ffm:build"
++
++[[workloads]]
++id = "java-jni"
++name = "Build Java JNI binding"
++command = "mise run //bindings/java-jni:build"
++
++[[workloads]]
++id = "dotnet"
++name = "Test .NET binding"
++command = "mise run //bindings/dotnet:test"
++
++[[workloads]]
++id = "kotlin-native"
++name = "Test Kotlin/Native binding"
++command = "mise run //bindings/kotlin-native:build"
++comments = [
++  "linux-arm64: no Kotlin/Native host - https://youtrack.jetbrains.com/issue/KT-36871",
++  "windows: no MSVC target - https://youtrack.jetbrains.com/issue/SKIKO-446",
++]
++
++[[workloads]]
++id = "rust"
++name = "Test Rust binding"
++command = "mise run //bindings/rust:ci"
++
++[[workloads]]
++id = "swift"
++name = "Test Swift binding"
++command = "mise run //bindings/swift:test"
++
++[[workloads]]
++id = "zig"
++name = "Test Zig binding"
++command = "mise run //bindings/zig:ci"
++
++[[workloads]]
++id = "lwjgl-map"
++name = "Build LWJGL example"
++command = "mise run //examples/lwjgl-map:build"
++
++[[workloads]]
++id = "rust-example"
++name = "Test Rust example"
++command = "mise run //examples/rust-map:ci"
++
++[[workloads]]
++id = "swift-example"
++name = "Build Swift example"
++command = "mise run //examples/swift-map:build"
++
++[[workloads]]
++id = "zig-map"
++name = "Build Zig example"
++command = "mise run //examples/zig-map:build"
++
++[[workloads]]
++id = "zig-readback"
++name = "Run Zig readback example"
++command = "mise run //examples/zig-readback:run"
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
+index 1ebbac10f84c9123c2e7abfbf3dd4a77b95ba71e..07dd954449a6438c2f3cdeb3e58da539db8a1172 100644
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,3 +1,5 @@
++# Generated by `mise run ci:generate-workflow`; do not edit by hand.
++# Source: .github/ci/targets.toml and .github/ci/workloads.toml
+ name: CI
+ 
+ on:
+@@ -44,76 +46,175 @@ jobs:
+         include:
+           - mise_env: linux-arm64-egl
+             runner: ubuntu-24.04-arm
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust
++              - zig
++              - rust-example
++              - zig-map
++              - zig-readback
+           - mise_env: linux-arm64-vulkan
+             runner: ubuntu-24.04-arm
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust
++              - zig
++              - lwjgl-map
++              - rust-example
++              - zig-map
++              - zig-readback
+           - mise_env: linux-x64-egl
+             runner: ubuntu-latest
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust
++              - zig
++              - rust-example
++              - zig-map
++              - zig-readback
+           - mise_env: linux-x64-vulkan
+             runner: ubuntu-latest
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust
++              - zig
++              - lwjgl-map
++              - rust-example
++              - zig-map
++              - zig-readback
+           - mise_env: macos-arm64-metal
+             runner: macos-latest
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust
++              - swift
++              - zig
++              - rust-example
++              - swift-example
++              - zig-map
++              - zig-readback
+           - mise_env: macos-arm64-vulkan
+             runner: macos-latest
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - kotlin-native
++              - rust
++              - swift
++              - zig
++              - lwjgl-map
++              - rust-example
++              - zig-map
++              - zig-readback
+           - mise_env: macos-arm64-egl
+             runner: macos-latest
++            workloads:
++              - native-test
++              - zig
++              - zig-readback
+           - mise_env: ios-arm64-metal
+             runner: macos-latest
++            workloads:
++              - native-build
+           - mise_env: ios-simulator-arm64-metal
+             runner: macos-latest
++            workloads:
++              - native-build
+           - mise_env: windows-x64-vulkan
+             runner: windows-2022
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust
++              - zig
++              - lwjgl-map
++              - rust-example
++              - zig-map
++              - zig-readback
+           - mise_env: windows-x64-wgl
+             runner: windows-2022
++            workloads:
++              - native-test
++              - java-ffm
++              - java-jni
++              - dotnet
++              - rust
++              - zig
++              - rust-example
++              - zig-map
++              - zig-readback
+     steps:
+       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+       - uses: ./.github/actions/setup-ci-deps
+ 
+       - run: mise run configure
+       - name: Build native library
+-        if: ${{ startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'native-build') }}
+         run: mise run build
+       - name: Test native library
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'native-test') }}
+         run: mise run test
+ 
+       - name: Build Java FFM binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'java-ffm') }}
+         run: mise run //bindings/java-ffm:build
+       - name: Build Java JNI binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'java-jni') }}
+         run: mise run //bindings/java-jni:build
+       - name: Test .NET binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'dotnet') }}
+         run: mise run //bindings/dotnet:test
+-      # linux-arm64: no Kotlin/Native host — https://youtrack.jetbrains.com/issue/KT-36871
+-      # windows: no MSVC target — https://youtrack.jetbrains.com/issue/SKIKO-446
++      # linux-arm64: no Kotlin/Native host - https://youtrack.jetbrains.com/issue/KT-36871
++      # windows: no MSVC target - https://youtrack.jetbrains.com/issue/SKIKO-446
+       - name: Test Kotlin/Native binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') && !startsWith(matrix.mise_env, 'windows-') && !startsWith(matrix.mise_env, 'linux-arm64-') }}
++        if: ${{ contains(matrix.workloads, 'kotlin-native') }}
+         run: mise run //bindings/kotlin-native:build
+       - name: Test Rust binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'rust') }}
+         run: mise run //bindings/rust:ci
+       - name: Test Swift binding
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && startsWith(matrix.mise_env, 'macos-') }}
++        if: ${{ contains(matrix.workloads, 'swift') }}
+         run: mise run //bindings/swift:test
+       - name: Test Zig binding
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'zig') }}
+         run: mise run //bindings/zig:ci
+ 
+       - name: Build LWJGL example
+-        if: ${{ contains(matrix.mise_env, 'vulkan') }}
++        if: ${{ contains(matrix.workloads, 'lwjgl-map') }}
+         run: mise run //examples/lwjgl-map:build
+       - name: Test Rust example
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'rust-example') }}
+         run: mise run //examples/rust-map:ci
+       - name: Build Swift example
+-        if: ${{ matrix.mise_env == 'macos-arm64-metal' }}
++        if: ${{ contains(matrix.workloads, 'swift-example') }}
+         run: mise run //examples/swift-map:build
+       - name: Build Zig example
+-        if: ${{ matrix.mise_env != 'macos-arm64-egl' && !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'zig-map') }}
+         run: mise run //examples/zig-map:build
+       - name: Run Zig readback example
+-        if: ${{ !startsWith(matrix.mise_env, 'ios-') }}
++        if: ${{ contains(matrix.workloads, 'zig-readback') }}
+         run: mise run //examples/zig-readback:run
+ 
+   required:
+diff --git a/docs/src/content/docs/development/overview.md b/docs/src/content/docs/development/overview.md
+index 84278708bc17fb2a42e5506a74f8a43863e375d6..2b1b19841c1252b787357354b47e6817aa24c0f2 100644
+--- a/docs/src/content/docs/development/overview.md
++++ b/docs/src/content/docs/development/overview.md
+@@ -81,6 +81,12 @@ mise run //examples/zig-map:run
+ mise run //docs:build
+ ```
+ 
++The CI target and workload policy lives in `.github/ci/targets.toml` and
++`.github/ci/workloads.toml`. After changing either manifest, regenerate the
++checked-in workflow with `mise run ci:generate-workflow`. Use
++`mise run ci:generate-workflow -- --check` for a non-mutating drift check; CI
++runs this check during hygiene validation.
++
+ ## How Tools Fit Together
+ 
+ This repository spans native code, language bindings, examples, tests, and
+diff --git a/mise.toml b/mise.toml
+index f9cf3326d0d9d904fd53ad8c9674279b7cdd56f9..c7f22c820b6d23c290106d54503e3f906e936bad 100644
+--- a/mise.toml
++++ b/mise.toml
+@@ -179,6 +179,14 @@ run = "hk fix --all"
+ description = "Update and pin GitHub Actions steps."
+ run = "pnpm dlx actions-up"
+ 
++[tasks."ci:generate-workflow"]
++description = "Generate the checked-in CI workflow from declarative manifests."
++run = "python .github/ci/generate_workflow.py"
++
++[tasks."ci:test-workflow-generator"]
++description = "Test the CI workflow generator and target policy."
++run = "python -m unittest discover -s .github/ci -p 'test_*.py'"
++
+ [tasks._ktfmt]
+ description = "Called by dprint.jsonc"
+ hide = true
+@@ -188,6 +196,8 @@ shell = '{% if os() == "windows" %}cmd /c{% else %}sh -c -o errexit{% endif %}'
+ 
+ [tasks."ci:lint"]
+ run = [
++  "mise run ci:test-workflow-generator",
++  "mise run ci:generate-workflow -- --check",
+   # Warm process-plugin cache before hk runs parallel dprint batches.
+   "dprint output-resolved-config > /dev/null",
+   "hk fix --all",

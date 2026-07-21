@@ -1,0 +1,905 @@
+diff --git a/src/lsp.rs b/src/lsp.rs
+index 6f54314ee32960bce95470e34921697ef06cd966..5e0294842d4efcb92a3f6f5015d7eb9dbbc48290 100644
+--- a/src/lsp.rs
++++ b/src/lsp.rs
+@@ -953,7 +953,14 @@ fn escape_snippet(s: &str) -> String {
+ fn existing_keys(value: &serde_json::Value, pointer: &[String]) -> HashSet<String> {
+     let mut current = value;
+     for segment in pointer {
+-        current = match current.get(segment.as_str()) {
++        let next = match current {
++            serde_json::Value::Array(items) => segment
++                .parse::<usize>()
++                .ok()
++                .and_then(|index| items.get(index)),
++            _ => current.get(segment.as_str()),
++        };
++        current = match next {
+             Some(v) => v,
+             None => return HashSet::new(),
+         };
+@@ -1050,6 +1057,7 @@ fn build_value_items(
+         }))
+     };
+ 
++    let mut seen = HashSet::new();
+     values
+         .iter()
+         .flat_map(|v| match v {
+@@ -1096,6 +1104,7 @@ fn build_value_items(
+                 }]
+             }
+         })
++        .filter(|item| seen.insert(item.label.clone()))
+         .collect()
+ }
+ 
+@@ -1106,7 +1115,13 @@ fn format_json_value(value: &serde_json::Value) -> String {
+ 
+ /// Return a snippet placeholder appropriate for the given JSON schema type.
+ fn snippet_for_type(schema_type: Option<&str>) -> &'static str {
+-    match schema_type {
++    let preferred_type = schema_type.and_then(|types| {
++        types
++            .split(" | ")
++            .find(|value| *value != "null")
++            .or_else(|| types.split(" | ").next())
++    });
++    match preferred_type {
+         Some("string") => "\"$1\"",
+         Some("number") | Some("integer") => "${1:0}",
+         Some("boolean") => "${1:false}",
+diff --git a/src/parse.rs b/src/parse.rs
+index dc83d8346f19a59c74e85a43f8234454de5d6d45..4c289e40ea3004c5ecb55795fcd0474534a2fb62 100644
+--- a/src/parse.rs
++++ b/src/parse.rs
+@@ -306,8 +306,10 @@ pub fn completion_context(source: &str, byte_offset: usize) -> Option<Completion
+         /// Byte range (start, end exclusive) of the last completed key string
+         /// at this level (content inside the quotes, not including quotes).
+         last_key_content: Option<(usize, usize)>,
+-        /// Key from the parent level whose value is this container.
+-        parent_key: Option<String>,
++        /// JSON pointer segment from the parent to this container.
++        parent_segment: Option<String>,
++        /// Index of the current array element.
++        array_index: usize,
+     }
+     let mut stack: Vec<Level> = Vec::new();
+ 
+@@ -386,12 +388,13 @@ pub fn completion_context(source: &str, byte_offset: usize) -> Option<Completion
+                 string_content_start = i + 1;
+             }
+             b'{' => {
+-                // Determine the parent key for this new object.
+-                let parent_key = stack.last().and_then(|parent| {
++                let parent_segment = stack.last().and_then(|parent| {
+                     if parent.is_object && parent.after_colon {
+                         parent
+                             .last_key_content
+                             .map(|(s, e)| source[s..e].to_string())
++                    } else if !parent.is_object {
++                        Some(parent.array_index.to_string())
+                     } else {
+                         None
+                     }
+@@ -400,15 +403,28 @@ pub fn completion_context(source: &str, byte_offset: usize) -> Option<Completion
+                     is_object: true,
+                     after_colon: false,
+                     last_key_content: None,
+-                    parent_key,
++                    parent_segment,
++                    array_index: 0,
+                 });
+             }
+             b'[' => {
++                let parent_segment = stack.last().and_then(|parent| {
++                    if parent.is_object && parent.after_colon {
++                        parent
++                            .last_key_content
++                            .map(|(s, e)| source[s..e].to_string())
++                    } else if !parent.is_object {
++                        Some(parent.array_index.to_string())
++                    } else {
++                        None
++                    }
++                });
+                 stack.push(Level {
+                     is_object: false,
+                     after_colon: false,
+                     last_key_content: None,
+-                    parent_key: None,
++                    parent_segment,
++                    array_index: 0,
+                 });
+             }
+             b'}' | b']' => {
+@@ -434,6 +450,8 @@ pub fn completion_context(source: &str, byte_offset: usize) -> Option<Completion
+                     level.after_colon = false;
+                     if level.is_object {
+                         level.last_key_content = None;
++                    } else {
++                        level.array_index += 1;
+                     }
+                 }
+             }
+@@ -448,12 +466,12 @@ pub fn completion_context(source: &str, byte_offset: usize) -> Option<Completion
+         return None;
+     }
+ 
+-    // Build the pointer path from the stack (skip root level, collect parent keys).
++    // Build the pointer path from the stack (skip root level, collect parent segments).
+     let build_pointer = |stack: &[Level]| -> Vec<String> {
+         stack
+             .iter()
+             .skip(1)
+-            .filter_map(|l| l.parent_key.clone())
++            .filter_map(|l| l.parent_segment.clone())
+             .collect()
+     };
+ 
+@@ -463,6 +481,9 @@ pub fn completion_context(source: &str, byte_offset: usize) -> Option<Completion
+     // Whether the cursor is inside a string or on whitespace/structural tokens,
+     // the context determination is the same: check the innermost object level.
+     let obj_idx = innermost_object?;
++    if obj_idx + 1 != stack.len() {
++        return None;
++    }
+     let level = &stack[obj_idx];
+     let pointer = build_pointer(&stack[..=obj_idx]);
+ 
+@@ -720,6 +741,38 @@ mod tests {
+         );
+     }
+ 
++    #[test]
++    fn completion_context_object_inside_array() {
++        let source = r#"{"schemas": [{}]}"#;
++        let result = completion_context(source, 14);
++        assert_eq!(
++            result,
++            Some(CompletionContext::PropertyKey {
++                pointer: vec!["schemas".into(), "0".into()],
++                replace_start: 14,
++            })
++        );
++    }
++
++    #[test]
++    fn completion_context_second_object_inside_array() {
++        let source = r#"{"schemas": [{}, {}]}"#;
++        let result = completion_context(source, 18);
++        assert_eq!(
++            result,
++            Some(CompletionContext::PropertyKey {
++                pointer: vec!["schemas".into(), "1".into()],
++                replace_start: 18,
++            })
++        );
++    }
++
++    #[test]
++    fn completion_context_directly_inside_array_returns_none() {
++        let source = r#"{"schemas": []}"#;
++        assert!(completion_context(source, 13).is_none());
++    }
++
+     #[test]
+     fn completion_context_inside_comment() {
+         let source = "{ // |\n}";
+diff --git a/src/schema.rs b/src/schema.rs
+index e442a5cbeae896dee573cd757e9864662654b8ff..351309860ace88426742810b9e658478ac86e88c 100644
+--- a/src/schema.rs
++++ b/src/schema.rs
+@@ -763,26 +763,22 @@ pub enum ValueSuggestion {
+ 
+ /// Collect all completable properties from a schema at the given pointer path.
+ ///
+-/// Follows `$ref` and merges `allOf` branches. Returns an empty vec if the
+-/// resolved subschema is not an object schema or the pointer cannot be resolved.
++/// Follows `$ref` and merges `allOf`, `anyOf`, and `oneOf` branches. Returns an
++/// empty vec if the resolved subschema is not an object schema or the pointer
++/// cannot be resolved.
+ pub fn collect_properties(root: &serde_json::Value, pointer: &[String]) -> Vec<PropertyInfo> {
+-    let mut visited = HashSet::new();
+-    let Some(subschema) = resolve_subschema(root, root, pointer, &mut visited, 0) else {
+-        return vec![];
+-    };
+-
+     let mut props: Vec<PropertyInfo> = Vec::new();
+-    let mut seen_names: HashSet<String> = HashSet::new();
+-    collect_properties_from(root, subschema, &mut props, &mut seen_names, 0);
++    for subschema in resolve_completion_subschemas(root, root, pointer, HashSet::new(), 0) {
++        collect_properties_from(root, subschema, &mut props, 0);
++    }
+     props
+ }
+ 
+-/// Recursively collect properties from a schema, merging allOf branches.
++/// Recursively collect properties from a schema, merging composition branches.
+ fn collect_properties_from(
+     root: &serde_json::Value,
+     schema: &serde_json::Value,
+     props: &mut Vec<PropertyInfo>,
+-    seen: &mut HashSet<String>,
+     depth: usize,
+ ) {
+     if depth > MAX_SCHEMA_DEPTH {
+@@ -802,37 +798,137 @@ fn collect_properties_from(
+         .map(|arr| arr.iter().filter_map(|v| v.as_str()).collect())
+         .unwrap_or_default();
+ 
+-    // Collect properties.
++    let mut collected = Vec::new();
+     if let Some(properties) = schema.get("properties").and_then(|v| v.as_object()) {
+         for (name, prop_schema) in properties {
+-            if !seen.insert(name.clone()) {
+-                continue; // Already seen from an earlier allOf branch.
+-            }
+-
+             // Follow $ref on the property schema for metadata.
+             let mut prop_visited = HashSet::new();
+             let resolved_prop =
+                 follow_ref(root, prop_schema, &mut prop_visited).unwrap_or(prop_schema);
+ 
+             let description = format_annotation(resolved_prop);
+-            let schema_type = resolved_prop
+-                .get("type")
+-                .and_then(|v| v.as_str())
+-                .map(|s| s.to_string());
+-
+-            props.push(PropertyInfo {
+-                name: name.clone(),
+-                required: required.contains(name.as_str()),
+-                description,
+-                schema_type,
+-            });
++            let schema_type = format_schema_types(root, resolved_prop);
++            let is_required = required.contains(name.as_str());
++
++            merge_property(
++                &mut collected,
++                PropertyInfo {
++                    name: name.clone(),
++                    required: is_required,
++                    description,
++                    schema_type,
++                },
++            );
+         }
+     }
+ 
+-    // Recurse into allOf branches.
+-    if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array()) {
+-        for branch in all_of {
+-            collect_properties_from(root, branch, props, seen, depth + 1);
++    if let Some(branches) = schema.get("allOf").and_then(|v| v.as_array()) {
++        for branch in branches {
++            collect_properties_from(root, branch, &mut collected, depth + 1);
++        }
++    }
++    for keyword in ["anyOf", "oneOf"] {
++        if let Some(branches) = schema.get(keyword).and_then(|v| v.as_array())
++            && !branches.is_empty()
++        {
++            let branch_props: Vec<Vec<PropertyInfo>> = branches
++                .iter()
++                .map(|branch| {
++                    let mut branch_props = Vec::new();
++                    collect_properties_from(root, branch, &mut branch_props, depth + 1);
++                    branch_props
++                })
++                .collect();
++            let mut alternatives = Vec::new();
++            for branch in &branch_props {
++                for property in branch {
++                    merge_property(&mut alternatives, property.clone());
++                }
++            }
++            for property in &mut alternatives {
++                property.required = branch_props.iter().all(|branch| {
++                    branch
++                        .iter()
++                        .any(|candidate| candidate.name == property.name && candidate.required)
++                });
++            }
++            for property in alternatives {
++                merge_property(&mut collected, property);
++            }
++        }
++    }
++    for property in collected {
++        merge_property(props, property);
++    }
++}
++
++fn merge_property(props: &mut Vec<PropertyInfo>, incoming: PropertyInfo) {
++    if let Some(existing) = props.iter_mut().find(|prop| prop.name == incoming.name) {
++        existing.required |= incoming.required;
++        if existing.description.is_none() {
++            existing.description = incoming.description;
++        }
++        merge_schema_type(&mut existing.schema_type, incoming.schema_type);
++    } else {
++        props.push(incoming);
++    }
++}
++
++fn schema_types(schema: &serde_json::Value) -> Vec<&str> {
++    match schema.get("type") {
++        Some(serde_json::Value::String(value)) => vec![value.as_str()],
++        Some(serde_json::Value::Array(values)) => {
++            values.iter().filter_map(|v| v.as_str()).collect()
++        }
++        _ => Vec::new(),
++    }
++}
++
++fn format_schema_types(root: &serde_json::Value, schema: &serde_json::Value) -> Option<String> {
++    let mut types = Vec::new();
++    collect_schema_types(root, schema, &mut types, 0);
++    (!types.is_empty()).then(|| types.join(" | "))
++}
++
++fn collect_schema_types(
++    root: &serde_json::Value,
++    schema: &serde_json::Value,
++    types: &mut Vec<String>,
++    depth: usize,
++) {
++    if depth > MAX_SCHEMA_DEPTH {
++        return;
++    }
++    let mut visited = HashSet::new();
++    let Some(schema) = follow_ref(root, schema, &mut visited) else {
++        return;
++    };
++    for schema_type in schema_types(schema) {
++        if !types.iter().any(|value| value == schema_type) {
++            types.push(schema_type.to_string());
++        }
++    }
++    for keyword in ["allOf", "anyOf", "oneOf"] {
++        if let Some(branches) = schema.get(keyword).and_then(|v| v.as_array()) {
++            for branch in branches {
++                collect_schema_types(root, branch, types, depth + 1);
++            }
++        }
++    }
++}
++
++fn merge_schema_type(existing: &mut Option<String>, incoming: Option<String>) {
++    let Some(incoming) = incoming else {
++        return;
++    };
++    let Some(current) = existing else {
++        *existing = Some(incoming);
++        return;
++    };
++    for schema_type in incoming.split(" | ") {
++        if !current.split(" | ").any(|value| value == schema_type) {
++            current.push_str(" | ");
++            current.push_str(schema_type);
+         }
+     }
+ }
+@@ -861,38 +957,238 @@ pub fn collect_values(
+     let mut full_pointer: Vec<String> = pointer.to_vec();
+     full_pointer.push(property_name.to_string());
+ 
+-    let Some(subschema) = resolve_subschema_at_pointer(root, &full_pointer) else {
+-        return vec![];
+-    };
+-
+     let mut suggestions = Vec::new();
++    for subschema in resolve_completion_subschemas(root, root, &full_pointer, HashSet::new(), 0) {
++        merge_value_suggestions(&mut suggestions, collect_values_from(root, subschema, 0));
++    }
++    suggestions
++}
+ 
+-    // Check for const.
+-    if let Some(const_val) = subschema.get("const") {
+-        suggestions.push(ValueSuggestion::Const(const_val.clone()));
+-        return suggestions;
++fn collect_values_from(
++    root: &serde_json::Value,
++    schema: &serde_json::Value,
++    depth: usize,
++) -> Vec<ValueSuggestion> {
++    if depth > MAX_SCHEMA_DEPTH {
++        return Vec::new();
+     }
++    let mut visited = HashSet::new();
++    let Some(schema) = follow_ref(root, schema, &mut visited) else {
++        return Vec::new();
++    };
+ 
+-    // Check for enum.
+-    if let Some(enum_vals) = subschema.get("enum").and_then(|v| v.as_array()) {
++    let mut suggestions = Vec::new();
++    if let Some(const_val) = schema.get("const") {
++        suggestions.push(ValueSuggestion::Const(const_val.clone()));
++    } else if let Some(enum_vals) = schema.get("enum").and_then(|v| v.as_array()) {
+         for val in enum_vals {
+             suggestions.push(ValueSuggestion::Enum(val.clone()));
+         }
+-        return suggestions;
++    } else {
++        for type_str in schema_types(schema) {
++            match type_str {
++                "boolean" => suggestions.push(ValueSuggestion::Boolean),
++                "null" => suggestions.push(ValueSuggestion::Null),
++                _ => {}
++            }
++        }
++    }
++
++    if let Some(branches) = schema.get("allOf").and_then(|v| v.as_array()) {
++        for branch in branches {
++            let branch_values = collect_values_from(root, branch, depth + 1);
++            if suggestions.is_empty() {
++                suggestions = branch_values;
++            } else if !branch_values.is_empty() {
++                suggestions = intersect_value_suggestions(&suggestions, &branch_values);
++            }
++        }
+     }
++    if let Some(branches) = schema.get("anyOf").and_then(|v| v.as_array()) {
++        let mut alternatives = Vec::new();
++        for branch in branches {
++            merge_value_suggestions(
++                &mut alternatives,
++                collect_values_from(root, branch, depth + 1),
++            );
++        }
++        if suggestions.is_empty() {
++            suggestions = alternatives;
++        } else if !alternatives.is_empty() {
++            suggestions = intersect_value_suggestions(&suggestions, &alternatives);
++        }
++    }
++    if let Some(branches) = schema.get("oneOf").and_then(|v| v.as_array()) {
++        let branch_values: Vec<Vec<ValueSuggestion>> = branches
++            .iter()
++            .map(|branch| collect_values_from(root, branch, depth + 1))
++            .collect();
++        let mut values = Vec::new();
++        for value in branch_values
++            .iter()
++            .flatten()
++            .flat_map(value_suggestion_values)
++        {
++            if branch_values
++                .iter()
++                .filter(|branch| {
++                    branch
++                        .iter()
++                        .flat_map(value_suggestion_values)
++                        .any(|candidate| candidate == value)
++                })
++                .count()
++                == 1
++                && !values.contains(&value)
++            {
++                values.push(value);
++            }
++        }
++        let alternatives = suggestions_from_values(values);
++        if suggestions.is_empty() {
++            suggestions = alternatives;
++        } else if !alternatives.is_empty() {
++            suggestions = intersect_value_suggestions(&suggestions, &alternatives);
++        }
++    }
++    suggestions
++}
++
++fn merge_value_suggestions(suggestions: &mut Vec<ValueSuggestion>, incoming: Vec<ValueSuggestion>) {
++    for value in incoming {
++        let missing: Vec<_> = value_suggestion_values(&value)
++            .into_iter()
++            .filter(|candidate| {
++                !suggestions
++                    .iter()
++                    .flat_map(value_suggestion_values)
++                    .any(|existing| existing == *candidate)
++            })
++            .collect();
++        if missing.len() == value_suggestion_values(&value).len() {
++            suggestions.push(value);
++        } else {
++            suggestions.extend(missing.into_iter().map(ValueSuggestion::Enum));
++        }
++    }
++}
+ 
+-    // Check for type-based suggestions.
+-    if let Some(type_str) = subschema.get("type").and_then(|v| v.as_str()) {
+-        match type_str {
+-            "boolean" => suggestions.push(ValueSuggestion::Boolean),
+-            "null" => suggestions.push(ValueSuggestion::Null),
+-            _ => {}
++fn intersect_value_suggestions(
++    left: &[ValueSuggestion],
++    right: &[ValueSuggestion],
++) -> Vec<ValueSuggestion> {
++    let right_values: Vec<_> = right.iter().flat_map(value_suggestion_values).collect();
++    let mut values = Vec::new();
++    for value in left.iter().flat_map(value_suggestion_values) {
++        if right_values.contains(&value) && !values.contains(&value) {
++            values.push(value);
+         }
+     }
++    suggestions_from_values(values)
++}
+ 
++fn suggestions_from_values(mut values: Vec<serde_json::Value>) -> Vec<ValueSuggestion> {
++    let mut suggestions = Vec::new();
++    if values.contains(&serde_json::Value::Bool(true))
++        && values.contains(&serde_json::Value::Bool(false))
++    {
++        suggestions.push(ValueSuggestion::Boolean);
++        values.retain(|value| !value.is_boolean());
++    }
++    if values.contains(&serde_json::Value::Null) {
++        suggestions.push(ValueSuggestion::Null);
++        values.retain(|value| !value.is_null());
++    }
++    suggestions.extend(values.into_iter().map(ValueSuggestion::Enum));
+     suggestions
+ }
+ 
++fn value_suggestion_values(suggestion: &ValueSuggestion) -> Vec<serde_json::Value> {
++    match suggestion {
++        ValueSuggestion::Enum(value) | ValueSuggestion::Const(value) => vec![value.clone()],
++        ValueSuggestion::Boolean => {
++            vec![
++                serde_json::Value::Bool(true),
++                serde_json::Value::Bool(false),
++            ]
++        }
++        ValueSuggestion::Null => vec![serde_json::Value::Null],
++    }
++}
++
++fn resolve_completion_subschemas<'a>(
++    root: &'a serde_json::Value,
++    schema: &'a serde_json::Value,
++    pointer: &[String],
++    mut visited: HashSet<String>,
++    depth: usize,
++) -> Vec<&'a serde_json::Value> {
++    if depth > MAX_SCHEMA_DEPTH {
++        return Vec::new();
++    }
++    let Some(schema) = follow_ref(root, schema, &mut visited) else {
++        return Vec::new();
++    };
++    if pointer.is_empty() {
++        return vec![schema];
++    }
++
++    let segment = &pointer[0];
++    let rest = &pointer[1..];
++    let mut matches = Vec::new();
++    if let Some(prop_schema) = schema
++        .get("properties")
++        .and_then(|properties| properties.get(segment))
++    {
++        matches.extend(resolve_completion_subschemas(
++            root,
++            prop_schema,
++            rest,
++            visited.clone(),
++            depth + 1,
++        ));
++    }
++    for keyword in ["allOf", "anyOf", "oneOf"] {
++        if let Some(branches) = schema.get(keyword).and_then(|v| v.as_array()) {
++            for branch in branches {
++                matches.extend(resolve_completion_subschemas(
++                    root,
++                    branch,
++                    pointer,
++                    visited.clone(),
++                    depth + 1,
++                ));
++            }
++        }
++    }
++    if let Ok(index) = segment.parse::<usize>() {
++        if let Some(prefix_item) = schema
++            .get("prefixItems")
++            .and_then(|items| items.as_array())
++            .and_then(|items| items.get(index))
++        {
++            matches.extend(resolve_completion_subschemas(
++                root,
++                prefix_item,
++                rest,
++                visited.clone(),
++                depth + 1,
++            ));
++        } else if let Some(items) = schema.get("items")
++            && (items.is_object() || items.is_boolean())
++        {
++            matches.extend(resolve_completion_subschemas(
++                root,
++                items,
++                rest,
++                visited,
++                depth + 1,
++            ));
++        }
++    }
++    matches
++}
++
+ /// Resolve the subschema at a given JSON pointer path within a schema.
+ fn resolve_subschema<'a>(
+     root: &'a serde_json::Value,
+@@ -1308,6 +1604,47 @@ mod tests {
+         assert!(name_prop.required);
+     }
+ 
++    #[test]
++    fn collect_properties_composition_merges_duplicate_metadata() {
++        let schema = serde_json::json!({
++            "anyOf": [
++                {
++                    "properties": {
++                        "name": { "type": "string" }
++                    }
++                },
++                {
++                    "allOf": [{
++                        "properties": {
++                            "name": { "description": "Required display name" }
++                        },
++                        "required": ["name"]
++                    }]
++                }
++            ]
++        });
++        let props = collect_properties(&schema, &[]);
++        assert_eq!(props.len(), 1);
++        assert_eq!(props[0].name, "name");
++        assert!(!props[0].required);
++        assert_eq!(props[0].schema_type.as_deref(), Some("string"));
++        assert_eq!(
++            props[0].description.as_deref(),
++            Some("Required display name")
++        );
++    }
++
++    #[test]
++    fn collect_properties_formats_nullable_type() {
++        let schema = serde_json::json!({
++            "properties": {
++                "enabled": { "type": ["boolean", "null"] }
++            }
++        });
++        let props = collect_properties(&schema, &[]);
++        assert_eq!(props[0].schema_type.as_deref(), Some("boolean | null"));
++    }
++
+     #[test]
+     fn collect_properties_with_ref() {
+         let schema = serde_json::json!({
+@@ -1388,6 +1725,79 @@ mod tests {
+         assert!(matches!(&values[0], ValueSuggestion::Boolean));
+     }
+ 
++    #[test]
++    fn collect_values_nullable_boolean() {
++        let schema = serde_json::json!({
++            "properties": {
++                "enabled": { "type": ["boolean", "null"] }
++            }
++        });
++        let values = collect_values(&schema, &[], "enabled");
++        assert_eq!(values.len(), 2);
++        assert!(matches!(&values[0], ValueSuggestion::Boolean));
++        assert!(matches!(&values[1], ValueSuggestion::Null));
++    }
++
++    #[test]
++    fn collect_values_from_composition() {
++        let schema = serde_json::json!({
++            "properties": {
++                "mode": {
++                    "oneOf": [
++                        { "enum": ["dark", "light"] },
++                        { "type": "null" }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "mode");
++        assert_eq!(values.len(), 3);
++        assert!(
++            values
++                .iter()
++                .any(|value| matches!(value, ValueSuggestion::Enum(v) if v == "dark"))
++        );
++        assert!(
++            values
++                .iter()
++                .any(|value| matches!(value, ValueSuggestion::Null))
++        );
++    }
++
++    #[test]
++    fn collect_values_allof_intersection() {
++        let schema = serde_json::json!({
++            "properties": {
++                "mode": {
++                    "allOf": [
++                        { "enum": ["a", "b"] },
++                        { "enum": ["b", "c"] }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "mode");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Enum(v) if v == "b"));
++    }
++
++    #[test]
++    fn collect_values_oneof_excludes_overlapping_values() {
++        let schema = serde_json::json!({
++            "properties": {
++                "mode": {
++                    "oneOf": [
++                        { "const": "x" },
++                        { "enum": ["x", "y"] }
++                    ]
++                }
++            }
++        });
++        let values = collect_values(&schema, &[], "mode");
++        assert_eq!(values.len(), 1);
++        assert!(matches!(&values[0], ValueSuggestion::Enum(v) if v == "y"));
++    }
++
+     #[test]
+     fn collect_values_no_suggestions() {
+         let schema = serde_json::json!({
+diff --git a/tests/fixtures/completion-schema.json b/tests/fixtures/completion-schema.json
+index a034f97f825358054828124f32055d1a41639811..7cf1309118111837284358f8ace92ee9e8476c72 100644
+--- a/tests/fixtures/completion-schema.json
++++ b/tests/fixtures/completion-schema.json
+@@ -22,7 +22,15 @@
+     },
+     "age": { "type": "number" },
+     "enabled": { "type": "boolean" },
++    "nullableEnabled": { "type": ["boolean", "null"] },
+     "mode": { "enum": ["dark", "light", "auto"] },
++    "composedMode": {
++      "anyOf": [
++        { "enum": ["dark", "light", null] },
++        { "const": "dark" },
++        { "type": "null" }
++      ]
++    },
+     "version": { "const": 2 },
+     "address": { "$ref": "#/$defs/Address" },
+     "settings": {
+diff --git a/tests/lsp_completion.rs b/tests/lsp_completion.rs
+index 60753f1e8032edd548eecfa5a6b40a3bdca65569..0f1db298c45a7ee141fd876d9662b0b45a6538a6 100644
+--- a/tests/lsp_completion.rs
++++ b/tests/lsp_completion.rs
+@@ -12,6 +12,10 @@ fn completion_schema_path() -> String {
+     )
+ }
+ 
++fn config_schema_path() -> String {
++    format!("{}/config.schema.json", env!("CARGO_MANIFEST_DIR"))
++}
++
+ /// A test document URI in the fixtures directory (so relative $schema resolves).
+ fn doc_uri() -> String {
+     file_uri(&format!(
+@@ -50,6 +54,15 @@ fn labels(result: &serde_json::Value) -> Vec<String> {
+         .collect()
+ }
+ 
++fn assert_unique_labels(names: &[String]) {
++    let unique: std::collections::HashSet<_> = names.iter().collect();
++    assert_eq!(
++        unique.len(),
++        names.len(),
++        "duplicate completions: {names:?}"
++    );
++}
++
+ /// Property name completion in a nearly-empty object.
+ #[tokio::test]
+ async fn completion_property_names_in_empty_object() {
+@@ -206,6 +219,38 @@ async fn completion_boolean_values() {
+     );
+ }
+ 
++#[tokio::test]
++async fn completion_nullable_boolean_values_are_unique() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema(r#""nullableEnabled": null"#);
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let idx = content.find("\"nullableEnabled\": ").unwrap() + "\"nullableEnabled\": ".len();
++    let names = labels(&client.completion(&uri, 0, idx as u32).await);
++
++    assert_eq!(names, vec!["true", "false", "null"]);
++    assert_unique_labels(&names);
++}
++
++#[tokio::test]
++async fn completion_composed_values_are_unique() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = doc_with_schema(r#""composedMode": null"#);
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let idx = content.find("\"composedMode\": ").unwrap() + "\"composedMode\": ".len();
++    let names = labels(&client.completion(&uri, 0, idx as u32).await);
++
++    assert_eq!(names, vec![r#""dark""#, r#""light""#, "null"]);
++    assert_unique_labels(&names);
++}
++
+ /// Nested object property completions.
+ #[tokio::test]
+ async fn completion_nested_object_properties() {
+@@ -265,6 +310,46 @@ async fn completion_ref_resolved_properties() {
+     );
+ }
+ 
++#[tokio::test]
++async fn completion_real_config_schema_composition_inside_array() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = format!(
++        "{{\n  \"$schema\": {:?},\n  \"schemas\": [\n    {{\n      \n    }}\n  ]\n}}",
++        config_schema_path()
++    );
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let names = labels(&client.completion(&uri, 4, 6).await);
++
++    assert!(names.contains(&"files".to_string()), "got: {names:?}");
++    assert!(names.contains(&"url".to_string()), "got: {names:?}");
++    assert!(names.contains(&"path".to_string()), "got: {names:?}");
++    assert!(!names.contains(&"strict".to_string()), "got: {names:?}");
++    assert_unique_labels(&names);
++}
++
++#[tokio::test]
++async fn completion_filters_existing_property_inside_array() {
++    let mut client = TestClient::new();
++    client.initialize().await;
++
++    let content = format!(
++        "{{\n  \"$schema\": {:?},\n  \"schemas\": [\n    {{\n      \"files\": [\"**/*.json\"],\n      \n    }}\n  ]\n}}",
++        config_schema_path()
++    );
++    let uri = doc_uri();
++    open_and_wait(&mut client, &uri, &content).await;
++
++    let names = labels(&client.completion(&uri, 5, 6).await);
++    assert!(!names.contains(&"files".to_string()), "got: {names:?}");
++    assert!(names.contains(&"url".to_string()), "got: {names:?}");
++    assert!(names.contains(&"path".to_string()), "got: {names:?}");
++    assert_unique_labels(&names);
++}
++
+ /// No-schema document returns empty/null completions.
+ #[tokio::test]
+ async fn completion_no_schema_returns_null() {

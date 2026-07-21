@@ -1,0 +1,537 @@
+diff --git a/src/backend/github.rs b/src/backend/github.rs
+index 44141ba06b3d3f8380979647ef3e19ba679e721f..c2a3b4a748e186c87d9217354e1dc2f89640933a 100644
+--- a/src/backend/github.rs
++++ b/src/backend/github.rs
+@@ -4,7 +4,7 @@ use crate::backend::backend_type::BackendType;
+ use crate::backend::options::BackendOptions;
+ use crate::backend::platform_target::PlatformTarget;
+ use crate::backend::static_helpers::{
+-    get_filename_from_url, install_artifact, template_string, try_with_v_prefix,
++    artifact_format, get_filename_from_url, install_artifact, template_string, try_with_v_prefix,
+     try_with_v_prefix_and_repo, verify_artifact,
+ };
+ use crate::backend::{MISE_BINS_DIR, SecurityFeature, runtime_path_for_install_path};
+@@ -504,7 +504,10 @@ impl Backend for UnifiedGitBackend {
+                 // For the current platform, verify provenance cryptographically at lock time.
+                 // This ensures the lockfile's provenance entry is backed by actual verification,
+                 // not just an API query. Cross-platform entries remain detection-only.
+-                if provenance.is_some() && target.is_current() {
++                if target.is_current()
++                    && (provenance.is_some()
++                        || github_attestations == Some(GithubAttestationsStatus::Unavailable))
++                {
+                     match self
+                         .verify_provenance_at_lock_time(tv, &opts, &repo, &api_url, &asset)
+                         .await
+@@ -702,8 +705,9 @@ impl UnifiedGitBackend {
+             let parts: Vec<&str> = repo.split('/').collect();
+             if parts.len() == 2 {
+                 let (owner, repo_name) = (parts[0], parts[1]);
+-                match crate::github::sigstore::verify_attestation(
++                match crate::github::sigstore::verify_attestation_or_archive_files(
+                     &artifact_path,
++                    artifact_format(&artifact_path, opts.raw()),
+                     owner,
+                     repo_name,
+                     None,
+@@ -1697,8 +1701,10 @@ impl UnifiedGitBackend {
+         }
+         let (owner, repo_name) = (parts[0], parts[1]);
+ 
+-        match crate::github::sigstore::verify_attestation(
++        let raw_opts = tv.request.options();
++        match crate::github::sigstore::verify_attestation_or_archive_files(
+             file_path,
++            artifact_format(file_path, &raw_opts),
+             owner,
+             repo_name,
+             None, // We don't know the expected workflow
+diff --git a/src/backend/static_helpers.rs b/src/backend/static_helpers.rs
+index 3eff63a56cbff0efc4c1c93a43319b920237d783..d946588dc167309fbd671fe0f49444dd7b9efb79 100644
+--- a/src/backend/static_helpers.rs
++++ b/src/backend/static_helpers.rs
+@@ -410,15 +410,7 @@ pub fn install_artifact(
+     file::remove_all(&install_path)?;
+     file::create_dir_all(&install_path)?;
+ 
+-    // Use TarFormat for format detection
+-    // Check for explicit format option first, then fall back to file extension
+-    let format = if let Some(format_opt) = lookup_with_fallback(opts, "format") {
+-        file::TarFormat::from_ext(&format_opt)
+-    } else {
+-        file::TarFormat::from_file_name(
+-            &file_path.file_name().unwrap_or_default().to_string_lossy(),
+-        )
+-    };
++    let format = artifact_format(file_path, opts);
+ 
+     // Get file extension and detect format
+     let file_name = file_path.file_name().unwrap().to_string_lossy();
+@@ -535,6 +527,16 @@ pub fn install_artifact(
+     Ok(())
+ }
+ 
++pub fn artifact_format(file_path: &Path, opts: &ToolVersionOptions) -> file::TarFormat {
++    if let Some(format_opt) = lookup_with_fallback(opts, "format") {
++        file::TarFormat::from_ext(&format_opt)
++    } else {
++        file::TarFormat::from_file_name(
++            &file_path.file_name().unwrap_or_default().to_string_lossy(),
++        )
++    }
++}
++
+ fn make_configured_bin_executable(search_dir: &Path, bin_name: &str) -> Result<()> {
+     let bin_path = search_dir.join(bin_name);
+     if bin_path.is_file() {
+diff --git a/src/github/sigstore.rs b/src/github/sigstore.rs
+index dfeeec8fddb905edb11edf280bee3818f1f2543d..42d1f1e77066788b3d66bd13715a4af2874b7577 100644
+--- a/src/github/sigstore.rs
++++ b/src/github/sigstore.rs
+@@ -24,7 +24,9 @@
+ //! [`crate::github::resolve_token_for_api_url`] can parse the host correctly; a bare hostname
+ //! would be silently misrouted for GitHub Enterprise Server tenants.
+ 
+-use std::path::Path;
++use std::future::Future;
++use std::path::{Path, PathBuf};
++use std::pin::Pin;
+ 
+ use mise_sigstore::sources::github::GitHubSource;
+ use mise_sigstore::{ArtifactRef, AttestationSource};
+@@ -78,6 +80,134 @@ pub async fn verify_attestation(
+     }
+ }
+ 
++type VerifyFuture<'a> = Pin<Box<dyn Future<Output = AttestationResult<bool>> + Send + 'a>>;
++
++trait AttestationVerifier {
++    fn verify<'a>(&'a mut self, path: &'a Path) -> VerifyFuture<'a>;
++}
++
++struct GitHubAttestationVerifier<'a> {
++    owner: &'a str,
++    repo: &'a str,
++    expected_workflow: Option<&'a str>,
++    api_url: Option<&'a str>,
++}
++
++impl AttestationVerifier for GitHubAttestationVerifier<'_> {
++    fn verify<'a>(&'a mut self, path: &'a Path) -> VerifyFuture<'a> {
++        Box::pin(verify_attestation(
++            path,
++            self.owner,
++            self.repo,
++            self.expected_workflow,
++            self.api_url,
++        ))
++    }
++}
++
++/// Verify the release asset itself, falling back to every regular file in an archive only when
++/// GitHub reports that the archive blob has no attestations.
++pub async fn verify_attestation_or_archive_files(
++    artifact_path: &Path,
++    format: crate::file::TarFormat,
++    owner: &str,
++    repo: &str,
++    expected_workflow: Option<&str>,
++    api_url: Option<&str>,
++) -> AttestationResult<bool> {
++    let mut verifier = GitHubAttestationVerifier {
++        owner,
++        repo,
++        expected_workflow,
++        api_url,
++    };
++    verify_attestation_or_archive_files_with(artifact_path, format, &mut verifier).await
++}
++
++async fn verify_attestation_or_archive_files_with(
++    artifact_path: &Path,
++    format: crate::file::TarFormat,
++    verifier: &mut impl AttestationVerifier,
++) -> AttestationResult<bool> {
++    match verifier.verify(artifact_path).await {
++        Ok(verified) => return Ok(verified),
++        Err(AttestationError::NoAttestations) if format.is_archive() => {}
++        Err(e) => return Err(e),
++    }
++
++    let temp_dir = tempfile::tempdir().map_err(AttestationError::Io)?;
++    crate::file::untar(
++        artifact_path,
++        temp_dir.path(),
++        &crate::file::TarOptions::new(format),
++    )
++    .map_err(|e| {
++        AttestationError::Verification(format!(
++            "failed to extract archive for per-file attestation verification: {e}"
++        ))
++    })?;
++
++    let files = archive_regular_files(temp_dir.path())?;
++    if files.is_empty() {
++        return Err(AttestationError::NoAttestations);
++    }
++
++    let mut verified_any = false;
++    let mut unattested = Vec::new();
++    for path in files {
++        match verifier.verify(&path).await {
++            Ok(true) => verified_any = true,
++            Ok(false) => return Ok(false),
++            Err(AttestationError::NoAttestations) => {
++                unattested.push(
++                    path.strip_prefix(temp_dir.path())
++                        .unwrap_or(&path)
++                        .display()
++                        .to_string(),
++                );
++            }
++            Err(e) => return Err(e),
++        }
++    }
++
++    if !verified_any {
++        Err(AttestationError::NoAttestations)
++    } else if unattested.is_empty() {
++        Ok(true)
++    } else {
++        Err(AttestationError::Verification(format!(
++            "archive members without GitHub artifact attestations: {}",
++            unattested.join(", ")
++        )))
++    }
++}
++
++fn archive_regular_files(root: &Path) -> AttestationResult<Vec<PathBuf>> {
++    let mut files = Vec::new();
++    for entry in walkdir::WalkDir::new(root).follow_links(false) {
++        let entry = entry.map_err(|e| {
++            AttestationError::Verification(format!(
++                "failed to inspect extracted archive for attestation verification: {e}"
++            ))
++        })?;
++        let file_type = entry.file_type();
++        if file_type.is_file() {
++            files.push(entry.into_path());
++        } else if !file_type.is_dir() {
++            return Err(AttestationError::Verification(format!(
++                "archive member {} is not a regular file",
++                entry
++                    .path()
++                    .strip_prefix(root)
++                    .unwrap_or(entry.path())
++                    .display()
++            )));
++        }
++    }
++    files.sort();
++    Ok(files)
++}
++
+ /// Reason the pre-download attestation probe could not complete.
+ ///
+ /// Preserved as two variants so callers can log distinct warnings for a misconfigured
+@@ -168,6 +298,8 @@ pub async fn verify_cosign_signature_with_key(
+ mod tests {
+     use super::*;
+     use crate::env as mise_env;
++    use std::collections::HashMap;
++    use std::sync::{Arc, Mutex};
+ 
+     const TOKEN_ENV_VARS: &[&str] = &[
+         "MISE_GITHUB_TOKEN",
+@@ -299,4 +431,291 @@ mod tests {
+             "wrapper should resolve tokens from github_tokens.toml when env vars are empty"
+         );
+     }
++
++    fn create_tar(entries: &[(&str, &[u8])]) -> (tempfile::TempDir, PathBuf) {
++        let temp_dir = tempfile::tempdir().unwrap();
++        let archive_path = temp_dir.path().join("artifact.tar");
++        let file = std::fs::File::create(&archive_path).unwrap();
++        let mut builder = tar::Builder::new(file);
++        for (name, contents) in entries {
++            let mut header = tar::Header::new_gnu();
++            header.set_size(contents.len() as u64);
++            header.set_mode(0o755);
++            header.set_cksum();
++            builder.append_data(&mut header, name, *contents).unwrap();
++        }
++        builder.finish().unwrap();
++        (temp_dir, archive_path)
++    }
++
++    #[derive(Clone, Copy)]
++    enum TestVerification {
++        Verified,
++        Rejected,
++        Missing,
++        ApiError,
++    }
++
++    struct TestVerifier {
++        artifact_path: PathBuf,
++        results: HashMap<String, TestVerification>,
++        calls: Arc<Mutex<Vec<String>>>,
++    }
++
++    impl AttestationVerifier for TestVerifier {
++        fn verify<'a>(&'a mut self, path: &'a Path) -> VerifyFuture<'a> {
++            let key = if path == self.artifact_path {
++                "archive".to_string()
++            } else {
++                path.file_name().unwrap().to_string_lossy().into_owned()
++            };
++            self.calls.lock().unwrap().push(key.clone());
++            let result = match self.results.remove(&key).unwrap() {
++                TestVerification::Verified => Ok(true),
++                TestVerification::Rejected => Ok(false),
++                TestVerification::Missing => Err(AttestationError::NoAttestations),
++                TestVerification::ApiError => Err(AttestationError::Api("unavailable".into())),
++            };
++            Box::pin(async move { result })
++        }
++    }
++
++    fn test_verifier(
++        artifact_path: PathBuf,
++        results: HashMap<String, TestVerification>,
++    ) -> (Arc<Mutex<Vec<String>>>, TestVerifier) {
++        let calls = Arc::new(Mutex::new(Vec::new()));
++        let verifier = TestVerifier {
++            artifact_path,
++            results,
++            calls: calls.clone(),
++        };
++        (calls, verifier)
++    }
++
++    #[tokio::test]
++    async fn archive_attestation_remains_the_primary_verification() {
++        let (_temp_dir, archive_path) = create_tar(&[("tool", b"binary")]);
++        let (calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([("archive".into(), TestVerification::Verified)]),
++        );
++
++        assert!(
++            verify_attestation_or_archive_files_with(
++                &archive_path,
++                crate::file::TarFormat::Tar,
++                &mut verifier,
++            )
++            .await
++            .unwrap()
++        );
++        assert_eq!(*calls.lock().unwrap(), ["archive"]);
++    }
++
++    #[tokio::test]
++    async fn rejected_archive_attestation_does_not_fall_back() {
++        let (_temp_dir, archive_path) = create_tar(&[("tool", b"binary")]);
++        let (calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([("archive".into(), TestVerification::Rejected)]),
++        );
++
++        assert!(
++            !verify_attestation_or_archive_files_with(
++                &archive_path,
++                crate::file::TarFormat::Tar,
++                &mut verifier,
++            )
++            .await
++            .unwrap()
++        );
++        assert_eq!(*calls.lock().unwrap(), ["archive"]);
++    }
++
++    #[tokio::test]
++    async fn all_archive_files_must_be_attested() {
++        let (_temp_dir, archive_path) =
++            create_tar(&[("bin/tool", b"binary"), ("LICENSE", b"license")]);
++        let (calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([
++                ("archive".into(), TestVerification::Missing),
++                ("LICENSE".into(), TestVerification::Verified),
++                ("tool".into(), TestVerification::Verified),
++            ]),
++        );
++
++        assert!(
++            verify_attestation_or_archive_files_with(
++                &archive_path,
++                crate::file::TarFormat::Tar,
++                &mut verifier,
++            )
++            .await
++            .unwrap()
++        );
++        assert_eq!(*calls.lock().unwrap(), ["archive", "LICENSE", "tool"]);
++    }
++
++    #[tokio::test]
++    async fn unattested_archive_file_fails_closed() {
++        let (_temp_dir, archive_path) = create_tar(&[("tool", b"binary"), ("README", b"docs")]);
++        let (_calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([
++                ("archive".into(), TestVerification::Missing),
++                ("README".into(), TestVerification::Verified),
++                ("tool".into(), TestVerification::Missing),
++            ]),
++        );
++
++        let err = verify_attestation_or_archive_files_with(
++            &archive_path,
++            crate::file::TarFormat::Tar,
++            &mut verifier,
++        )
++        .await
++        .unwrap_err();
++        assert!(
++            err.to_string()
++                .contains("archive members without GitHub artifact attestations: tool")
++        );
++    }
++
++    #[tokio::test]
++    async fn archive_file_verification_errors_fail_closed() {
++        let (_temp_dir, archive_path) = create_tar(&[("tool", b"binary")]);
++        let (_calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([
++                ("archive".into(), TestVerification::Missing),
++                ("tool".into(), TestVerification::ApiError),
++            ]),
++        );
++
++        let err = verify_attestation_or_archive_files_with(
++            &archive_path,
++            crate::file::TarFormat::Tar,
++            &mut verifier,
++        )
++        .await
++        .unwrap_err();
++        assert!(matches!(err, AttestationError::Api(_)));
++    }
++
++    #[tokio::test]
++    async fn rejected_archive_file_fails_closed() {
++        let (_temp_dir, archive_path) = create_tar(&[("tool", b"binary")]);
++        let (_calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([
++                ("archive".into(), TestVerification::Missing),
++                ("tool".into(), TestVerification::Rejected),
++            ]),
++        );
++
++        assert!(
++            !verify_attestation_or_archive_files_with(
++                &archive_path,
++                crate::file::TarFormat::Tar,
++                &mut verifier,
++            )
++            .await
++            .unwrap()
++        );
++    }
++
++    #[tokio::test]
++    async fn invalid_archive_fails_closed() {
++        let temp_dir = tempfile::tempdir().unwrap();
++        let archive_path = temp_dir.path().join("artifact.tar");
++        std::fs::write(&archive_path, b"not an archive").unwrap();
++        let (_calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([("archive".into(), TestVerification::Missing)]),
++        );
++
++        let err = verify_attestation_or_archive_files_with(
++            &archive_path,
++            crate::file::TarFormat::Tar,
++            &mut verifier,
++        )
++        .await
++        .unwrap_err();
++        assert!(err.to_string().contains("failed to extract archive"));
++    }
++
++    #[tokio::test]
++    async fn non_archive_without_attestations_does_not_guess() {
++        let temp_dir = tempfile::tempdir().unwrap();
++        let artifact_path = temp_dir.path().join("tool");
++        std::fs::write(&artifact_path, b"binary").unwrap();
++        let (_calls, mut verifier) = test_verifier(
++            artifact_path.clone(),
++            HashMap::from([("archive".into(), TestVerification::Missing)]),
++        );
++
++        let err = verify_attestation_or_archive_files_with(
++            &artifact_path,
++            crate::file::TarFormat::Raw,
++            &mut verifier,
++        )
++        .await
++        .unwrap_err();
++        assert!(matches!(err, AttestationError::NoAttestations));
++    }
++
++    #[tokio::test]
++    async fn empty_archive_fails_closed() {
++        let (_temp_dir, archive_path) = create_tar(&[]);
++        let (_calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([("archive".into(), TestVerification::Missing)]),
++        );
++
++        let err = verify_attestation_or_archive_files_with(
++            &archive_path,
++            crate::file::TarFormat::Tar,
++            &mut verifier,
++        )
++        .await
++        .unwrap_err();
++        assert!(matches!(err, AttestationError::NoAttestations));
++    }
++
++    #[tokio::test]
++    async fn archive_with_no_file_attestations_preserves_existing_fallback() {
++        let (_temp_dir, archive_path) = create_tar(&[("tool", b"binary"), ("README", b"docs")]);
++        let (_calls, mut verifier) = test_verifier(
++            archive_path.clone(),
++            HashMap::from([
++                ("archive".into(), TestVerification::Missing),
++                ("README".into(), TestVerification::Missing),
++                ("tool".into(), TestVerification::Missing),
++            ]),
++        );
++
++        let err = verify_attestation_or_archive_files_with(
++            &archive_path,
++            crate::file::TarFormat::Tar,
++            &mut verifier,
++        )
++        .await
++        .unwrap_err();
++        assert!(matches!(err, AttestationError::NoAttestations));
++    }
++
++    #[cfg(unix)]
++    #[test]
++    fn archive_member_symlink_fails_closed() {
++        use std::os::unix::fs::symlink;
++
++        let temp_dir = tempfile::tempdir().unwrap();
++        std::fs::write(temp_dir.path().join("tool"), b"binary").unwrap();
++        symlink("tool", temp_dir.path().join("tool-link")).unwrap();
++
++        let err = archive_regular_files(temp_dir.path()).unwrap_err();
++        assert!(err.to_string().contains("tool-link is not a regular file"));
++    }
+ }
