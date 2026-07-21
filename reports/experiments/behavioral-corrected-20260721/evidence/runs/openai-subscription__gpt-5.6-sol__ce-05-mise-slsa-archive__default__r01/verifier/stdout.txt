@@ -1,0 +1,14 @@
+{
+  "command_stderr": "",
+  "control": "candidate",
+  "duration_seconds": 155.75781416893005,
+  "exit_code": 1,
+  "expectation_met": false,
+  "expected_pass": true,
+  "outcome": "failed",
+  "reward": {
+    "reward": 0
+  },
+  "scenario": null,
+  "task_id": "ce-05-mise-slsa-archive"
+}

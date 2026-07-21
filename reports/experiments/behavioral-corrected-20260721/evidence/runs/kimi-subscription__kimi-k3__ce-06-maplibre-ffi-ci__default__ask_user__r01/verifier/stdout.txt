@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/tests/verify_workflow.py", line 308, in <module>
+    main()
+    ~~~~^^
+  File "/tests/verify_workflow.py", line 294, in main
+    assert_required_inputs_reject_malformed(source, fixture, workflow.read_text())
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tests/verify_workflow.py", line 143, in assert_required_inputs_reject_malformed
+    run(GENERATE_COMMAND, cwd=fixture, expect_success=False)
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tests/verify_workflow.py", line 80, in run
+    raise AssertionError(
+    ...<2 lines>...
+    )
+AssertionError: generator ['ci:generate-workflow'] returned 0; stdout='wrote .github/workflows/ci.yml\n' stderr='[//:ci:generate-workflow] $ python .mise/ci/generate_workflow.py\n'

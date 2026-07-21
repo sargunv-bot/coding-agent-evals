@@ -59,6 +59,7 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
     const ew: Warning[] = []; const reportDir = path.join(reportsRoot, experimentId);
     const manifest = await optionalToml(path.join(dataRoot, 'experiments', `${experimentId}.toml`), ew, experimentId);
     const exp = asRecord(manifest?.experiment);
+    const authoritative = exp.authoritative === true;
     const reviewPolicy: ReviewPolicy = ['withheld', 'disabled'].includes(exp.review_policy) ? exp.review_policy : 'required';
     const resultDoc = await optionalJson(path.join(reportDir, 'results.json'), ew, experimentId);
     const rows = Array.isArray(resultDoc?.rows) ? resultDoc.rows : [];
@@ -95,7 +96,7 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
       const parsed = parseTranscript(transcriptSource);
       let verifierOutput: string | undefined; try { if (artifacts.some((a) => a.path === 'verifier/stdout.txt')) verifierOutput = await utf8(await containedFile(runDir, 'verifier/stdout.txt')); } catch (e: any) { rw.push({ scope: cellId, message: e.message }); }
       const usage = asRecord(latest.usage); const verification = asRecord(latest.verification);
-      const run: Run = { experimentId, cellId, taskId: String(row.task_id || 'unknown-task'), provider: String(row.provider || 'unknown-provider'), model: String(row.model || 'unknown-model'), mode: String(row.mode || row.instruction_mode || 'baseline'),
+      const run: Run = { experimentId, cellId, taskId: String(row.task_id || 'unknown-task'), provider: String(row.provider || 'unknown-provider'), model: String(row.model || 'unknown-model'), mode: String(row.mode || row.instruction_mode || 'baseline'), authoritative,
         scenario: String(row.scenario || ''), repeat: Number(row.repeat || 1), runId: row.run_id ? String(row.run_id) : undefined, state, completionStatus: row.agent_completion_status,
         deterministicPass: typeof row.deterministic_pass === 'boolean' ? row.deterministic_pass : typeof verification.expectation_met === 'boolean' ? verification.expectation_met : undefined,
         verificationOutcome: row.verification_outcome || verification.outcome, infrastructureError: state === 'infrastructure_error' || attempts.at(-1)?.kind === 'infrastructure_error', durationSeconds: Number(row.duration_seconds || latest.duration_seconds) || undefined,
@@ -106,11 +107,11 @@ export async function loadSiteData(options: LoadOptions = {}): Promise<SiteData>
       runs.push(run); allRuns.push(run); ew.push(...rw);
     }
     const plannedCells = (Array.isArray(manifest?.models) ? manifest.models.length : 0) * (Array.isArray(manifest?.cells) ? manifest.cells.length : 0) * Number(exp.repeats || 1);
-    experiments.push({ id: experimentId, description: exp.description, stage: exp.stage, plannedCells, runs, warnings: ew }); warnings.push(...ew);
+    experiments.push({ id: experimentId, description: exp.description, stage: exp.stage, authoritative, plannedCells, runs, warnings: ew }); warnings.push(...ew);
   }
   for (const run of allRuns) run.taskTitle = taskMap.get(run.taskId)?.title || run.taskId;
   allRuns.sort((a,b) => a.taskId.localeCompare(b.taskId) || a.provider.localeCompare(b.provider) || a.model.localeCompare(b.model) || a.cellId.localeCompare(b.cellId));
   const tasks: Task[] = [...new Set([...taskMap.keys(), ...allRuns.map((r) => r.taskId)])].sort().map((taskId) => { const meta = taskMap.get(taskId) || { taskId, title: taskId, description: 'Task metadata is not available.' }; const runs = allRuns.filter((r) => r.taskId === taskId); return { ...meta, runs, scenarios: [...new Set(runs.map((r) => r.scenario).filter(Boolean))].sort() }; });
   const modelMap = new Map<string, Model>(); for (const run of allRuns) { const key = `${run.provider}/${run.model}`; const model = modelMap.get(key) || { key, slug: modelSlug(run.provider, run.model), provider: run.provider, name: run.model, runs: [] }; model.runs.push(run); modelMap.set(key, model); }
-  return { tasks, models: [...modelMap.values()].sort((a,b) => a.key.localeCompare(b.key)), experiments, runs: allRuns, warnings };
+  return { tasks, models: [...modelMap.values()].sort((a,b) => a.key.localeCompare(b.key)), experiments, runs: allRuns, authoritativeRuns: allRuns.filter((run) => run.authoritative), warnings };
 }

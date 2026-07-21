@@ -6,6 +6,9 @@ import { basePath, humanizeEnum, modelSlug } from '../lib/format';
 import type { Run } from '../lib/types';
 
 const data = await loadSiteData();
+const runs = data.authoritativeRuns;
+const tasks = data.tasks.map((task) => ({ ...task, runs: task.runs.filter((run) => run.authoritative) })).filter((task) => task.runs.length);
+const models = data.models.map((model) => ({ ...model, runs: model.runs.filter((run) => run.authoritative) })).filter((model) => model.runs.length);
 const configurationLabel = (run: Run) => {
   const stage = run.experimentId.includes('stage-a') ? 'Stage A' : run.experimentId.includes('stage-b') ? 'Stage B' : undefined;
   const scenario = run.scenario && run.scenario !== 'default' ? humanizeEnum(run.scenario) : undefined;
@@ -14,21 +17,21 @@ const configurationLabel = (run: Run) => {
 ---
 <BaseLayout title="Results">
   <div class="page-title">
-    <div><h1>Results</h1><p>{data.runs.length} runs · {data.tasks.length} tasks · {data.models.length} models</p></div>
-    <span>{data.runs.filter((run) => run.state === 'completed').length} completed</span>
+    <div><h1>Corrected results</h1><p>{runs.length} authoritative runs · {tasks.length} tasks · {models.length} models</p></div>
+    <span>{runs.filter((run) => run.reviewState.kind === 'reviewed').length}/{runs.length} model-blind reviewed</span>
   </div>
   <section class="matrix-section">
     <div class="utility-heading"><h2>Task × model comparison</h2><span>Observed verifier evidence</span></div>
     <p class="matrix-scroll-hint">Swipe to compare models →</p>
     <div class="matrix-wrap">
       <table class="comparison-matrix">
-        <thead><tr><th>Task</th>{data.models.map((model) => <th><a href={basePath(`models/${model.slug}/`)}>{model.name}</a><small>{model.provider}</small></th>)}</tr></thead>
-        <tbody>{data.tasks.map((task) => <tr><th><a href={basePath(`tasks/${task.taskId}/`)}>{task.title}</a></th>{data.models.map((model) => {
+        <thead><tr><th>Task</th>{models.map((model) => <th><a href={basePath(`models/${model.slug}/`)}>{model.name}</a><small>{model.provider}</small></th>)}</tr></thead>
+        <tbody>{tasks.map((task) => <tr><th><a href={basePath(`tasks/${task.taskId}/`)}>{task.title}</a></th>{models.map((model) => {
           const runs = task.runs.filter((run) => modelSlug(run.provider, run.model) === model.slug);
           return <td>{runs.length ? <><ul class="matrix-results">{runs.map((run) => <li><small>{configurationLabel(run)}</small><span>{run.observed.summary}</span></li>)}</ul><a href={basePath(`?task=${encodeURIComponent(task.taskId)}&model=${encodeURIComponent(model.slug)}#runs-explorer`)}>Show {runs.length} {runs.length === 1 ? 'run' : 'runs'}</a></> : <span class="empty-cell">Not run</span>}</td>;
         })}</tr>)}</tbody>
       </table>
     </div>
   </section>
-  <RunsExplorer runs={data.runs}/>
+  <RunsExplorer runs={runs}/>
 </BaseLayout>

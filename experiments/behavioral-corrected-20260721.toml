@@ -1,0 +1,7 @@
+[experiment]
+id = "behavioral-corrected-20260721"
+description = "Authoritative corrected comparison after verifier validity audit, preserved-patch replay, targeted reruns, and model-blind qualitative review."
+stage = "corrected"
+review_policy = "required"
+authoritative = true
+repeats = 1

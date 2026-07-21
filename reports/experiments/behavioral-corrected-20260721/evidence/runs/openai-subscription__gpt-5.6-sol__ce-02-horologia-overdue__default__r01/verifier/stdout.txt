@@ -1,0 +1,16 @@
+{
+  "command_stderr": "",
+  "control": "candidate",
+  "duration_seconds": 2.2090162880485877,
+  "exit_code": 0,
+  "expectation_met": true,
+  "expected_pass": true,
+  "outcome": "passed",
+  "reward": {
+    "behavioral": 1,
+    "regression": 1,
+    "reward": 1
+  },
+  "scenario": null,
+  "task_id": "ce-02-horologia-overdue"
+}
