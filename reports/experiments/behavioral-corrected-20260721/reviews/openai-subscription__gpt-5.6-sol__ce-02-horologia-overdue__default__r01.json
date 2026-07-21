@@ -1,0 +1,33 @@
+{
+  "blinded_to_model_identity": true,
+  "blockers": [],
+  "can_override_deterministic": false,
+  "code_clarity": 5,
+  "deterministic_result_path": ".runs/experiments/real-models-v1-stage-b-r7/results/openai-subscription__gpt-5.6-sol__ce-02-horologia-overdue__default__r01.json",
+  "mergeable": true,
+  "overall_reasoning": "The patch correctly identifies that the original rule conflated 'recurring' with 'can support overdue actions'. By examining the task-engine model, it distinguishes recurrence-independent actions (set_status, clear_due_date) from advance_recurrence, which requires in-place due-date advancement, and enforces that distinction uniformly in Go validation, the SQL query, and the database constraint/index via a new migration. The behavior matrix is covered at the unit level and the newly valid paths are proven end-to-end with cron integration tests. The trajectory corroborates formatting, code generation, full test runs, and a clean commit. No blockers found.",
+  "proctor": "Independent model-blind reviewer",
+  "proctor_model": "kimi-subscription/kimi-k3",
+  "rating_rationales": {
+    "code_clarity": "The validation switch on advance_recurrence with an explicit allow-list and comment is easy to read; the migration SQL is idiomatic and mirrors the prior migration's style; comments and error messages were updated to describe the new semantics accurately.",
+    "repository_fit": "Follows established patterns: goose migration numbering/style, sqlc query + regenerated gen code, existing test helpers and test file layout, and documentation conventions. Constraint and index naming/predicates are consistent with migration 00005.",
+    "scope_discipline": "Changes are confined to the overdue-action validation, the cron selection query, a migration aligning DB constraints/indexes, regenerated sqlc code, tests, and the product brief. No unrelated edits; the fix targets the task-engine model as instructed instead of broadly weakening validation.",
+    "security_and_safety": "No unsafe behavior: validation remains strict for genuinely invalid combinations (advance_recurrence on one_off/on_dependency/fixed_accumulating, missing due date, missing status), DB constraint enforces the same rule as a backstop, and the migration is NULL-safe and reversible.",
+    "test_quality": "Unit test enumerates all 15 recurrence-type/action combinations with subtests; API tests cover creation on one-off (set_status) and on_dependency (clear_due_date); cron integration tests verify the actions execute end-to-end for those types. Existing negative tests are retained and updated to the new error wording."
+  },
+  "repository_fit": 5,
+  "run_id": "20260720T111805Z-ce-02-horologia-overdue-1419028-1784546285761102522",
+  "scope_discipline": 5,
+  "security_and_safety": 5,
+  "strengths": [
+    "Fix is model-driven rather than a blanket weakening: set_status/clear_due_date are recurrence-independent and allowed on any task with a due date, while advance_recurrence is restricted to recurrence types that advance their due date in place (completion_based, fixed_non_accumulating), matching ComputeNextDueAt/completion semantics",
+    "All three enforcement layers kept in sync: Go validation, SQL cron query (recurrence filter removed), and a new goose migration replacing the chk_overdue_action_recurring constraint and the partial index predicate",
+    "Complete 5x3 recurrence-type x action validation matrix in unit tests, plus API integration tests for creating rules on one-off and on_dependency tasks and cron execution tests proving the actions actually fire for those task types",
+    "Generated sqlc output regenerated and matches the source query; docs updated to reflect the new rule semantics",
+    "Migration uses IS DISTINCT FROM for NULL-safe comparison and includes a coherent Down path; prior rejection cases (no due date, advance on fixed_accumulating, set_status without status) remain covered",
+    "Trajectory shows gofmt, sqlc generate, targeted and full server test suites run green, and the change was committed cleanly with only intended files"
+  ],
+  "summary": "A well-scoped, layered fix that replaces the overly broad 'recurring tasks only' overdue-action gate with action-specific capability rules, updates the DB constraint/index and cron query to match, covers the full behavior matrix in tests, and updates docs; verified with passing unit and integration tests and committed.",
+  "task_id": "ce-02-horologia-overdue",
+  "test_quality": 5
+}

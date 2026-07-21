@@ -1,0 +1,32 @@
+{
+  "blinded_to_model_identity": true,
+  "blockers": [],
+  "can_override_deterministic": false,
+  "code_clarity": 4,
+  "deterministic_result_path": ".runs/experiments/real-models-v1-stage-b-r7/results/openai-subscription__gpt-5.6-sol__ce-04-maplibre-source-location__default__r01.json",
+  "mergeable": true,
+  "overall_reasoning": "The patch directly addresses the stated problem: OpenHarmony lacks `<source_location>`, and the existing workaround was both non-conforming (extending `std`) and unconditional in its include. The replacement uses correct feature detection, keeps the standard-library path for conforming toolchains, and preserves caller diagnostics via a single macro used by all existing call sites. Manifests are updated, the change is committed, and the trajectory demonstrates both build-path verification and a full successful core build. The only notable gap is the absence of a committed unit/regression test for the new public header, which is a weakness rather than a merge blocker given the simplicity of the shim and the compile/build verification performed.",
+  "proctor": "Independent model-blind reviewer",
+  "proctor_model": "kimi-subscription/kimi-k3",
+  "rating_rationales": {
+    "code_clarity": "The header is short, constexpr-correct, and mirrors the standard accessors (line/column/file_name/function_name), so call sites read identically in both paths. Conditional structure is easy to follow. Lacks a brief doc comment explaining the dual-path intent, which keeps this from a perfect score, but naming and layout match surrounding code.",
+    "repository_fit": "Placement under `include/mbgl/util` matches existing util headers, the type name follows project CamelCase conventions, `SYM_GUARD_LOC` remains the single capture point so no call sites needed edits, and the header was added to both CMake and Bazel header lists exactly where alphabetical neighbors sit.",
+    "scope_discipline": "The diff is confined to the new compatibility header, the four files that referenced `std::source_location` (symbol_instance.hpp/cpp, bucket.hpp, symbol_bucket.hpp/cpp), and the two build manifests that list public headers. No unrelated churn; a minor indentation slip introduced by the edit was corrected before commit.",
+    "security_and_safety": "Removes the prior standards violation (user-defined type inside `namespace std`), guards the `<source_location>` include with `__has_include`, and introduces no runtime risk: the fallback stores only caller-provided string literals with constexpr accessors. Default-constructed values are safe empty/zero values.",
+    "test_quality": "No regression test was committed (e.g., a `test/util/source_location.test.cpp` exercising both paths would have been ideal for a public util header). Mitigating: the trajectory shows compile-time verification of the standard path, the C++17 fallback, and a simulated C++20-library-without-source_location path, plus a complete successful `mbgl-core` build under -Werror, so correctness of both branches is reasonably established."
+  },
+  "repository_fit": 5,
+  "run_id": "20260720T165923Z-ce-04-maplibre-source-location-2402533-1784566763825405462",
+  "scope_discipline": 5,
+  "security_and_safety": 5,
+  "strengths": [
+    "Eliminates the pre-existing undefined behavior of injecting `std::source_location` into `namespace std`, replacing it with a project-owned `mbgl::util::SourceLocation`",
+    "Feature detection is robust: uses `__has_include` plus `__cpp_lib_source_location >= 201907L`, so OpenHarmony (no header), C++17, and partial C++20 libraries all fall back correctly while conforming C++20 toolchains use the real standard type",
+    "Preserves diagnostic usefulness: `SYM_GUARD_LOC`/`MBGL_CURRENT_SOURCE_LOCATION` still captures caller file, function, and line in both paths",
+    "Both relevant build manifests (CMakeLists.txt INCLUDE_FILES and bazel/core.bzl MLN_CORE_HEADERS) updated, and the change was committed with a clean worktree",
+    "Verification was thorough: isolated compile checks of the standard path, C++17 fallback path, and a forced missing-feature C++20 path, plus a full successful `mbgl-core` build with -Werror"
+  ],
+  "summary": "Adds `include/mbgl/util/source_location.hpp` providing `mbgl::util::SourceLocation`, aliasing `std::source_location` when genuinely available and otherwise falling back to a small constexpr class with matching accessors. All `std::source_location` uses in symbol guard code are migrated, the old non-conforming `namespace std` shim is removed, and CMake/Bazel manifests are updated. Scope is tight, the design handles the OpenHarmony case, and the change is committed.",
+  "task_id": "ce-04-maplibre-source-location",
+  "test_quality": 3
+}
