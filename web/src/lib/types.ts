@@ -1,6 +1,7 @@
 export interface Warning { scope: string; message: string }
 export interface Artifact { path: string; url: string; bytes: number; sha256: string; expectedSha256?: string; hashMatches?: boolean }
-export interface ReviewState { kind: 'pending' | 'not-ready' | 'reviewed'; label: string; explanation: string; review?: Record<string, unknown> }
+export type ReviewPolicy = 'required' | 'withheld' | 'disabled';
+export interface ReviewState { kind: 'pending' | 'withheld' | 'not-applicable' | 'not-ready' | 'reviewed'; label: string; explanation: string; review?: Record<string, unknown> }
 export interface ObservedCheck { name: string; status: 'pass'|'fail'|'error'|'observed'; detail?: string }
 export interface ObservedChecks { summary: string; phase?: string; passed?: number; failed?: number; total?: number; compilerErrors?: number; checks: ObservedCheck[] }
 export interface TaskMetadata {
