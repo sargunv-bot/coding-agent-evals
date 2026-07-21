@@ -6,6 +6,7 @@ repeats = 1
 concurrency = 1
 infrastructure_retries = 0
 proctor_model = "openai/gpt-5.6-sol"
+review_policy = "withheld"
 
 [[models]]
 provider = "openai-subscription"
